@@ -5,7 +5,7 @@ namespace TurboPattes.Game.Visuals
     /// <summary>Textures générées au lancement (aucun fichier image dans le projet).</summary>
     public static class ProceduralTextures
     {
-        static Texture2D _softDot, _circle, _asphalt, _curb, _checker, _grass, _chevrons, _barrier, _white, _sand, _strata, _canyonBarrier;
+        static Texture2D _softDot, _circle, _asphalt, _curb, _checker, _grass, _chevrons, _white, _sand, _strata;
 
         static Texture2D New(string name, int w, int h, TextureWrapMode wrap = TextureWrapMode.Repeat, bool mips = true)
         {
@@ -183,25 +183,6 @@ namespace TurboPattes.Game.Visuals
             }
         }
 
-        /// <summary>Barrière : bandes bleues et blanches, liseré jaune en haut.</summary>
-        public static Texture2D Barrier
-        {
-            get
-            {
-                if (_barrier != null) return _barrier;
-                const int w = 64, h = 16;
-                _barrier = New("Barrier", w, h);
-                for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    Color c = (x / 16 & 1) == 0 ? new Color(0.18f, 0.45f, 0.95f) : new Color(0.97f, 0.97f, 0.97f);
-                    if (y >= h - 3) c = new Color(1f, 0.82f, 0.2f);
-                    _barrier.SetPixel(x, y, c);
-                }
-                _barrier.Apply();
-                return _barrier;
-            }
-        }
     
         /// <summary>Sable du canyon : grain fin et rides douces.</summary>
         public static Texture2D Sand
@@ -249,23 +230,62 @@ namespace TurboPattes.Game.Visuals
             }
         }
 
-        /// <summary>Muret du canyon : bandes terre cuite et crème, liseré turquoise en haut.</summary>
-        public static Texture2D CanyonBarrier
+    
+        static Texture2D _ground, _windows;
+        static readonly System.Collections.Generic.Dictionary<(Color, Color, Color), Texture2D> Barriers = new();
+
+        /// <summary>Sol neutre (gris clair granuleux) à teinter selon le thème.</summary>
+        public static Texture2D Ground
         {
             get
             {
-                if (_canyonBarrier != null) return _canyonBarrier;
-                const int w = 64, h = 16;
-                _canyonBarrier = New("CanyonBarrier", w, h);
-                for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
+                if (_ground != null) return _ground;
+                const int n = 128;
+                _ground = New("Ground", n, n);
+                for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
                 {
-                    Color c = (x / 16 & 1) == 0 ? new Color(0.85f, 0.35f, 0.2f) : new Color(0.98f, 0.92f, 0.8f);
-                    if (y >= h - 3) c = new Color(0.2f, 0.75f, 0.75f);
-                    _canyonBarrier.SetPixel(x, y, c);
+                    float v = 0.82f + Hash(x, y) * 0.1f + Hash(x / 8, y / 8) * 0.08f;
+                    _ground.SetPixel(x, y, new Color(v, v, v, 1));
                 }
-                _canyonBarrier.Apply();
-                return _canyonBarrier;
+                _ground.Apply();
+                return _ground;
+            }
+        }
+
+        /// <summary>Muret à deux bandes alternées et liseré en haut, aux couleurs du thème.</summary>
+        public static Texture2D BarrierOf(Color a, Color b, Color top)
+        {
+            if (Barriers.TryGetValue((a, b, top), out var t)) return t;
+            const int w = 64, h = 16;
+            t = New("Barrier", w, h);
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                t.SetPixel(x, y, y >= h - 3 ? top : (x / 16 & 1) == 0 ? a : b);
+            t.Apply();
+            Barriers[(a, b, top)] = t;
+            return t;
+        }
+
+        /// <summary>Façade de nuit : fenêtres allumées ou éteintes (sert aussi d'émission).</summary>
+        public static Texture2D Windows
+        {
+            get
+            {
+                if (_windows != null) return _windows;
+                const int n = 64;
+                _windows = New("Windows", n, n);
+                for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    bool frame = x % 8 < 2 || y % 8 < 3;
+                    bool lit = Hash(x / 8, y / 8) > 0.45f;
+                    float warm = Hash(x / 8 + 7, y / 8);
+                    var c = frame ? new Color(0.05f, 0.05f, 0.08f) : lit ? Color.Lerp(new Color(1f, 0.85f, 0.5f), new Color(0.6f, 0.9f, 1f), warm) : new Color(0.08f, 0.1f, 0.15f);
+                    _windows.SetPixel(x, y, c);
+                }
+                _windows.Apply();
+                return _windows;
             }
         }
     }

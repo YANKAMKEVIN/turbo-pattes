@@ -35,7 +35,7 @@ namespace TurboPattes.Game.App
             set => Save("tp.circuit", value);
         }
 
-        public const int CircuitCount = 2;
+        public const int CircuitCount = Track.Circuit.Count;
 
         public static Difficulty Difficulty
         {

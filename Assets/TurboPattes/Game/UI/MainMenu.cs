@@ -131,10 +131,14 @@ namespace TurboPattes.Game.UI
 
             // Panneau de réglages à droite.
             float px = safe.xMax - 310 * s, pw = 310 * s;
-            int nc = GameSession.CircuitCount;
-            l.CircuitButtons = new Rect[nc];
-            float cw = (pw - (nc - 1) * 8 * s) / nc;
-            for (int i = 0; i < nc; i++) l.CircuitButtons[i] = new Rect(px + i * (cw + 8 * s), safe.y + 130 * s, cw, 56 * s);
+            // Sélecteur de circuit : flèche précédente, nom (touche = suivant), flèche suivante.
+            float aw = 56 * s;
+            l.CircuitButtons = new[]
+            {
+                new Rect(px, safe.y + 130 * s, aw, 56 * s),
+                new Rect(px + aw + 8 * s, safe.y + 130 * s, pw - 2 * (aw + 8 * s), 56 * s),
+                new Rect(px + pw - aw, safe.y + 130 * s, aw, 56 * s),
+            };
             l.LapButtons = new Rect[3];
             l.DifficultyButtons = new Rect[3];
             float bw = (pw - 2 * 8 * s) / 3f;
@@ -249,8 +253,8 @@ namespace TurboPattes.Game.UI
             else if (l.Next.Contains(p)) ChangePilot(_pilot + 1);
             for (int i = 0; i < l.Cards.Length; i++)
                 if (l.Cards[i].Contains(p)) { ChangePilot(i); _row = Row.Pilot; }
-            for (int i = 0; i < l.CircuitButtons.Length; i++)
-                if (l.CircuitButtons[i].Contains(p)) { ChangeCircuit(i); _row = Row.Circuit; }
+            if (l.CircuitButtons[0].Contains(p)) { ChangeCircuit(_circuit - 1); _row = Row.Circuit; }
+            else if (l.CircuitButtons[1].Contains(p) || l.CircuitButtons[2].Contains(p)) { ChangeCircuit(_circuit + 1); _row = Row.Circuit; }
             for (int i = 0; i < 3; i++)
             {
                 if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; Jukebox.Instance.Move(); }
@@ -279,7 +283,7 @@ namespace TurboPattes.Game.UI
 
         void ChangeCircuit(int index)
         {
-            index = Mathf.Clamp(index, 0, GameSession.CircuitCount - 1);
+            index = (index % GameSession.CircuitCount + GameSession.CircuitCount) % GameSession.CircuitCount;
             if (index == _circuit) return;
             _circuit = index;
             Jukebox.Instance.Move();
@@ -368,8 +372,10 @@ namespace TurboPattes.Game.UI
             var panel = new Rect(l.LapButtons[0].x - 16 * s, l.Safe.y + 76 * s, l.Go.width + 32 * s, 340 * s);
             UiKit.Box(panel, new Color(0.08f, 0.1f, 0.2f, 0.6f), 18 * s);
             _ui.Label(new Rect(l.CircuitButtons[0].x, l.CircuitButtons[0].y - 42 * s, 300 * s, 36 * s), "Circuit", _ui.Medium, Color.white);
-            for (int i = 0; i < l.CircuitButtons.Length; i++)
-                Segment(l.CircuitButtons[i], _circuitNames[i], i == _circuit, _row == Row.Circuit && i == _circuit);
+            bool circuitRow = _row == Row.Circuit;
+            Segment(l.CircuitButtons[0], "<", false, circuitRow);
+            Segment(l.CircuitButtons[1], $"{_circuitNames[_circuit]}  {_circuit + 1}/{_circuitNames.Length}", true, circuitRow);
+            Segment(l.CircuitButtons[2], ">", false, circuitRow);
             _ui.Label(new Rect(l.LapButtons[0].x, l.LapButtons[0].y - 42 * s, 300 * s, 36 * s), "Tours", _ui.Medium, Color.white);
             _ui.Label(new Rect(l.DifficultyButtons[0].x, l.DifficultyButtons[0].y - 42 * s, 300 * s, 36 * s), "Difficulté", _ui.Medium, Color.white);
             for (int i = 0; i < 3; i++)

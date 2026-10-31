@@ -14,21 +14,27 @@ namespace TurboPattes.Game.Track
         public static List<BoostPad> Build(Circuit circuit, TrackPath path, Transform root, int seed)
         {
             var rng = new System.Random(seed);
-            var terrain = path.HasRelief ? new Terrain(path) : null;
-            if (terrain != null) BuildTerrain(path, terrain, root);
-            else BuildGround(path, root);
-            BuildRoad(path, root);
+            var style = ThemeStyle.For(circuit.Theme);
+            var terrain = path.HasRelief && !path.Floating ? new Terrain(path, style) : null;
+            if (terrain != null) BuildTerrain(path, terrain, style, circuit.Theme, root);
+            else if (!path.Floating) BuildGround(path, root);
+            if (!float.IsNaN(style.WaterLevel)) BuildWater(path, style, root);
+            BuildRoad(path, root, style.RoadTint);
             BuildCurbs(path, root);
-            BuildBarriers(path, root, circuit.Theme);
-            if (terrain != null)
+            BuildBarriers(path, root, style);
+            if (path.HasRelief)
             {
                 BuildBridges(path, terrain, root);
                 BuildKickers(path, root);
             }
             BuildStartLine(path, root);
             var pads = BuildBoostPads(circuit, path, root);
-            if (circuit.Theme == Theme.Canyon) BuildCanyonDecor(path, terrain, root, rng);
-            else BuildDecor(path, root, rng);
+            switch (circuit.Theme)
+            {
+                case Theme.Meadow: BuildDecor(path, root, rng); break;
+                case Theme.Canyon: BuildCanyonDecor(path, terrain, root, rng); break;
+                default: BuildThemeDecor(circuit.Theme, path, terrain, style, root, rng); break;
+            }
             // Tout le circuit est immobile : un objet par matériau au lieu de centaines.
             var (merged, skipped, result) = MeshKit.Combine(root);
             Debug.Log($"[TurboPattes] Décor fusionné : {merged} maillages -> {result} objets ({skipped} non lisibles)");
@@ -102,10 +108,10 @@ namespace TurboPattes.Game.Track
             return mesh;
         }
 
-        static void BuildRoad(TrackPath path, Transform root)
+        static void BuildRoad(TrackPath path, Transform root, Color tint)
         {
             var mesh = Ribbon(path, -path.HalfWidth, path.HalfWidth, 0.02f, 16f, "Road");
-            var go = MeshKit.MeshObject("Road", mesh, Mats.Textured(ProceduralTextures.Asphalt, Color.white, Vector2.one, 0.15f), root, false);
+            var go = MeshKit.MeshObject("Road", mesh, Mats.Textured(ProceduralTextures.Asphalt, tint, Vector2.one, 0.15f), root, false);
             go.GetComponent<MeshRenderer>().receiveShadows = true;
         }
 
@@ -118,9 +124,9 @@ namespace TurboPattes.Game.Track
         }
 
         /// <summary>Murets des deux côtés : face intérieure + dessus, texturés en bandes.</summary>
-        static void BuildBarriers(TrackPath path, Transform root, Theme theme)
+        static void BuildBarriers(TrackPath path, Transform root, ThemeStyle style)
         {
-            var tex = theme == Theme.Canyon ? ProceduralTextures.CanyonBarrier : ProceduralTextures.Barrier;
+            var tex = ProceduralTextures.BarrierOf(style.BarrierA, style.BarrierB, style.BarrierTop);
             var mat = Mats.Textured(tex, Color.white, Vector2.one, 0.35f);
             foreach (int side in new[] { 1, -1 })
             {

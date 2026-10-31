@@ -20,10 +20,12 @@ namespace TurboPattes.Game.Track
         readonly TrackPath _path;
         readonly float[] _x, _z, _h;
         readonly float _flatZone;
+        readonly ThemeStyle _style;
 
-        public Terrain(TrackPath path)
+        public Terrain(TrackPath path, ThemeStyle style)
         {
             _path = path;
+            _style = style;
             _flatZone = path.BarrierOffset + 1.5f;
             var x = new List<float>();
             var z = new List<float>();
@@ -61,8 +63,9 @@ namespace TurboPattes.Game.Track
             trackDistance = minD;
             if (minD <= _flatZone) bank = nearH - UnderRoad;
             // Dunes douces loin de la piste.
-            float dune = (Mathf.Sin(x * 0.021f) * Mathf.Cos(z * 0.017f) + 0.6f * Mathf.Sin((x + z) * 0.035f) + 1.6f) * 2.6f;
-            float baseH = dune * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(50f, 140f, minD));
+            // Loin de la piste : niveau du thème (fond du lagon…) et dunes douces.
+            float dune = (Mathf.Sin(x * 0.021f) * Mathf.Cos(z * 0.017f) + 0.6f * Mathf.Sin((x + z) * 0.035f) + 1.6f) * _style.Dunes;
+            float baseH = (_style.FarLevel + dune) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(_style.FarFrom, _style.FarTo, minD));
             return Mathf.Max(baseH, bank);
         }
 
@@ -86,7 +89,7 @@ namespace TurboPattes.Game.Track
     {
         const float TerrainCell = 4f;
 
-        static void BuildTerrain(TrackPath path, Terrain terrain, Transform root)
+        static void BuildTerrain(TrackPath path, Terrain terrain, ThemeStyle style, Theme theme, Transform root)
         {
             var min = new Vector3(float.MaxValue, 0, float.MaxValue);
             var max = new Vector3(float.MinValue, 0, float.MinValue);
@@ -104,7 +107,7 @@ namespace TurboPattes.Game.Track
                 float h = terrain.Height(x, z);
                 // Le bord de la grille rejoint la plaine (y = 0) pour ne pas laisser de falaise.
                 int edge = Mathf.Min(Mathf.Min(i, nx - 1 - i), Mathf.Min(j, nz - 1 - j));
-                h *= Mathf.Clamp01(edge / 8f);
+                h = Mathf.Lerp(style.FarLevel, h, Mathf.Clamp01(edge / 8f));
                 v[j * nx + i] = new Vector3(x, h, z);
                 uv[j * nx + i] = new Vector2(x / 10f, z / 10f);
             }
@@ -123,18 +126,21 @@ namespace TurboPattes.Game.Track
             mesh.triangles = t;
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
-            var sand = Mats.Textured(ProceduralTextures.Sand, Color.white, Vector2.one, 0.08f);
+            var sand = theme == Theme.Canyon
+                ? Mats.Textured(ProceduralTextures.Sand, Color.white, Vector2.one, 0.08f)
+                : Mats.Textured(ProceduralTextures.Ground, style.GroundTint, Vector2.one, theme == Theme.Ice ? 0.45f : 0.08f);
             MeshKit.MeshObject("Terrain", mesh, sand, root, false).GetComponent<MeshRenderer>().receiveShadows = true;
 
             // Plaine au-delà de la grille, un peu plus bas pour éviter le scintillement au raccord.
             var c0 = (min + max) * 0.5f;
             const float size = 1600f;
+            float plainY = style.FarLevel - 0.15f;
             var plain = new Mesh { name = "Plain" };
             float hs = size * 0.5f;
             plain.vertices = new[]
             {
-                new Vector3(c0.x - hs, -0.15f, c0.z - hs), new Vector3(c0.x - hs, -0.15f, c0.z + hs),
-                new Vector3(c0.x + hs, -0.15f, c0.z + hs), new Vector3(c0.x + hs, -0.15f, c0.z - hs),
+                new Vector3(c0.x - hs, plainY, c0.z - hs), new Vector3(c0.x - hs, plainY, c0.z + hs),
+                new Vector3(c0.x + hs, plainY, c0.z + hs), new Vector3(c0.x + hs, plainY, c0.z - hs),
             };
             plain.uv = new[] { new Vector2(0, 0), new Vector2(0, size / 10f), new Vector2(size / 10f, size / 10f), new Vector2(size / 10f, 0) };
             plain.triangles = new[] { 0, 1, 2, 0, 2, 3 };
@@ -240,6 +246,7 @@ namespace TurboPattes.Game.Track
                     foreach (float lat in new[] { -5f, 5f })
                     {
                         var p = BaseAt(path, k, lat);
+                        if (terrain == null) continue; // piste suspendue : pas de sol pour poser des piles
                         if (terrain.DistanceToLowRoad(p, top - 3f) < path.BarrierOffset + 2.5f) continue;
                         float ground = terrain.Height(p.x, p.z);
                         float h = top - ground + 0.5f;

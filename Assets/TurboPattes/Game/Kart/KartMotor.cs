@@ -106,6 +106,7 @@ namespace TurboPattes.Game.Kart
             TrackIndex = path.Nearest(Position, -1);
             float s0 = path.DistanceAlong(TrackIndex, Position);
             Position.y = path.GroundHeight(s0, startLateral);
+            Vertical.GravityScale = path.Gravity;
             Vertical.Reset(Position.y);
             Laps = new LapTracker(path.Length, s0);
             BuildFx();
@@ -134,7 +135,7 @@ namespace TurboPattes.Game.Kart
             float turn = 0f;
             bool air = Airborne;
             // Côtes et descentes : une part de la gravité freine ou pousse le kart.
-            if (!air) vF -= VerticalMotion.Gravity * SlopePull * _slopeAhead * dt;
+            if (!air) vF -= VerticalMotion.Gravity * Path.Gravity * SlopePull * _slopeAhead * dt;
             if (SpinTime > 0f)
             {
                 SpinTime -= dt;

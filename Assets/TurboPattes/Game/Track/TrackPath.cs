@@ -31,6 +31,10 @@ namespace TurboPattes.Game.Track
         public readonly bool[] Elevated;
         /// <summary>Tronçons de pont [début, fin] en distance le long du circuit.</summary>
         public readonly List<(float from, float to)> Bridges = new();
+        /// <summary>Gravité relative du circuit.</summary>
+        public readonly float Gravity = 1f;
+        /// <summary>Piste suspendue (ciel, espace) : pas de sol dessous.</summary>
+        public readonly bool Floating;
         readonly TrackProjection _projection;
 
         public int Count => Points.Length;
@@ -44,6 +48,7 @@ namespace TurboPattes.Game.Track
             HalfWidth = halfWidth;
             CurbWidth = curbWidth;
             BarrierOffset = barrierOffset;
+            if (relief != null) { Gravity = relief.Gravity; Floating = relief.Floating; }
             int n = control.Count;
             int count = n * samplesPerSegment;
             Points = new Vector3[count];
@@ -90,7 +95,7 @@ namespace TurboPattes.Game.Track
                 {
                     BaseHeights[i] = Profile.BaseHeight(Dist[i]);
                     Points[i].y = Profile.Height(Dist[i]);
-                    Elevated[i] = OnBridge(Dist[i]);
+                    Elevated[i] = Floating || OnBridge(Dist[i]);
                 }
             }
 

@@ -13,6 +13,10 @@ namespace TurboPattes.Core
         /// <summary>Le kart décolle si le sol passe plus bas que sa trajectoire libre d'au moins cette marge.</summary>
         public const float TakeOffMargin = 0.05f;
 
+        /// <summary>Gravité relative du circuit (espace : 0,55).</summary>
+        public float GravityScale = 1f;
+        float G => Gravity * GravityScale;
+
         public float Y { get; private set; }
         public float Vy { get; private set; }
         public bool Grounded { get; private set; } = true;
@@ -35,13 +39,13 @@ namespace TurboPattes.Core
         {
             if (Grounded)
             {
-                float free = Y + Vy * dt - 0.5f * Gravity * dt * dt;
+                float free = Y + Vy * dt - 0.5f * G * dt * dt;
                 if (groundY < free - TakeOffMargin)
                 {
                     Grounded = false;
                     AirTime = 0f;
                     Y = free;
-                    Vy -= Gravity * dt;
+                    Vy -= G * dt;
                     return VerticalEvent.TookOff;
                 }
                 Y = groundY;
@@ -49,7 +53,7 @@ namespace TurboPattes.Core
                 return VerticalEvent.None;
             }
 
-            Vy -= Gravity * dt;
+            Vy -= G * dt;
             Y += Vy * dt;
             AirTime += dt;
             if (Y > groundY) return VerticalEvent.None;

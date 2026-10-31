@@ -31,6 +31,7 @@ namespace TurboPattes.Game.App
         Transform _world, _trackRoot;
         Light _sun;
         QualityTuner _tuner;
+        Material _skyTemplate;
         RaceManager _race;
         Circuit _circuit;
         TrackPath _path;
@@ -231,17 +232,31 @@ namespace TurboPattes.Game.App
 
         void ApplyTheme(Theme theme)
         {
-            bool canyon = theme == Theme.Canyon;
-            _sun.color = canyon ? new Color(1f, 0.88f, 0.72f) : new Color(1f, 0.96f, 0.88f);
-            _sun.intensity = canyon ? 1.45f : 1.35f;
-            _sun.transform.rotation = canyon ? Quaternion.Euler(40f, -60f, 0f) : Quaternion.Euler(48f, -35f, 0f);
-            RenderSettings.ambientSkyColor = canyon ? new Color(0.72f, 0.72f, 0.85f) : new Color(0.62f, 0.75f, 0.95f);
-            RenderSettings.ambientEquatorColor = canyon ? new Color(0.85f, 0.66f, 0.5f) : new Color(0.62f, 0.7f, 0.62f);
-            RenderSettings.ambientGroundColor = canyon ? new Color(0.5f, 0.35f, 0.25f) : new Color(0.35f, 0.42f, 0.3f);
-            RenderSettings.fogColor = canyon ? new Color(0.94f, 0.8f, 0.64f) : new Color(0.72f, 0.84f, 0.97f);
-            RenderSettings.fogStartDistance = canyon ? 180f : 160f;
-            RenderSettings.fogEndDistance = canyon ? 580f : 520f;
-            _chase.GetComponent<Camera>().backgroundColor = RenderSettings.fogColor;
+            var st = ThemeStyle.For(theme);
+            _sun.color = st.SunColor;
+            _sun.intensity = st.SunIntensity;
+            _sun.transform.rotation = Quaternion.Euler(st.SunAngles);
+            RenderSettings.ambientSkyColor = st.AmbientSky;
+            RenderSettings.ambientEquatorColor = st.AmbientEquator;
+            RenderSettings.ambientGroundColor = st.AmbientGround;
+            RenderSettings.fogColor = st.Fog;
+            RenderSettings.fogStartDistance = st.FogStart;
+            RenderSettings.fogEndDistance = st.FogEnd;
+            var cam = _chase.GetComponent<Camera>();
+            cam.backgroundColor = st.Fog;
+            cam.farClipPlane = theme == Theme.Space ? 1500f : 900f;
+            // Ciel procédural réglé par thème (copie du gabarit, qui reste intact).
+            if (_skyTemplate == null) _skyTemplate = RenderSettings.skybox;
+            if (_skyTemplate != null)
+            {
+                var sky = new Material(_skyTemplate);
+                void Set(string prop, float v) { if (sky.HasProperty(prop)) sky.SetFloat(prop, v); }
+                if (sky.HasProperty("_SkyTint")) sky.SetColor("_SkyTint", st.SkyTint);
+                if (sky.HasProperty("_GroundColor")) sky.SetColor("_GroundColor", st.SkyGround);
+                Set("_Exposure", st.SkyExposure);
+                Set("_AtmosphereThickness", st.SkyAtmosphere);
+                RenderSettings.skybox = sky;
+            }
         }
 
         static void BuildPostProcessing(Transform parent)
@@ -280,21 +295,36 @@ namespace TurboPattes.Game.App
         {
             var cam = _chase.transform;
             _chase.enabled = false;
-            var bridge = _path.Bridges[0];
-            float mid = _path.Wrap(bridge.from + _path.Wrap(bridge.to - bridge.from) * 0.5f);
-            Vector3 deck = _path.PointAt(mid);
-            _path.Sample(mid, out _, out var bt, out var br);
-            cam.position = deck + br * 45f - bt * 30f + Vector3.up * 2f;
-            cam.rotation = Quaternion.LookRotation(deck + Vector3.down * 4f - cam.position);
+            if (_path.Bridges.Count > 0)
+            {
+                var bridge = _path.Bridges[0];
+                float mid = _path.Wrap(bridge.from + _path.Wrap(bridge.to - bridge.from) * 0.5f);
+                Vector3 deck = _path.PointAt(mid);
+                _path.Sample(mid, out _, out var bt, out var br);
+                cam.position = deck + br * 45f - bt * 30f + Vector3.up * 2f;
+                cam.rotation = Quaternion.LookRotation(deck + Vector3.down * 4f - cam.position);
+                yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, "vue_pont.png"));
+                yield return null;
+            }
+            if (_path.Profile.Kickers.Count > 0)
+            {
+                var kicker = _path.Profile.Kickers[0];
+                _path.Sample(kicker.LipS, out var lip, out var kt, out var kr);
+                cam.position = lip - kt * 22f + kr * 16f + Vector3.up * 6f;
+                cam.rotation = Quaternion.LookRotation(lip - cam.position);
+                yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, "vue_tremplin.png"));
+                yield return null;
+            }
+            // Vue d'ensemble, de haut.
+            Vector3 centre = Vector3.zero;
+            foreach (var p in _path.Points) centre += p;
+            centre /= _path.Count;
+            cam.position = centre + new Vector3(0f, 170f, -260f);
+            cam.rotation = Quaternion.LookRotation(centre - cam.position);
             yield return null;
-            ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, "vue_pont.png"));
-            yield return null;
-            var kicker = _path.Profile.Kickers[0];
-            _path.Sample(kicker.LipS, out var lip, out var kt, out var kr);
-            cam.position = lip - kt * 22f + kr * 16f + Vector3.up * 5f;
-            cam.rotation = Quaternion.LookRotation(lip - cam.position);
-            yield return null;
-            ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, "vue_tremplin.png"));
+            ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, "vue_ensemble.png"));
             yield return null;
             _chase.enabled = true;
         }
