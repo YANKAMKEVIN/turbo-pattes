@@ -3,6 +3,7 @@ using TurboPattes.Game.App;
 using TurboPattes.Game.Kart;
 using TurboPattes.Game.Race;
 using TurboPattes.Game.Visuals;
+using TurboPattes.Game.Audio;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -82,7 +83,7 @@ namespace TurboPattes.Game.UI
             else
             {
                 _focus = 0;
-                if (tap.HasValue && Race.Input.TouchMode && PauseButton().Contains(tap.Value)) Race.SetPaused(true);
+                if (tap.HasValue && Race.Input.TouchMode && PauseButton().Contains(tap.Value)) { Jukebox.Instance.Confirm(); Race.SetPaused(true); }
             }
         }
 
@@ -101,15 +102,17 @@ namespace TurboPattes.Game.UI
                 if ((vertical ? pad.dpad.up : pad.dpad.left).wasPressedThisFrame) d--;
                 if ((vertical ? pad.dpad.down : pad.dpad.right).wasPressedThisFrame) d++;
             }
+            int before = _focus;
             _focus = Mathf.Clamp(_focus + d, 0, buttons.Length - 1);
+            if (_focus != before) Jukebox.Instance.Move();
             bool confirm = kb != null && (kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
                            || pad != null && pad.buttonSouth.wasPressedThisFrame;
             bool back = kb != null && kb.escapeKey.wasPressedThisFrame || pad != null && (pad.buttonEast.wasPressedThisFrame || pad.startButton.wasPressedThisFrame);
-            if (confirm) { choose(_focus); return; }
-            if (back && Race.Paused) { choose(0); return; }
+            if (confirm) { Jukebox.Instance.Confirm(); choose(_focus); return; }
+            if (back && Race.Paused) { Jukebox.Instance.Back(); choose(0); return; }
             if (!tap.HasValue) return;
             for (int i = 0; i < buttons.Length; i++)
-                if (buttons[i].Contains(tap.Value)) { choose(i); return; }
+                if (buttons[i].Contains(tap.Value)) { Jukebox.Instance.Confirm(); choose(i); return; }
         }
 
         void ChoosePause(int i)

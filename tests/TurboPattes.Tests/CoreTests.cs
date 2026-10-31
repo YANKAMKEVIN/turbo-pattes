@@ -152,4 +152,63 @@ namespace TurboPattes.Tests
             Assert.That(order, Is.EqualTo(new[] { 0, 1 }));
         }
     }
+
+    public class TuneTests
+    {
+        [TestCase("C4", 60)]
+        [TestCase("A4", 69)]
+        [TestCase("Bb3", 58)]
+        [TestCase("C#5", 73)]
+        [TestCase("G2", 43)]
+        public void ParseNote_DonneLaHauteurMidi(string note, int midi) => Assert.That(Tune.ParseNote(note), Is.EqualTo(midi));
+
+        [Test]
+        public void ParseNote_RefuseLesNotesInvalides()
+        {
+            Assert.Throws<System.FormatException>(() => Tune.ParseNote("H4"));
+            Assert.Throws<System.FormatException>(() => Tune.ParseNote("C"));
+        }
+
+        [Test]
+        public void ParseMelody_TiretProlongePointCoupe()
+        {
+            var e = Tune.ParseMelody("C4 - . E4 - - G4 .");
+            Assert.That(e.Count, Is.EqualTo(3));
+            Assert.That((e[0].Midi, e[0].Start, e[0].Length), Is.EqualTo((60, 0, 2)));
+            Assert.That((e[1].Midi, e[1].Start, e[1].Length), Is.EqualTo((64, 3, 3)));
+            Assert.That((e[2].Midi, e[2].Start, e[2].Length), Is.EqualTo((67, 6, 1)));
+        }
+
+        [Test]
+        public void ParseMelody_NoteTenueAuDelaDeLaBarre()
+        {
+            var e = Tune.ParseMelody("C4 - - - - - - - | - - . . . . . .");
+            Assert.That(e.Count, Is.EqualTo(1));
+            Assert.That(e[0].Length, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void ParseMelody_RefuseUneMesureIncomplete() =>
+            Assert.Throws<System.FormatException>(() => Tune.ParseMelody("C4 - - -"));
+
+        [Test]
+        public void ChordNotes_MajeurEtMineur()
+        {
+            Assert.That(Tune.ChordNotes("C"), Is.EqualTo(new[] { 48, 52, 55 }));
+            Assert.That(Tune.ChordNotes("Am"), Is.EqualTo(new[] { 57, 60, 64 }));
+        }
+
+        [Test]
+        public void Morceaux_UneMesureDeMelodieParAccord()
+        {
+            foreach (var song in new[] { Songs.Menu, Songs.Race })
+            {
+                var notes = Tune.ParseMelody(song.Melody);
+                Assert.That(notes.Count, Is.GreaterThan(20), song.Name);
+                Assert.That(song.Melody.Split('|').Length, Is.EqualTo(song.Bars), song.Name);
+                foreach (var n in notes) Assert.That(n.Start + n.Length, Is.LessThanOrEqualTo(song.Steps), song.Name);
+                foreach (var c in song.Chords) Assert.That(Tune.ChordNotes(c).Length, Is.EqualTo(3), song.Name + " " + c);
+            }
+        }
+    }
 }

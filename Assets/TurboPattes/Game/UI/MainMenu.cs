@@ -197,7 +197,7 @@ namespace TurboPattes.Game.UI
                 {
                     _screen = Screen.Pilot;
                     _row = Row.Start;
-                    _sound.Pop();
+                    Jukebox.Instance.Confirm();
                 }
                 return;
             }
@@ -205,7 +205,7 @@ namespace TurboPattes.Game.UI
             if (back || tap.HasValue && l.Back.Contains(tap.Value))
             {
                 _screen = Screen.Title;
-                _sound.Tick();
+                Jukebox.Instance.Back();
                 return;
             }
             if (confirm || tap.HasValue && l.Go.Contains(tap.Value))
@@ -214,14 +214,14 @@ namespace TurboPattes.Game.UI
                 return;
             }
 
-            if (dy != 0) { _row = (Row)Mathf.Clamp((int)_row + dy, 0, 3); _sound.Tick(); }
+            if (dy != 0) { _row = (Row)Mathf.Clamp((int)_row + dy, 0, 3); Jukebox.Instance.Move(); }
             if (dx != 0)
             {
                 switch (_row)
                 {
                     case Row.Pilot: case Row.Start: ChangePilot(_pilot + dx); break;
-                    case Row.Laps: _laps = Mathf.Clamp(_laps + dx, 0, 2); _sound.Tick(); break;
-                    case Row.Difficulty: _difficulty = (Difficulty)Mathf.Clamp((int)_difficulty + dx, 0, 2); _sound.Tick(); break;
+                    case Row.Laps: _laps = Mathf.Clamp(_laps + dx, 0, 2); Jukebox.Instance.Move(); break;
+                    case Row.Difficulty: _difficulty = (Difficulty)Mathf.Clamp((int)_difficulty + dx, 0, 2); Jukebox.Instance.Move(); break;
                 }
             }
 
@@ -233,8 +233,8 @@ namespace TurboPattes.Game.UI
                 if (l.Cards[i].Contains(p)) { ChangePilot(i); _row = Row.Pilot; }
             for (int i = 0; i < 3; i++)
             {
-                if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; _sound.Tick(); }
-                if (l.DifficultyButtons[i].Contains(p)) { _difficulty = (Difficulty)i; _row = Row.Difficulty; _sound.Tick(); }
+                if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; Jukebox.Instance.Move(); }
+                if (l.DifficultyButtons[i].Contains(p)) { _difficulty = (Difficulty)i; _row = Row.Difficulty; Jukebox.Instance.Move(); }
             }
         }
 
@@ -255,7 +255,7 @@ namespace TurboPattes.Game.UI
             GameSession.Pilot = _pilot;
             GameSession.Laps = GameSession.LapChoices[_laps];
             GameSession.Difficulty = _difficulty;
-            _sound.Go();
+            Jukebox.Instance.Confirm();
             Play?.Invoke();
             Destroy(gameObject);
         }

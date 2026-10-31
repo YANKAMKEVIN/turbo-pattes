@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using TurboPattes.Core;
 using TurboPattes.Game.Audio;
 using TurboPattes.Game.Race;
 using TurboPattes.Game.Track;
@@ -55,6 +56,7 @@ namespace TurboPattes.Game.App
         {
             var menu = new GameObject("Menu").AddComponent<UI.MainMenu>();
             menu.Setup(_path, _chase.GetComponent<Camera>(), _sound);
+            Jukebox.Instance.Play(Songs.Menu, 0.45f);
             menu.Play = StartRace;
             if (_menuTestDir != null) StartCoroutine(MenuTest(menu));
         }
@@ -97,6 +99,8 @@ namespace TurboPattes.Game.App
         {
             // « Rejouer » relance directement la course ; seul le bouton Menu remet ce drapeau.
             GameSession.ShowMenu = false;
+            // Silence pendant le compte à rebours ; la musique de course part au « PARTEZ ! ».
+            Jukebox.Instance.Play(null);
             bool auto = _autotestDir != null;
             int laps = _lapsOverride > 0 ? _lapsOverride : auto ? 3 : GameSession.Laps;
             int pilot = auto ? 0 : GameSession.Pilot;

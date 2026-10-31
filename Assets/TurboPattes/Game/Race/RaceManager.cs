@@ -182,6 +182,7 @@ namespace TurboPattes.Game.Race
             {
                 State = Phase.Racing;
                 _sound.Go();
+                Jukebox.Instance.Play(Songs.Race, MusicLevel);
                 ShowBanner("PARTEZ !", 1.0f);
                 foreach (var k in Karts) k.ControlsEnabled = true;
                 if (_firstThrottleAt > 0f && _firstThrottleAt <= 1.0f)
@@ -245,6 +246,7 @@ namespace TurboPattes.Game.Race
                 if (k.IsPlayer)
                 {
                     _sound.Finish();
+                    Jukebox.Instance.SetLevel(0.15f);
                     ShowBanner(k.Rank == 0 ? "Victoire !" : "Arrivée !", 2.5f);
                     _cam.Orbit = true;
                     _resultsDelay = 2.5f;
@@ -278,11 +280,14 @@ namespace TurboPattes.Game.Race
             BannerTime = seconds;
         }
 
+        const float MusicLevel = 0.4f;
+
         public void SetPaused(bool paused)
         {
             Paused = paused;
             Time.timeScale = paused ? 0f : 1f;
             AudioListener.pause = paused;
+            if (State == Phase.Racing) Jukebox.Instance.SetLevel(paused ? 0.15f : MusicLevel);
         }
 
         /// <summary>Recharge la scène : <see cref="App.GameSession.ShowMenu"/> dit si l'on revient au menu ou si l'on recourt.</summary>
