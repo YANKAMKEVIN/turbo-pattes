@@ -56,6 +56,14 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1
 ```
 
+## Vérifications faites (2026-10-31)
+
+- 16 tests NUnit verts sur le Core.
+- Build Mac OK : course autotest de 1 tour sans erreur ni exception, ~60 i/s, joueur (piloté par l'IA) 4e en 42,8 s, peloton serré (~2 s). Captures vérifiées : rendu, HUD, résultats.
+- Correction faite après la première course : l'IA coupait la boucle serrée par l'herbe (visée trop lointaine).
+- Build Android OK (APK 32 Mo, `Builds/Android/TurboPattes.apk`) mais **pas encore installé** : le S24 s'est déconnecté. Installation : `~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk`.
+- Non testé : commandes tactiles et manette sur un vrai appareil, ressenti du drift par un humain.
+
 ## Pièges connus
 
 - Matériaux : toujours passer par `Mats` (clones des gabarits de `Resources`), sinon les shaders URP peuvent manquer dans le build.
