@@ -82,7 +82,8 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 
 - **Circuit 2 / relief** : 37 tests NUnit verts (dont 10 nouveaux : profil de hauteur, saut et réception, tronçon au croisement d'un huit, un seul tour compté). Autotest Mac sur le Canyon, 3 tours : terminé, ~60 i/s, chaque kart saute 3 fois (~0,9 s), aucune anomalie ; peloton serré (1,2 s). Prairie : 1 tour sans régression. `-tp-menutest` : choix Canyon, piste reconstruite, course lancée sur le Canyon, choix mémorisé. Construction du Canyon ~0,3–0,55 s sur Mac. Captures : `docs/capture-canyon-pont.png`, `docs/capture-canyon-saut.png`, `docs/capture-menu-circuit.png`.
   - Corrigé en route : le sable recouvrait la route dans les côtes (talus pris sur les points de piste suivants) ; près de la piste le sol suit maintenant l'échantillon le plus proche.
-  - **Pas encore vérifié sur le Galaxy S24** (non branché ce jour-là) : APK construit (`Builds/Android/TurboPattes.apk`). À faire : `adb install -r`, puis `am start ... -e unity "-tp-circuit 2 -tp-autotest at"` et captures `adb exec-out screencap -p`.
+  - **Galaxy A17 (SM-A175F, Mali-G57, Vulkan)**, le S24 n'étant pas branché : `am start ... -e unity "-tp-circuit 2 -tp-autotest at -tp-laps 1 -tp-diag"`. Monde visible (Lit = 5 passes), Canyon construit en 324 ms, course terminée, 8 sauts (~0,85 s), passages sous et sur le pont capturés, aucune anomalie. Planche de captures adb : `docs/capture-canyon-a17.png`. Journal récupéré dans `/sdcard/Android/data/com.kevinyankam.turbopattes/files/at/`.
+  - **Fluidité sur l'A17 : ~15 i/s, autant sur la Prairie que sur le Canyon** (limite du téléphone en pleine définition, pas du relief). Le S24 tournait à ~60 i/s sur la Prairie. Reste à vérifier le Canyon sur le S24.
 
 - 16 tests NUnit verts sur le Core.
 - Build Mac OK : course autotest de 1 tour sans erreur ni exception, ~60 i/s, joueur (piloté par l'IA) 4e en 42,8 s, peloton serré (~2 s). Captures vérifiées : rendu, HUD, résultats.
@@ -107,6 +108,6 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ## Prochaines étapes envisagées
 
 1. Faire tester le ressenti de conduite par Kevin (S24 + manette) et régler vitesses, drift, IA.
-2. Vérifier le Canyon sur le S24 ; plus d'objets propres au jeu ; une troisième piste.
+2. Vérifier le Canyon sur le S24 ; réglage de qualité pour les téléphones modestes (échelle de rendu, ombres) vu les ~15 i/s de l'A17 ; plus d'objets propres au jeu ; une troisième piste.
 3. Modèles 3D plus fins pour les pilotes (ou génération).
 4. Une musique par circuit ; réglage du volume musique / effets.
