@@ -96,6 +96,7 @@ namespace TurboPattes.Game.Race
                 kart.Boosted += k => { if (k.IsPlayer) _sound.Boost(); };
                 kart.SpunOut += k => { if (k.IsPlayer) _sound.Hit(); };
                 kart.DriftLevelUp += k => { if (k.IsPlayer) _sound.LevelUp(); };
+                kart.Landed += k => { if (k.IsPlayer && k.Vertical.LandingSpeed > 4f) _sound.Bump(); };
             }
             Items.PickedUp += k => { if (k.IsPlayer) _sound.Pop(); };
             Items.Used += k => { if (k.IsPlayer) _sound.Throw(); };

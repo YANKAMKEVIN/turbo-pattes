@@ -16,7 +16,8 @@ namespace TurboPattes.Game.App
     /// <summary>
     /// Point d'entrée : la scène ne contient que cet objet, tout le reste est construit au lancement.
     /// Argument <c>-tp-autotest &lt;dossier&gt;</c> : le joueur est conduit par l'IA, captures d'écran
-    /// et journal dans le dossier, puis fermeture. <c>-tp-laps N</c> change le nombre de tours.
+    /// et journal dans le dossier, puis fermeture. <c>-tp-laps N</c> change le nombre de tours,
+    /// <c>-tp-circuit N</c> choisit le circuit (1 = Prairie, 2 = Canyon).
     /// </summary>
     public sealed class KartApp : MonoBehaviour
     {
@@ -25,6 +26,10 @@ namespace TurboPattes.Game.App
         string _autotestDir, _menuTestDir;
         bool _diag;
         int _lapsOverride;
+        int _circuitOverride = -1;
+        int _circuitIndex;
+        Transform _world, _trackRoot;
+        Light _sun;
         RaceManager _race;
         Circuit _circuit;
         TrackPath _path;
@@ -44,9 +49,14 @@ namespace TurboPattes.Game.App
                 if (args[i] == "-tp-autotest") _autotestDir = args[i + 1];
                 if (args[i] == "-tp-menutest") _menuTestDir = args[i + 1];
                 if (args[i] == "-tp-laps" && int.TryParse(args[i + 1], out int l)) _lapsOverride = Mathf.Clamp(l, 1, 9);
+                if (args[i] == "-tp-circuit" && int.TryParse(args[i + 1], out int c)) _circuitOverride = Mathf.Clamp(c - 1, 0, GameSession.CircuitCount - 1);
             }
 
             _diag = Array.IndexOf(args, "-tp-diag") >= 0;
+            // Sur Android, un dossier relatif va dans le stockage de l'application.
+            if (_autotestDir != null && !Path.IsPathRooted(_autotestDir)) _autotestDir = Path.Combine(Application.persistentDataPath, _autotestDir);
+            if (_circuitOverride >= 0 && _autotestDir == null) GameSession.Circuit = _circuitOverride;
+            _circuitIndex = _circuitOverride >= 0 ? _circuitOverride : _autotestDir != null ? 0 : GameSession.Circuit;
             BuildWorld();
             if (_autotestDir != null || !GameSession.ShowMenu) StartRace();
             else ShowMenu();
@@ -55,7 +65,13 @@ namespace TurboPattes.Game.App
         void ShowMenu()
         {
             var menu = new GameObject("Menu").AddComponent<UI.MainMenu>();
-            menu.Setup(_path, _chase.GetComponent<Camera>(), _sound);
+            menu.Setup(_path, _chase.GetComponent<Camera>(), _sound, _circuitIndex);
+            // Changer de circuit dans le menu reconstruit la piste derrière lui.
+            menu.CircuitChanged = index =>
+            {
+                LoadCircuit(index);
+                menu.SetTrack(_path);
+            };
             Jukebox.Instance.Play(Songs.Menu, 0.45f);
             menu.Play = StartRace;
             if (_menuTestDir != null) StartCoroutine(MenuTest(menu));
@@ -73,7 +89,7 @@ namespace TurboPattes.Game.App
             yield return new WaitForSeconds(2.5f);
             ScreenCapture.CaptureScreenshot(Shot("2_pilote"));
             yield return new WaitForSeconds(0.3f);
-            menu.TestSelect(4, 0, Difficulty.Hard);
+            menu.TestSelect(4, 0, Difficulty.Hard, 1);
             yield return new WaitForSeconds(1.5f);
             ScreenCapture.CaptureScreenshot(Shot("3_bruno"));
             yield return new WaitForSeconds(0.3f);
@@ -91,7 +107,8 @@ namespace TurboPattes.Game.App
             ScreenCapture.CaptureScreenshot(Shot("5_pause"));
             yield return new WaitForSecondsRealtime(0.5f);
             File.WriteAllText(Path.Combine(_menuTestDir, "menutest.log"),
-                $"pilote={_race.Player.Spec.Name} tours={_race.Laps} karts={string.Join(",", Array.ConvertAll(_race.Karts, k => k.Spec.Name))}\n");
+                $"pilote={_race.Player.Spec.Name} tours={_race.Laps} circuit={_race.Circuit.Name} (memorise={GameSession.Circuit}) " +
+                $"karts={string.Join(",", Array.ConvertAll(_race.Karts, k => k.Spec.Name))}\n");
             Application.Quit();
         }
 
@@ -149,28 +166,19 @@ namespace TurboPattes.Game.App
 
         void BuildWorld()
         {
-            var world = new GameObject("World").transform;
+            var world = _world = new GameObject("World").transform;
 
-            // Lumière du soleil
-            var sun = new GameObject("Sun").AddComponent<Light>();
+            // Lumière du soleil (couleur et angle selon le circuit, voir ApplyTheme)
+            var sun = _sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.color = new Color(1f, 0.96f, 0.88f);
-            sun.intensity = 1.35f;
             sun.shadows = LightShadows.Soft;
             sun.shadowStrength = 0.75f;
-            sun.transform.rotation = Quaternion.Euler(48f, -35f, 0f);
 
             var sky = Mats.Sky();
             if (sky != null) RenderSettings.skybox = sky;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.62f, 0.75f, 0.95f);
-            RenderSettings.ambientEquatorColor = new Color(0.62f, 0.7f, 0.62f);
-            RenderSettings.ambientGroundColor = new Color(0.35f, 0.42f, 0.3f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogColor = new Color(0.72f, 0.84f, 0.97f);
-            RenderSettings.fogStartDistance = 160f;
-            RenderSettings.fogEndDistance = 520f;
             RenderSettings.sun = sun;
 
             // Caméra
@@ -179,7 +187,6 @@ namespace TurboPattes.Game.App
             cam.nearClipPlane = 0.2f;
             cam.farClipPlane = 900f;
             cam.clearFlags = sky != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
-            cam.backgroundColor = RenderSettings.fogColor;
             camGo.tag = "MainCamera";
             camGo.AddComponent<AudioListener>();
             var data = camGo.AddComponent<UniversalAdditionalCameraData>();
@@ -188,10 +195,40 @@ namespace TurboPattes.Game.App
             _chase = camGo.AddComponent<ChaseCamera>();
             BuildPostProcessing(world);
 
-            _circuit = Circuit.Meadow();
-            _path = new TrackPath(_circuit.Control, 40, _circuit.HalfWidth, _circuit.CurbWidth, _circuit.BarrierOffset);
-            _pads = TrackBuilder.Build(_circuit, _path, world, 42);
             _sound = SoundBank.Create(world);
+            LoadCircuit(_circuitIndex);
+        }
+
+        /// <summary>Construit (ou reconstruit, depuis le menu) la piste et son décor.</summary>
+        void LoadCircuit(int index)
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            bool rebuild = _trackRoot != null;
+            if (rebuild) Destroy(_trackRoot.gameObject);
+            _circuitIndex = index;
+            _circuit = Circuit.All()[index];
+            _path = new TrackPath(_circuit);
+            _trackRoot = new GameObject("Track " + _circuit.Name).transform;
+            _trackRoot.SetParent(_world, false);
+            _pads = TrackBuilder.Build(_circuit, _path, _trackRoot, 42);
+            ApplyTheme(_circuit.Theme);
+            if (rebuild) Resources.UnloadUnusedAssets();
+            Debug.Log($"[TurboPattes] Circuit {_circuit.Name} construit en {watch.ElapsedMilliseconds} ms");
+        }
+
+        void ApplyTheme(Theme theme)
+        {
+            bool canyon = theme == Theme.Canyon;
+            _sun.color = canyon ? new Color(1f, 0.88f, 0.72f) : new Color(1f, 0.96f, 0.88f);
+            _sun.intensity = canyon ? 1.45f : 1.35f;
+            _sun.transform.rotation = canyon ? Quaternion.Euler(40f, -60f, 0f) : Quaternion.Euler(48f, -35f, 0f);
+            RenderSettings.ambientSkyColor = canyon ? new Color(0.72f, 0.72f, 0.85f) : new Color(0.62f, 0.75f, 0.95f);
+            RenderSettings.ambientEquatorColor = canyon ? new Color(0.85f, 0.66f, 0.5f) : new Color(0.62f, 0.7f, 0.62f);
+            RenderSettings.ambientGroundColor = canyon ? new Color(0.5f, 0.35f, 0.25f) : new Color(0.35f, 0.42f, 0.3f);
+            RenderSettings.fogColor = canyon ? new Color(0.94f, 0.8f, 0.64f) : new Color(0.72f, 0.84f, 0.97f);
+            RenderSettings.fogStartDistance = canyon ? 180f : 160f;
+            RenderSettings.fogEndDistance = canyon ? 580f : 520f;
+            _chase.GetComponent<Camera>().backgroundColor = RenderSettings.fogColor;
         }
 
         static void BuildPostProcessing(Transform parent)
@@ -213,11 +250,51 @@ namespace TurboPattes.Game.App
             volume.sharedProfile = profile;
         }
 
+        /// <summary>Un tronçon de pont passe-t-il juste au-dessus de <paramref name="p"/> ?</summary>
+        bool UnderBridge(Vector3 p)
+        {
+            for (int i = 0; i < _path.Count; i++)
+            {
+                if (!_path.Elevated[i] || _path.BaseHeights[i] < p.y + 5f) continue;
+                float dx = _path.Points[i].x - p.x, dz = _path.Points[i].z - p.z;
+                if (dx * dx + dz * dz < 36f) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Vues fixes du pont et du tremplin (caméra de poursuite suspendue le temps de deux captures).</summary>
+        IEnumerator ReliefViews()
+        {
+            var cam = _chase.transform;
+            _chase.enabled = false;
+            var bridge = _path.Bridges[0];
+            float mid = _path.Wrap(bridge.from + _path.Wrap(bridge.to - bridge.from) * 0.5f);
+            Vector3 deck = _path.PointAt(mid);
+            _path.Sample(mid, out _, out var bt, out var br);
+            cam.position = deck + br * 45f - bt * 30f + Vector3.up * 2f;
+            cam.rotation = Quaternion.LookRotation(deck + Vector3.down * 4f - cam.position);
+            yield return null;
+            ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, "vue_pont.png"));
+            yield return null;
+            var kicker = _path.Profile.Kickers[0];
+            _path.Sample(kicker.LipS, out var lip, out var kt, out var kr);
+            cam.position = lip - kt * 22f + kr * 16f + Vector3.up * 5f;
+            cam.rotation = Quaternion.LookRotation(lip - cam.position);
+            yield return null;
+            ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, "vue_tremplin.png"));
+            yield return null;
+            _chase.enabled = true;
+        }
+
         IEnumerator Autotest()
         {
             Directory.CreateDirectory(_autotestDir);
             var log = new StreamWriter(Path.Combine(_autotestDir, "autotest.log")) { AutoFlush = true };
-            log.WriteLine($"Turbo Pattes autotest {DateTime.Now:s} {Screen.width}x{Screen.height}");
+            log.WriteLine($"Turbo Pattes autotest {DateTime.Now:s} {Screen.width}x{Screen.height} circuit={_circuit.Name} " +
+                          $"longueur={_path.Length:0}m relief={_path.HasRelief}");
+            bool shotJump = false, shotBridge = false, shotUnder = false;
+            float maxY = 0f;
+            if (_path.HasRelief) yield return ReliefViews();
             float start = Time.time;
             float[] shots = { 1.5f, 4.2f, 9f, 16f, 28f, 45f, 70f };
             int next = 0;
@@ -231,12 +308,34 @@ namespace TurboPattes.Game.App
                     ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, $"shot_{next:00}_{t:000}s.png"));
                     next++;
                 }
+                var pl = _race.Player;
+                maxY = Mathf.Max(maxY, pl.Position.y);
+                // Captures du relief : premier saut, passage sur le pont, passage dessous.
+                if (_path.HasRelief && _race.State == RaceManager.Phase.Racing)
+                {
+                    string extra = null;
+                    if (!shotJump && pl.Airborne && pl.Vertical.AirTime > 0.25f) { shotJump = true; extra = "saut"; }
+                    else if (!shotBridge && _path.OnBridge(pl.Laps.S) && pl.Position.y > 5f) { shotBridge = true; extra = "pont"; }
+                    else if (!shotUnder && UnderBridge(pl.Position)) { shotUnder = true; extra = "dessous"; }
+                    if (extra != null)
+                    {
+                        ScreenCapture.CaptureScreenshot(Path.Combine(_autotestDir, $"shot_{extra}_{t:000}s.png"));
+                        log.WriteLine($"  capture {extra} t={t:0.0} y={pl.Position.y:0.0} s={pl.Laps.S:0}");
+                    }
+                }
+                foreach (var k in _race.Karts)
+                {
+                    float ground = _path.GroundHeight(k.Laps.S, k.Lateral);
+                    if (k.Position.y < ground - 0.5f || float.IsNaN(k.Position.y))
+                        log.WriteLine($"  ANOMALIE {k.Spec.Name} sous la piste y={k.Position.y:0.0} sol={ground:0.0} s={k.Laps.S:0}");
+                }
                 if (t - lastLog >= 5f)
                 {
                     lastLog = t;
                     var p = _race.Player;
                     log.WriteLine($"t={t:0} etat={_race.State} tour={p.Laps.Lap} place={p.Rank + 1} vitesse={p.Speed * 3.6f:0}km/h " +
-                                  $"lat={p.Lateral:0.0} objet={p.Item} drift={p.Drift.Level} fps={1f / Mathf.Max(1e-4f, Time.smoothDeltaTime):0}");
+                                  $"lat={p.Lateral:0.0} y={p.Position.y:0.0}{(p.Airborne ? " (en l'air)" : "")} s={p.Laps.S:0} objet={p.Item} drift={p.Drift.Level} " +
+                                  $"fps={1f / Mathf.Max(1e-4f, Time.smoothDeltaTime):0}");
                     foreach (var k in _race.Karts)
                         if (!k.IsPlayer && Mathf.Abs(k.Lateral) > _race.Path.BarrierOffset) log.WriteLine($"  ANOMALIE {k.Spec.Name} hors barrière");
                 }
@@ -253,6 +352,8 @@ namespace TurboPattes.Game.App
                 log.WriteLine($"  {r + 1}. {k.Spec.Name}{(k.IsPlayer ? " (joueur)" : "")} {(k.Finished ? k.FinishTime.ToString("0.0") + "s" : "en course, tour " + k.Laps.Lap)}");
             }
             log.WriteLine("Tours joueur : " + string.Join(", ", Array.ConvertAll(_race.LapTimes, x => x.ToString("0.0"))));
+            log.WriteLine($"Relief : hauteur max joueur {maxY:0.0} m ; sauts " +
+                          string.Join(", ", Array.ConvertAll(_race.Karts, k => $"{k.Spec.Name} {k.Jumps} (plus long {k.LongestJump:0.00}s)")));
             log.Close();
             yield return new WaitForSeconds(0.5f);
             Application.Quit();

@@ -1,11 +1,13 @@
 using System.Collections.Generic;
+using TurboPattes.Core;
 using UnityEngine;
 
 namespace TurboPattes.Game.Track
 {
     /// <summary>
-    /// Ligne médiane du circuit : spline de Catmull-Rom fermée, échantillonnée finement.
-    /// Le circuit est plat (y = 0). « Droite » = vers la droite dans le sens de la course.
+    /// Ligne médiane du circuit : spline de Catmull-Rom fermée, échantillonnée finement, avec sa hauteur
+    /// (<see cref="HeightProfile"/>). Tangentes et « droite » restent horizontales : la piste n'est jamais inclinée
+    /// sur le côté. « Droite » = vers la droite dans le sens de la course.
     /// </summary>
     public sealed class TrackPath
     {
@@ -21,10 +23,23 @@ namespace TurboPattes.Game.Track
         public readonly float CurbWidth;
         /// <summary>Distance de la barrière à la ligne médiane.</summary>
         public readonly float BarrierOffset;
+        /// <summary>Hauteur de la piste (null = circuit plat).</summary>
+        public readonly HeightProfile Profile;
+        /// <summary>Hauteur de chaque échantillon sans les tremplins (talus, murets).</summary>
+        public readonly float[] BaseHeights;
+        /// <summary>Échantillon porté par un pont (pas de talus dessous).</summary>
+        public readonly bool[] Elevated;
+        /// <summary>Tronçons de pont [début, fin] en distance le long du circuit.</summary>
+        public readonly List<(float from, float to)> Bridges = new();
+        readonly TrackProjection _projection;
 
         public int Count => Points.Length;
+        public bool HasRelief => Profile != null;
 
-        public TrackPath(IList<Vector2> control, int samplesPerSegment, float halfWidth, float curbWidth, float barrierOffset)
+        public TrackPath(Circuit circuit, int samplesPerSegment = 40)
+            : this(circuit.Control, samplesPerSegment, circuit.HalfWidth, circuit.CurbWidth, circuit.BarrierOffset, circuit) { }
+
+        public TrackPath(IList<Vector2> control, int samplesPerSegment, float halfWidth, float curbWidth, float barrierOffset, Circuit relief = null)
         {
             HalfWidth = halfWidth;
             CurbWidth = curbWidth;
@@ -58,7 +73,51 @@ namespace TurboPattes.Game.Track
                 d += Vector3.Distance(Points[i], next);
             }
             Length = d;
+
+            BaseHeights = new float[count];
+            Elevated = new bool[count];
+            if (relief?.Heights != null)
+            {
+                var keyS = new float[n];
+                for (int i = 0; i < n; i++) keyS[i] = Dist[i * samplesPerSegment];
+                var kickers = new List<Kicker>();
+                foreach (var (c, len, rise) in relief.Kickers ?? new (int, float, float)[0])
+                    kickers.Add(new Kicker(keyS[c], len, rise));
+                Profile = new HeightProfile(keyS, relief.Heights, Length, kickers);
+                foreach (var (c, half) in relief.Bridges ?? new (int, float)[0])
+                    Bridges.Add((Wrap(keyS[c] - half), Wrap(keyS[c] + half)));
+                for (int i = 0; i < count; i++)
+                {
+                    BaseHeights[i] = Profile.BaseHeight(Dist[i]);
+                    Points[i].y = Profile.Height(Dist[i]);
+                    Elevated[i] = OnBridge(Dist[i]);
+                }
+            }
+
+            var xs = new float[count];
+            var ys = new float[count];
+            var zs = new float[count];
+            for (int i = 0; i < count; i++) (xs[i], ys[i], zs[i]) = (Points[i].x, BaseHeights[i], Points[i].z);
+            _projection = new TrackProjection(xs, ys, zs);
         }
+
+        /// <summary>La distance <paramref name="s"/> est-elle sur un pont ?</summary>
+        public bool OnBridge(float s)
+        {
+            s = Wrap(s);
+            foreach (var (from, to) in Bridges)
+                if (from <= to ? s >= from && s <= to : s >= from || s <= to) return true;
+            return false;
+        }
+
+        /// <summary>Le tremplin couvre le bitume et les vibreurs, pas l'herbe ni le sable au-delà.</summary>
+        public bool OnRamp(float lateral) => Mathf.Abs(lateral) <= HalfWidth + CurbWidth;
+
+        /// <summary>Hauteur du sol à la distance <paramref name="s"/> et au décalage <paramref name="lateral"/>.</summary>
+        public float GroundHeight(float s, float lateral) => Profile?.Height(s, OnRamp(lateral)) ?? 0f;
+
+        /// <summary>Pente du sol (dh/ds, dans le sens de la course).</summary>
+        public float GroundSlope(float s, float lateral) => Profile?.Slope(s, OnRamp(lateral)) ?? 0f;
 
         static Vector2 CatmullRom(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t)
         {
@@ -72,33 +131,24 @@ namespace TurboPattes.Game.Track
             return s < 0f ? s + Length : s;
         }
 
-        /// <summary>Échantillon le plus proche ; recherche locale autour de <paramref name="hint"/> (-1 = tout le circuit).</summary>
-        public int Nearest(Vector3 pos, int hint, int window = 40)
-        {
-            int best = 0;
-            float bestD = float.MaxValue;
-            if (hint < 0)
-            {
-                for (int i = 0; i < Count; i++)
-                {
-                    float dd = FlatSqr(Points[i], pos);
-                    if (dd < bestD) { bestD = dd; best = i; }
-                }
-                return best;
-            }
-            for (int o = -window; o <= window; o++)
-            {
-                int i = ((hint + o) % Count + Count) % Count;
-                float dd = FlatSqr(Points[i], pos);
-                if (dd < bestD) { bestD = dd; best = i; }
-            }
-            return best;
-        }
+        /// <summary>
+        /// Échantillon le plus proche ; recherche locale autour de <paramref name="hint"/> (-1 = tout le circuit).
+        /// La hauteur départage les deux niveaux d'un croisement.
+        /// </summary>
+        public int Nearest(Vector3 pos, int hint, int window = 40) => _projection.Nearest(pos.x, pos.y, pos.z, hint, window);
 
-        static float FlatSqr(Vector3 a, Vector3 b)
+        /// <summary>Distance horizontale la plus courte à la ligne médiane, tous tronçons confondus (pour le décor).</summary>
+        public float FlatDistance(Vector3 pos, out int nearest)
         {
-            float dx = a.x - b.x, dz = a.z - b.z;
-            return dx * dx + dz * dz;
+            nearest = 0;
+            float best = float.MaxValue;
+            for (int i = 0; i < Count; i++)
+            {
+                float dx = Points[i].x - pos.x, dz = Points[i].z - pos.z;
+                float dd = dx * dx + dz * dz;
+                if (dd < best) { best = dd; nearest = i; }
+            }
+            return Mathf.Sqrt(best);
         }
 
         /// <summary>Distance le long du circuit du point projeté près de l'échantillon <paramref name="i"/>.</summary>

@@ -7,8 +7,9 @@ using UnityEngine;
 namespace TurboPattes.Game.Kart
 {
     /// <summary>
-    /// Conduite arcade d'un kart sur un circuit plat, sans moteur physique : vitesse avant/latérale,
-    /// drift à trois niveaux, turbos, tête-à-queue, et rebond sur les barrières calculé depuis la ligne médiane.
+    /// Conduite arcade d'un kart sans moteur physique : vitesse avant/latérale, drift à trois niveaux, turbos,
+    /// tête-à-queue, rebond sur les barrières calculé depuis la ligne médiane. Le kart suit la hauteur de la piste
+    /// (les côtes freinent, les descentes poussent) et décolle des tremplins (<see cref="VerticalMotion"/>).
     /// Piloté par <c>RaceManager</c> qui appelle <see cref="Tick"/> puis <see cref="UpdateVisuals"/>.
     /// </summary>
     public sealed class KartMotor : MonoBehaviour
@@ -24,6 +25,10 @@ namespace TurboPattes.Game.Kart
         const float BoostFactor = 1.32f;
         const float MinDriftSpeed = 11f;
         const float HopWindow = 0.3f;
+        /// <summary>Part de la gravité qui freine en côte et pousse en descente.</summary>
+        const float SlopePull = 0.45f;
+        /// <summary>Volant en l'air : on peut corriger un peu la trajectoire.</summary>
+        const float AirSteer = 0.35f;
 
         public AnimalSpec Spec { get; private set; }
         public KartRig Rig { get; private set; }
@@ -43,6 +48,11 @@ namespace TurboPattes.Game.Kart
         public float Lateral { get; private set; }
         public bool Offroad { get; private set; }
         public readonly DriftCharge Drift = new();
+        public readonly VerticalMotion Vertical = new();
+        public bool Airborne => !Vertical.Grounded;
+        /// <summary>Nombre de sauts depuis le départ (journal de l'autotest).</summary>
+        public int Jumps { get; private set; }
+        public float LongestJump { get; private set; }
 
         public float BoostTime { get; private set; }
         public float SpinTime { get; private set; }
@@ -57,7 +67,7 @@ namespace TurboPattes.Game.Kart
         public float ItemRoll { get; set; }
 
         /// <summary>Événements pour le son et l'interface.</summary>
-        public event Action<KartMotor> BarrierHit, Boosted, SpunOut, DriftLevelUp;
+        public event Action<KartMotor> BarrierHit, Boosted, SpunOut, DriftLevelUp, TookOff, Landed;
 
         public Vector3 Forward => new(Mathf.Sin(Yaw), 0f, Mathf.Cos(Yaw));
         public Vector3 Right => new(Mathf.Cos(Yaw), 0f, -Mathf.Sin(Yaw));
@@ -68,7 +78,9 @@ namespace TurboPattes.Game.Kart
 
         float _hopWindow;
         bool _prevDrift;
-        float _steerVisual, _spinAngle, _wheelAngle, _driftVisual, _tilt;
+        float _steerVisual, _spinAngle, _wheelAngle, _driftVisual, _tilt, _pitch, _squash;
+        /// <summary>Pente du sol dans l'axe du kart (positive en montée).</summary>
+        float _slopeAhead;
         int _lastDriftLevel;
         ParticleSystem[] _sparks;
         ParticleSystem[] _flames;
@@ -92,7 +104,10 @@ namespace TurboPattes.Game.Kart
             Position = p + r * startLateral;
             Yaw = Mathf.Atan2(t.x, t.z);
             TrackIndex = path.Nearest(Position, -1);
-            Laps = new LapTracker(path.Length, path.DistanceAlong(TrackIndex, Position));
+            float s0 = path.DistanceAlong(TrackIndex, Position);
+            Position.y = path.GroundHeight(s0, startLateral);
+            Vertical.Reset(Position.y);
+            Laps = new LapTracker(path.Length, s0);
             BuildFx();
             UpdateVisuals(0f);
         }
@@ -117,6 +132,9 @@ namespace TurboPattes.Game.Kart
             }
 
             float turn = 0f;
+            bool air = Airborne;
+            // Côtes et descentes : une part de la gravité freine ou pousse le kart.
+            if (!air) vF -= VerticalMotion.Gravity * SlopePull * _slopeAhead * dt;
             if (SpinTime > 0f)
             {
                 SpinTime -= dt;
@@ -127,16 +145,17 @@ namespace TurboPattes.Game.Kart
             }
             else
             {
-                // Avancer / freiner / reculer
-                if (input.Throttle > 0.05f && vF < top)
+                // Avancer / freiner / reculer (rien à faire en plein saut)
+                if (air) { }
+                else if (input.Throttle > 0.05f && vF < top)
                     vF = Mathf.Min(top, vF + Accel * accelMul * input.Throttle * dt * (vF < 8f ? 1.4f : 1f));
                 else if (input.Brake > 0.05f)
                     vF = vF > 0.5f ? vF - BrakeDecel * input.Brake * dt : Mathf.Max(-ReverseMax, vF - Accel * 0.6f * dt);
                 else if (input.Throttle <= 0.05f)
                     vF = Mathf.MoveTowards(vF, 0f, Coast * dt);
-                if (vF > top) vF = Mathf.MoveTowards(vF, top, (Offroad ? 22f : 9f) * dt);
+                if (vF > top && !air) vF = Mathf.MoveTowards(vF, top, (Offroad ? 22f : 9f) * dt);
 
-                float grip = Mathf.Clamp01(Mathf.Abs(vF) / 7f);
+                float grip = Mathf.Clamp01(Mathf.Abs(vF) / 7f) * (air ? AirSteer : 1f);
 
                 // Saut + drift
                 bool driftEdge = input.Drift && !_prevDrift;
@@ -167,9 +186,9 @@ namespace TurboPattes.Game.Kart
                 {
                     _lastDriftLevel = 0;
                     turn = input.Steer * TurnRate * (vF < -0.5f ? -1f : 1f);
-                    if (input.Drift && _hopWindow > 0f && Mathf.Abs(input.Steer) > 0.3f && vF > MinDriftSpeed)
+                    if (input.Drift && _hopWindow > 0f && Mathf.Abs(input.Steer) > 0.3f && vF > MinDriftSpeed && !air)
                         Drift.Start(input.Steer > 0f ? 1 : -1);
-                    vR *= Mathf.Exp(-10f * dt);
+                    vR *= Mathf.Exp(-(air ? 1f : 10f) * dt);
                 }
                 Yaw += turn * grip * dt;
             }
@@ -179,7 +198,6 @@ namespace TurboPattes.Game.Kart
             right = Right;
             Velocity = fwd * vF + right * vR;
             Position += Velocity * dt;
-            Position.y = 0f;
 
             if (BoostTime > 0f) BoostTime -= dt;
             if (ShieldTime > 0f) ShieldTime -= dt;
@@ -188,7 +206,7 @@ namespace TurboPattes.Game.Kart
 
             _steerVisual = Mathf.Lerp(_steerVisual, SpinTime > 0f ? 0f : input.Steer, 1f - Mathf.Exp(-12f * dt));
             _wheelAngle += vF * dt / 0.33f * Mathf.Rad2Deg;
-            ResolveBarriers();
+            ResolveBarriers(dt);
         }
 
         /// <summary>Après l'arrivée : l'IA reprend le volant pour finir le tour d'honneur.</summary>
@@ -197,11 +215,12 @@ namespace TurboPattes.Game.Kart
             float s = Laps.S + 10f + Mathf.Max(0f, ForwardSpeed) * 0.4f;
             var target = Path.PointAt(s, Mathf.Clamp(Lateral, -3f, 3f));
             var to = target - Position;
+            to.y = 0f;
             float angle = Vector3.SignedAngle(Forward, to, Vector3.up);
             return new KartInput { Steer = Mathf.Clamp(angle / 25f, -1f, 1f), Throttle = ForwardSpeed < TopSpeed * 0.6f ? 1f : 0f };
         }
 
-        void ResolveBarriers()
+        void ResolveBarriers(float dt)
         {
             TrackIndex = Path.Nearest(Position, TrackIndex);
             float lat = Path.Lateral(TrackIndex, Position);
@@ -231,7 +250,30 @@ namespace TurboPattes.Game.Kart
             }
             Lateral = lat;
             Offroad = Mathf.Abs(lat) > Path.HalfWidth + Path.CurbWidth;
-            Laps.Update(Path.DistanceAlong(TrackIndex, Position));
+            float s = Path.DistanceAlong(TrackIndex, Position);
+            Laps.Update(s);
+            FollowGround(s, lat, dt);
+        }
+
+        /// <summary>Hauteur : collé à la piste, ou en vol après un tremplin.</summary>
+        void FollowGround(float s, float lat, float dt)
+        {
+            float slope = Path.GroundSlope(s, lat);
+            float along = Vector3.Dot(Velocity, Path.Tangents[TrackIndex]);
+            _slopeAhead = slope * Vector3.Dot(Forward, Path.Tangents[TrackIndex]);
+            switch (Vertical.Step(dt, Path.GroundHeight(s, lat), slope * along))
+            {
+                case VerticalEvent.TookOff:
+                    Jumps++;
+                    TookOff?.Invoke(this);
+                    break;
+                case VerticalEvent.Landed:
+                    LongestJump = Mathf.Max(LongestJump, Vertical.AirTime);
+                    _squash = Mathf.Clamp01(Vertical.LandingSpeed / 10f);
+                    Landed?.Invoke(this);
+                    break;
+            }
+            Position.y = Vertical.Y;
         }
 
         public void GiveBoost(float seconds)
@@ -260,6 +302,8 @@ namespace TurboPattes.Game.Kart
         public static void Collide(KartMotor a, KartMotor b)
         {
             Vector3 d = b.Position - a.Position;
+            // Un kart sur le pont ne touche pas celui qui passe dessous.
+            if (Mathf.Abs(d.y) > 2f) return;
             d.y = 0f;
             float dist = d.magnitude;
             const float min = Radius * 2f;
@@ -285,14 +329,20 @@ namespace TurboPattes.Game.Kart
         public void UpdateVisuals(float dt)
         {
             var root = Rig.Root;
-            root.SetPositionAndRotation(Position, Quaternion.Euler(0f, Yaw * Mathf.Rad2Deg, 0f));
+            // Tangage : le nez suit la pente, et en vol la trajectoire (légèrement).
+            float targetPitch = Airborne
+                ? -Mathf.Atan2(Vertical.Vy, Mathf.Max(8f, ForwardSpeed)) * Mathf.Rad2Deg * 0.6f
+                : -Mathf.Atan(_slopeAhead) * Mathf.Rad2Deg;
+            _pitch = Mathf.Lerp(_pitch, targetPitch, 1f - Mathf.Exp(-(Airborne ? 4f : 12f) * dt));
+            root.SetPositionAndRotation(Position, Quaternion.Euler(_pitch, Yaw * Mathf.Rad2Deg, 0f));
+            _squash = Mathf.MoveTowards(_squash, 0f, dt * 4f);
 
             float targetDrift = Drift.Active ? Drift.Direction * 28f : 0f;
             _driftVisual = Mathf.Lerp(_driftVisual, targetDrift, 1f - Mathf.Exp(-10f * dt));
             _tilt = Mathf.Lerp(_tilt, -_steerVisual * Mathf.Clamp01(Speed / MaxSpeed) * 6f, 1f - Mathf.Exp(-8f * dt));
             float hop = HopTime > 0f ? Mathf.Sin((1f - HopTime / 0.28f) * Mathf.PI) * 0.45f : 0f;
             float bob = Mathf.Sin(Time.time * 18f) * 0.015f * Mathf.Clamp01(Speed / 5f);
-            Rig.Body.localPosition = new Vector3(0f, hop + bob, 0f);
+            Rig.Body.localPosition = new Vector3(0f, hop + bob - _squash * 0.25f, 0f);
             Rig.Body.localRotation = Quaternion.Euler(0f, _driftVisual + (SpinTime > 0f ? _spinAngle : 0f), _tilt);
             if (SpinTime <= 0f) _spinAngle = 0f;
 
@@ -374,7 +424,7 @@ namespace TurboPattes.Game.Kart
         void UpdateFx()
         {
             int level = Drift.Active ? Drift.Level : 0;
-            bool sparks = Drift.Active && HopTime <= 0f;
+            bool sparks = Drift.Active && HopTime <= 0f && !Airborne;
             if (sparks)
             {
                 var c = level == 0 ? new Color(1f, 1f, 1f, 0.35f) : DriftColors[level];
@@ -390,7 +440,7 @@ namespace TurboPattes.Game.Kart
                 }
             }
             foreach (var f in _flames) SetEmitting(f, BoostTime > 0f);
-            SetEmitting(_dust, Offroad && Speed > 5f);
+            SetEmitting(_dust, Offroad && Speed > 5f && !Airborne);
         }
     }
 }

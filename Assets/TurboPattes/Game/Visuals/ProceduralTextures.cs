@@ -5,7 +5,7 @@ namespace TurboPattes.Game.Visuals
     /// <summary>Textures générées au lancement (aucun fichier image dans le projet).</summary>
     public static class ProceduralTextures
     {
-        static Texture2D _softDot, _circle, _asphalt, _curb, _checker, _grass, _chevrons, _barrier, _white;
+        static Texture2D _softDot, _circle, _asphalt, _curb, _checker, _grass, _chevrons, _barrier, _white, _sand, _strata, _canyonBarrier;
 
         static Texture2D New(string name, int w, int h, TextureWrapMode wrap = TextureWrapMode.Repeat, bool mips = true)
         {
@@ -200,6 +200,72 @@ namespace TurboPattes.Game.Visuals
                 }
                 _barrier.Apply();
                 return _barrier;
+            }
+        }
+    
+        /// <summary>Sable du canyon : grain fin et rides douces.</summary>
+        public static Texture2D Sand
+        {
+            get
+            {
+                if (_sand != null) return _sand;
+                const int n = 128;
+                _sand = New("Sand", n, n);
+                for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float v = Hash(x, y) * 0.06f + Hash(x / 8, y / 8) * 0.05f;
+                    float ripple = Mathf.Sin((x * 0.35f + y * 0.1f) / n * Mathf.PI * 8f) * 0.025f;
+                    _sand.SetPixel(x, y, new Color(0.86f + v + ripple, 0.64f + v + ripple, 0.42f + v * 0.6f, 1));
+                }
+                _sand.Apply();
+                return _sand;
+            }
+        }
+
+        /// <summary>Strates de roche (bandes horizontales selon v) pour les mesas et les rochers.</summary>
+        public static Texture2D Strata
+        {
+            get
+            {
+                if (_strata != null) return _strata;
+                const int w = 16, h = 64;
+                _strata = New("Strata", w, h);
+                Color[] bands =
+                {
+                    new(0.78f, 0.36f, 0.2f), new(0.88f, 0.5f, 0.26f), new(0.95f, 0.72f, 0.48f), new(0.7f, 0.3f, 0.2f),
+                    new(0.9f, 0.6f, 0.36f), new(0.82f, 0.42f, 0.24f),
+                };
+                for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int band = (int)(y / (float)h * 9f + Mathf.Sin(x * 0.4f) * 0.15f) % bands.Length;
+                    float v = Hash(x, y) * 0.05f;
+                    var c = bands[band];
+                    _strata.SetPixel(x, y, new Color(c.r + v, c.g + v, c.b + v, 1));
+                }
+                _strata.Apply();
+                return _strata;
+            }
+        }
+
+        /// <summary>Muret du canyon : bandes terre cuite et crème, liseré turquoise en haut.</summary>
+        public static Texture2D CanyonBarrier
+        {
+            get
+            {
+                if (_canyonBarrier != null) return _canyonBarrier;
+                const int w = 64, h = 16;
+                _canyonBarrier = New("CanyonBarrier", w, h);
+                for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    Color c = (x / 16 & 1) == 0 ? new Color(0.85f, 0.35f, 0.2f) : new Color(0.98f, 0.92f, 0.8f);
+                    if (y >= h - 3) c = new Color(0.2f, 0.75f, 0.75f);
+                    _canyonBarrier.SetPixel(x, y, c);
+                }
+                _canyonBarrier.Apply();
+                return _canyonBarrier;
             }
         }
     }

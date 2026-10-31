@@ -68,6 +68,7 @@ namespace TurboPattes.Game.Kart
             float look = Mathf.Lerp(7f + Mathf.Max(0f, speed) * 0.45f, 5f + Mathf.Max(0f, speed) * 0.22f, Mathf.Clamp01(turnAhead / 70f));
             var target = path.PointAt(s + look, lane);
             Vector3 to = target - k.Position;
+            to.y = 0f; // seul compte le cap : une cible en haut d'une côte ne doit pas fausser le volant
             float angle = Vector3.SignedAngle(k.Forward, to, Vector3.up);
 
             var input = new KartInput { Steer = Mathf.Clamp(angle / 22f, -1f, 1f), Throttle = 1f };

@@ -11,15 +11,18 @@ namespace TurboPattes.Game.UI
 {
     /// <summary>
     /// Menu de départ, sur fond du vrai circuit : écran titre (caméra qui survole la piste), puis choix du pilote
-    /// (kart sur un plateau tournant), du nombre de tours et de la difficulté. Souris, tactile, clavier et manette.
+    /// (kart sur un plateau tournant), du circuit, du nombre de tours et de la difficulté. Changer de circuit
+    /// reconstruit la piste derrière le menu (<see cref="CircuitChanged"/>). Souris, tactile, clavier et manette.
     /// </summary>
     public sealed class MainMenu : MonoBehaviour
     {
         enum Screen { Title, Pilot }
         // Lignes navigables de l'écran pilote, au clavier ou à la manette.
-        enum Row { Pilot, Laps, Difficulty, Start }
+        enum Row { Pilot, Circuit, Laps, Difficulty, Start }
 
         public Action Play;
+        /// <summary>Le joueur a choisi un autre circuit : l'application reconstruit la piste puis appelle <see cref="SetTrack"/>.</summary>
+        public Action<int> CircuitChanged;
 
         static readonly string[] Species =
             { "la renarde", "le panda", "la grenouille", "la lapine", "l'ours", "la chatte", "le pingouin", "la cochonne" };
@@ -27,7 +30,8 @@ namespace TurboPattes.Game.UI
         readonly UiKit _ui = new();
         Screen _screen;
         Row _row = Row.Start;
-        int _pilot, _laps;
+        int _pilot, _laps, _circuit;
+        string[] _circuitNames;
         Difficulty _difficulty;
 
         Camera _cam;
@@ -38,32 +42,41 @@ namespace TurboPattes.Game.UI
         Vector3 _trackCenter;
         float _trackRadius, _titleAngle, _camBlend, _spin, _pilotChangedAt = -10f;
 
-        public void Setup(TrackPath path, Camera cam, SoundBank sound)
+        public void Setup(TrackPath path, Camera cam, SoundBank sound, int circuit)
         {
-            _path = path;
             _cam = cam;
             _sound = sound;
             _pilot = GameSession.Pilot;
             _laps = Array.IndexOf(GameSession.LapChoices, GameSession.Laps);
             if (_laps < 0) _laps = 1;
             _difficulty = GameSession.Difficulty;
+            _circuit = circuit;
+            _circuitNames = Array.ConvertAll(Circuit.All(), c => c.ShortName);
 
+            BuildStage();
+            SetTrack(path);
+            ShowPilot(_pilot);
+        }
+
+        /// <summary>Recadre le survol et repose le plateau sur la (nouvelle) piste.</summary>
+        public void SetTrack(TrackPath path)
+        {
+            _path = path;
+            _trackCenter = Vector3.zero;
+            _trackRadius = 0f;
             foreach (var p in path.Points) _trackCenter += p;
             _trackCenter /= path.Points.Length;
             foreach (var p in path.Points) _trackRadius = Mathf.Max(_trackRadius, Vector3.Distance(p, _trackCenter));
-
-            BuildStage();
-            ShowPilot(_pilot);
+            // Plateau posé sur la piste, juste avant la ligne de départ.
+            _path.Sample(_path.Length - 20f, out var pos, out var tangent, out _);
+            _stage.position = pos;
+            _stage.rotation = Quaternion.LookRotation(tangent);
         }
 
         void BuildStage()
         {
-            // Plateau posé sur la piste, juste avant la ligne de départ.
-            _path.Sample(_path.Length - 20f, out var pos, out var tangent, out _);
             _stage = new GameObject("MenuStage").transform;
             _stage.SetParent(transform, false);
-            _stage.position = pos;
-            _stage.rotation = Quaternion.LookRotation(tangent);
             MeshKit.Prim(PrimitiveType.Cylinder, _stage, new Vector3(0f, 0.05f, 0f), new Vector3(5.2f, 0.05f, 5.2f), Mats.Lit(new Color(1f, 0.85f, 0.3f)));
             MeshKit.Prim(PrimitiveType.Cylinder, _stage, new Vector3(0f, 0.08f, 0f), new Vector3(4.6f, 0.05f, 4.6f), Mats.Lit(new Color(0.2f, 0.25f, 0.4f)));
             _turntable = new GameObject("Turntable").transform;
@@ -89,7 +102,7 @@ namespace TurboPattes.Game.UI
             public float S;
             public Rect Safe;
             public Rect PlayButton, Back, Go, Prev, Next;
-            public Rect[] Cards, LapButtons, DifficultyButtons;
+            public Rect[] Cards, CircuitButtons, LapButtons, DifficultyButtons;
         }
 
         Layout ComputeLayout()
@@ -118,13 +131,17 @@ namespace TurboPattes.Game.UI
 
             // Panneau de réglages à droite.
             float px = safe.xMax - 310 * s, pw = 310 * s;
+            int nc = GameSession.CircuitCount;
+            l.CircuitButtons = new Rect[nc];
+            float cw = (pw - (nc - 1) * 8 * s) / nc;
+            for (int i = 0; i < nc; i++) l.CircuitButtons[i] = new Rect(px + i * (cw + 8 * s), safe.y + 130 * s, cw, 56 * s);
             l.LapButtons = new Rect[3];
             l.DifficultyButtons = new Rect[3];
             float bw = (pw - 2 * 8 * s) / 3f;
             for (int i = 0; i < 3; i++)
             {
-                l.LapButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 150 * s, bw, 56 * s);
-                l.DifficultyButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 272 * s, bw, 56 * s);
+                l.LapButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 236 * s, bw, 56 * s);
+                l.DifficultyButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 342 * s, bw, 56 * s);
             }
             l.Go = new Rect(px, safe.yMax - 104 * s, pw, 104 * s);
             return l;
@@ -214,12 +231,13 @@ namespace TurboPattes.Game.UI
                 return;
             }
 
-            if (dy != 0) { _row = (Row)Mathf.Clamp((int)_row + dy, 0, 3); Jukebox.Instance.Move(); }
+            if (dy != 0) { _row = (Row)Mathf.Clamp((int)_row + dy, 0, (int)Row.Start); Jukebox.Instance.Move(); }
             if (dx != 0)
             {
                 switch (_row)
                 {
                     case Row.Pilot: case Row.Start: ChangePilot(_pilot + dx); break;
+                    case Row.Circuit: ChangeCircuit(_circuit + dx); break;
                     case Row.Laps: _laps = Mathf.Clamp(_laps + dx, 0, 2); Jukebox.Instance.Move(); break;
                     case Row.Difficulty: _difficulty = (Difficulty)Mathf.Clamp((int)_difficulty + dx, 0, 2); Jukebox.Instance.Move(); break;
                 }
@@ -231,6 +249,8 @@ namespace TurboPattes.Game.UI
             else if (l.Next.Contains(p)) ChangePilot(_pilot + 1);
             for (int i = 0; i < l.Cards.Length; i++)
                 if (l.Cards[i].Contains(p)) { ChangePilot(i); _row = Row.Pilot; }
+            for (int i = 0; i < l.CircuitButtons.Length; i++)
+                if (l.CircuitButtons[i].Contains(p)) { ChangeCircuit(i); _row = Row.Circuit; }
             for (int i = 0; i < 3; i++)
             {
                 if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; Jukebox.Instance.Move(); }
@@ -240,7 +260,14 @@ namespace TurboPattes.Game.UI
 
         /// <summary>Pour le mode -tp-menutest.</summary>
         public void TestGoToPilots() { _screen = Screen.Pilot; _row = Row.Start; }
-        public void TestSelect(int pilot, int laps, Difficulty difficulty) { ChangePilot(pilot); _laps = laps; _difficulty = difficulty; }
+        public void TestSelect(int pilot, int laps, Difficulty difficulty, int circuit)
+        {
+            ChangePilot(pilot);
+            _laps = laps;
+            _difficulty = difficulty;
+            ChangeCircuit(circuit);
+            _row = Row.Circuit;
+        }
         public void TestStart() => StartRace();
 
         void ChangePilot(int index)
@@ -250,9 +277,19 @@ namespace TurboPattes.Game.UI
             if (_pilot != before) _sound.Pop();
         }
 
+        void ChangeCircuit(int index)
+        {
+            index = Mathf.Clamp(index, 0, GameSession.CircuitCount - 1);
+            if (index == _circuit) return;
+            _circuit = index;
+            Jukebox.Instance.Move();
+            CircuitChanged?.Invoke(index);
+        }
+
         void StartRace()
         {
             GameSession.Pilot = _pilot;
+            GameSession.Circuit = _circuit;
             GameSession.Laps = GameSession.LapChoices[_laps];
             GameSession.Difficulty = _difficulty;
             Jukebox.Instance.Confirm();
@@ -328,8 +365,11 @@ namespace TurboPattes.Game.UI
             }
 
             // Réglages.
-            var panel = new Rect(l.LapButtons[0].x - 16 * s, l.Safe.y + 90 * s, l.Go.width + 32 * s, 260 * s);
+            var panel = new Rect(l.LapButtons[0].x - 16 * s, l.Safe.y + 76 * s, l.Go.width + 32 * s, 340 * s);
             UiKit.Box(panel, new Color(0.08f, 0.1f, 0.2f, 0.6f), 18 * s);
+            _ui.Label(new Rect(l.CircuitButtons[0].x, l.CircuitButtons[0].y - 42 * s, 300 * s, 36 * s), "Circuit", _ui.Medium, Color.white);
+            for (int i = 0; i < l.CircuitButtons.Length; i++)
+                Segment(l.CircuitButtons[i], _circuitNames[i], i == _circuit, _row == Row.Circuit && i == _circuit);
             _ui.Label(new Rect(l.LapButtons[0].x, l.LapButtons[0].y - 42 * s, 300 * s, 36 * s), "Tours", _ui.Medium, Color.white);
             _ui.Label(new Rect(l.DifficultyButtons[0].x, l.DifficultyButtons[0].y - 42 * s, 300 * s, 36 * s), "Difficulté", _ui.Medium, Color.white);
             for (int i = 0; i < 3; i++)

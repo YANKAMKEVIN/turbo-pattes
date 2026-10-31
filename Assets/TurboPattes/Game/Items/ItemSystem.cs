@@ -108,6 +108,8 @@ namespace TurboPattes.Game.Items
                 c.Pos += c.Dir * c.Speed * dt;
                 c.Hint = _path.Nearest(c.Pos, c.Hint);
                 float lat = _path.Lateral(c.Hint, c.Pos);
+                // La noix de coco roule au ras de la piste : côtes, descentes et tremplins.
+                c.Pos.y = _path.GroundHeight(_path.DistanceAlong(c.Hint, c.Pos), lat);
                 float limit = _path.BarrierOffset - 0.6f;
                 if (Mathf.Abs(lat) > limit)
                 {
@@ -172,8 +174,10 @@ namespace TurboPattes.Game.Items
             _honeys.RemoveAt(i);
         }
 
+        /// <summary>Distance horizontale au carré, ou l'infini si les deux sont à des niveaux différents (pont).</summary>
         static float Flat(Vector3 a, Vector3 b)
         {
+            if (Mathf.Abs(a.y - b.y) > 2.5f) return float.MaxValue;
             float dx = a.x - b.x, dz = a.z - b.z;
             return dx * dx + dz * dz;
         }
@@ -232,6 +236,9 @@ namespace TurboPattes.Game.Items
             MeshKit.Prim(PrimitiveType.Sphere, go, new Vector3(0.4f, 0.35f, 0.2f), new Vector3(0.7f, 0.65f, 0.7f), _potMat);
             MeshKit.Prim(PrimitiveType.Cylinder, go, new Vector3(0.4f, 0.65f, 0.2f), new Vector3(0.45f, 0.06f, 0.45f), _honeyMat);
             var pos = k.Position - k.Forward * 2.8f;
+            int i = _path.Nearest(pos, k.TrackIndex);
+            float lat = _path.Lateral(i, pos);
+            pos.y = _path.GroundHeight(_path.DistanceAlong(i, pos), lat);
             go.position = pos;
             go.rotation = Quaternion.Euler(0f, (float)_rng.NextDouble() * 360f, 0f);
             _honeys.Add(new Honey { Pos = pos, Life = 30f, Owner = k, OwnerGrace = 0.8f, Go = go });

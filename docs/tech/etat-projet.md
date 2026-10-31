@@ -20,13 +20,15 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 
 ## Contenu du prototype
 
-- **Circuit** « Prairie des Pattes » (~1,1 km, rayon mini ~15 m) : spline fermée, bitume, vibreurs, murets, portique de départ, tribune, arbres, collines, nuages. Tout est généré par code.
+- **Circuit 1** « Prairie des Pattes » (~1,1 km, plat, rayon mini ~15 m) : spline fermée, bitume, vibreurs, murets, portique de départ, tribune, arbres, collines, nuages. Tout est généré par code.
+- **Circuit 2** « Canyon Caramel » (~1,18 km, rayon mini ~16 m) : un huit dans un désert de roches rousses. Départ, passage sous le pont, boucle ouest qui ondule (bosse à 5 m, creux, remontée), retour **sur le pont à 8 m** au-dessus du premier passage, plateau, **tremplin** (rampe de 10 m, +1,5 m) au sommet d'une longue descente vers la ligne (~0,9 s de vol). Décor : sable, talus sous la piste surélevée, mesas à strates, cheminées de fée, cactus, rochers, muret terre cuite, ambiance chaude (soleil, brouillard).
+- **Relief** : hauteur par point de contrôle (`Circuit.Heights`), reliée par une cubique monotone sans dépassement (`Core/HeightProfile`, avec les tremplins par-dessus, seulement sur bitume + vibreurs). `KartMotor` suit le sol, les côtes freinent et les descentes poussent (45 % de la gravité), il décolle quand le sol se dérobe plus vite que la gravité (`Core/VerticalMotion`, g = 24 m/s²), volant réduit en l'air, tassement et son à la réception, tangage selon la pente. Au croisement, la recherche du tronçon le plus proche tient compte de la hauteur (`Core/TrackProjection`) : tours, IA, objets et chocs entre karts ne confondent pas le pont et la route dessous.
 - **Pilotes** (8, modèles en primitives) : Roxy (renarde, joueuse), Bambou (panda), Flip (grenouille), Lili (lapine), Bruno (ours), Mimi (chatte), Pingo (pingouin), Rosa (cochonne).
 - **Conduite** arcade sans moteur physique (`KartMotor`) : saut + drift à 3 niveaux (étincelles jaunes, vertes, roses), turbo au lâcher, hors-piste lent, rebond sur les murets, chocs entre karts, super départ (accélérer dans la dernière seconde du compte à rebours), tapis turbo.
 - **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier. Tirage selon la place (`ItemRoll`).
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
 - **Commandes** : clavier (flèches/WASD/ZQSD, Espace = drift, E = objet, R = rejouer), manette (stick, RT/A, LT/B, RB = drift, X/Y = objet, Start), tactile (glisser à gauche pour tourner, boutons DRIFT / OBJET / FREIN, accélération auto).
-- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
+- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), circuit Prairie/Canyon (la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
 - **Icônes dessinées par code** (`Visuals/IconCanvas` + `Visuals/Icons`, aucun fichier image) : 4 objets (carotte, noix de coco, pot de miel, bulle) et 8 portraits de pilotes, sur les cartes du menu, le classement, les résultats et l'emplacement d'objet. Planche de contrôle : `docs/icones.png`.
 - **Musique composée et jouée par code** : partitions originales notées dans `Core/Tune.cs` (morceau de menu à 100 BPM et de course à 150 BPM, 16 mesures chacun, testées), synthétiseur `Audio/MusicSynth` (mélodie avec écho, basse, arpège, nappe, batterie), calculé en arrière-plan au lancement. `Audio/Jukebox` survit aux rechargements de scène : musique du menu, silence pendant le compte à rebours, musique de course au « PARTEZ ! », plus basse en pause et à l'arrivée. Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
 - **Interface de course** IMGUI : tour, chrono, place, objet avec roulette, classement, vitesse, compte à rebours, « Mauvais sens ! ».
@@ -36,10 +38,12 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 
 ```
 Assets/TurboPattes/
-  Core/    logique pure testable (sans UnityEngine) : LapTracker, DriftCharge, ItemRoll, RaceRanking
+  Core/    logique pure testable (sans UnityEngine) : LapTracker, DriftCharge, ItemRoll, RaceRanking, Tune,
+           HeightProfile (relief), VerticalMotion (sauts), TrackProjection (tronçon le plus proche en 3D)
   Game/
-    App/      KartApp : point d'entrée (seul objet de la scène), construit le monde ; mode autotest
-    Track/    Circuit (données), TrackPath (spline + requêtes), TrackBuilder (maillages et décor)
+    App/      KartApp : point d'entrée (seul objet de la scène), construit le monde (LoadCircuit, ambiance par thème) ; autotest
+    Track/    Circuit (données des 2 circuits), TrackPath (spline + hauteur + requêtes), TrackBuilder (maillages et décor),
+              TrackBuilder.Relief (terrain à talus, ponts, tremplins, décor du canyon)
     Kart/     KartMotor (conduite), KartFactory + Animals (modèles), AiDriver, PlayerInput, KartInput
     Items/    ItemSystem (bulles, coco, miel, effets)
     Race/     RaceManager (déroulé de course), ChaseCamera
@@ -59,12 +63,14 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget OSXUniversal -executeMethod TurboPattes.EditorTools.BuildScript.BuildMac -logFile -
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.BuildScript.BuildAndroid -logFile -
 # Course automatique (le joueur est piloté par l'IA), captures + journal dans le dossier :
-~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1
+# -tp-circuit 1 (Prairie, par défaut) ou 2 (Canyon : en plus, vues fixes du pont et du tremplin, captures saut/pont/dessous,
+# nombre de sauts par kart et alerte si un kart passe sous la piste). Dossier relatif = stockage de l'appli (Android).
+~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1 -tp-circuit 2
 # Musiques en WAV (deux tours de boucle) pour les écouter :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.MusicExport.Export -tp-out Builds/Musique -logFile -
 # Planche PNG de toutes les icônes (objets + portraits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
-# Parcours des menus (titre, pilote, choix de Bruno, course avec un pot de miel en main, pause) avec captures :
+# Parcours des menus (titre, pilote, choix de Bruno + Canyon, course avec un pot de miel en main, pause) avec captures :
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-menutest /tmp/tp-menutest
 # Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
 ~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
@@ -73,6 +79,10 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ```
 
 ## Vérifications faites (2026-10-31)
+
+- **Circuit 2 / relief** : 37 tests NUnit verts (dont 10 nouveaux : profil de hauteur, saut et réception, tronçon au croisement d'un huit, un seul tour compté). Autotest Mac sur le Canyon, 3 tours : terminé, ~60 i/s, chaque kart saute 3 fois (~0,9 s), aucune anomalie ; peloton serré (1,2 s). Prairie : 1 tour sans régression. `-tp-menutest` : choix Canyon, piste reconstruite, course lancée sur le Canyon, choix mémorisé. Construction du Canyon ~0,3–0,55 s sur Mac. Captures : `docs/capture-canyon-pont.png`, `docs/capture-canyon-saut.png`, `docs/capture-menu-circuit.png`.
+  - Corrigé en route : le sable recouvrait la route dans les côtes (talus pris sur les points de piste suivants) ; près de la piste le sol suit maintenant l'échantillon le plus proche.
+  - **Pas encore vérifié sur le Galaxy S24** (non branché ce jour-là) : APK construit (`Builds/Android/TurboPattes.apk`). À faire : `adb install -r`, puis `am start ... -e unity "-tp-circuit 2 -tp-autotest at"` et captures `adb exec-out screencap -p`.
 
 - 16 tests NUnit verts sur le Core.
 - Build Mac OK : course autotest de 1 tour sans erreur ni exception, ~60 i/s, joueur (piloté par l'IA) 4e en 42,8 s, peloton serré (~2 s). Captures vérifiées : rendu, HUD, résultats.
@@ -97,6 +107,6 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ## Prochaines étapes envisagées
 
 1. Faire tester le ressenti de conduite par Kevin (S24 + manette) et régler vitesses, drift, IA.
-2. Deuxième circuit, relief (ponts, sauts), plus d'objets propres au jeu.
+2. Vérifier le Canyon sur le S24 ; plus d'objets propres au jeu ; une troisième piste.
 3. Modèles 3D plus fins pour les pilotes (ou génération).
 4. Une musique par circuit ; réglage du volume musique / effets.

@@ -28,6 +28,15 @@ namespace TurboPattes.Game.App
             set => Save("tp.laps", value);
         }
 
+        /// <summary>Index du circuit dans <see cref="Track.Circuit.All"/>.</summary>
+        public static int Circuit
+        {
+            get => Mathf.Clamp(Load("tp.circuit", 0), 0, CircuitCount - 1);
+            set => Save("tp.circuit", value);
+        }
+
+        public const int CircuitCount = 2;
+
         public static Difficulty Difficulty
         {
             get => (Difficulty)Mathf.Clamp(Load("tp.difficulty", 1), 0, 2);

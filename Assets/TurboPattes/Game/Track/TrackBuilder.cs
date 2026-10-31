@@ -5,18 +5,30 @@ using UnityEngine.Rendering;
 
 namespace TurboPattes.Game.Track
 {
-    /// <summary>Construit la scène du circuit : sol, bitume, vibreurs, barrières, ligne d'arrivée, tapis turbo et décor.</summary>
-    public static class TrackBuilder
+    /// <summary>
+    /// Construit la scène du circuit : sol, bitume, vibreurs, barrières, ligne d'arrivée, tapis turbo et décor.
+    /// Le relief (talus, ponts, tremplins) et le décor du canyon sont dans <c>TrackBuilder.Relief.cs</c>.
+    /// </summary>
+    public static partial class TrackBuilder
     {
         public static List<BoostPad> Build(Circuit circuit, TrackPath path, Transform root, int seed)
         {
-            BuildGround(path, root);
+            var rng = new System.Random(seed);
+            var terrain = path.HasRelief ? new Terrain(path) : null;
+            if (terrain != null) BuildTerrain(path, terrain, root);
+            else BuildGround(path, root);
             BuildRoad(path, root);
             BuildCurbs(path, root);
-            BuildBarriers(path, root);
+            BuildBarriers(path, root, circuit.Theme);
+            if (terrain != null)
+            {
+                BuildBridges(path, terrain, root);
+                BuildKickers(path, root);
+            }
             BuildStartLine(path, root);
             var pads = BuildBoostPads(circuit, path, root);
-            BuildDecor(path, root, new System.Random(seed));
+            if (circuit.Theme == Theme.Canyon) BuildCanyonDecor(path, terrain, root, rng);
+            else BuildDecor(path, root, rng);
             return pads;
         }
 
@@ -25,7 +37,9 @@ namespace TurboPattes.Game.Track
             var min = new Vector3(float.MaxValue, 0, float.MaxValue);
             var max = new Vector3(float.MinValue, 0, float.MinValue);
             foreach (var p in path.Points) { min = Vector3.Min(min, p); max = Vector3.Max(max, p); }
-            return (min + max) * 0.5f;
+            var c = (min + max) * 0.5f;
+            c.y = 0f;
+            return c;
         }
 
         static void BuildGround(TrackPath path, Transform root)
@@ -101,9 +115,10 @@ namespace TurboPattes.Game.Track
         }
 
         /// <summary>Murets des deux côtés : face intérieure + dessus, texturés en bandes.</summary>
-        static void BuildBarriers(TrackPath path, Transform root)
+        static void BuildBarriers(TrackPath path, Transform root, Theme theme)
         {
-            var mat = Mats.Textured(ProceduralTextures.Barrier, Color.white, Vector2.one, 0.35f);
+            var tex = theme == Theme.Canyon ? ProceduralTextures.CanyonBarrier : ProceduralTextures.Barrier;
+            var mat = Mats.Textured(tex, Color.white, Vector2.one, 0.35f);
             foreach (int side in new[] { 1, -1 })
             {
                 int n = path.Count;
@@ -111,9 +126,9 @@ namespace TurboPattes.Game.Track
                 var v = new List<Vector3>();
                 var uv = new List<Vector2>();
                 var tri = new List<int>();
-                // Trois bandes : face intérieure, dessus, face extérieure.
+                // Trois bandes : face intérieure, dessus, face extérieure. Le pied descend sous le sol (talus, pont).
                 float[] offs = { path.BarrierOffset, path.BarrierOffset, path.BarrierOffset + thick, path.BarrierOffset + thick };
-                float[] ys = { 0f, height, height, 0f };
+                float[] ys = { -0.6f, height, height, -0.6f };
                 float[] vs = { 0f, 0.8f, 1f, 0.8f };
                 for (int i = 0; i <= n; i++)
                 {
@@ -121,7 +136,8 @@ namespace TurboPattes.Game.Track
                     float d = i == n ? path.Length : path.Dist[k];
                     for (int j = 0; j < 4; j++)
                     {
-                        v.Add(path.Points[k] + path.Rights[k] * (offs[j] * side) + Vector3.up * ys[j]);
+                        var basePoint = new Vector3(path.Points[k].x, path.BaseHeights[k], path.Points[k].z);
+                        v.Add(basePoint + path.Rights[k] * (offs[j] * side) + Vector3.up * ys[j]);
                         uv.Add(new Vector2(d / 6f, vs[j]));
                     }
                 }
