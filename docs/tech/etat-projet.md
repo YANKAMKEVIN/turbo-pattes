@@ -107,7 +107,26 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 
 ## Prochaines étapes envisagées
 
-1. Faire tester le ressenti de conduite par Kevin (S24 + manette) et régler vitesses, drift, IA.
-2. Vérifier le Canyon sur le S24 ; réglage de qualité pour les téléphones modestes (échelle de rendu, ombres) vu les ~15 i/s de l'A17 ; plus d'objets propres au jeu ; une troisième piste.
-3. Modèles 3D plus fins pour les pilotes (ou génération).
-4. Une musique par circuit ; réglage du volume musique / effets.
+Objectif fixé par Kevin (2026-10-31) : **au moins 10 circuits** aux décors variés (ciel, espace, eau, désert, jungle…),
+dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms propres au jeu.
+
+1. Vérifier le Canyon sur le S24.
+2. Qualité adaptative pour les téléphones modestes (échelle de rendu, ombres) : l'A17 plafonne à ~15 i/s.
+3. Fusionner le décor en quelques gros maillages par matériau (aujourd'hui ~1 300 objets dessinés).
+4. Test de ressenti par Kevin (S24 + manette) : vitesse, drift, côtes, saut, IA.
+5. Écran de réglages : volume musique/effets, sensibilité tactile, qualité graphique.
+6. Huit circuits de plus (10 au total), dont ciel, espace, eau, jungle ; virages relevés.
+7. Une musique par circuit.
+8. Nouveaux objets propres au jeu (plume planante, pelote rebondissante…).
+9. Raccourcis risqués (sable lent mais court, second tremplin).
+10. Effets de relief : poussière à la réception, secousse de caméra, figure en l'air = turbo.
+11. Contre-la-montre avec meilleur temps et fantôme.
+12. Coupes : plusieurs circuits enchaînés, points, podium.
+13. Podium final festif (pilotes, confettis).
+14. Personnalité des pilotes (vitesse, poids, adhérence) et animations de victoire/défaite.
+15. Modèles de pilotes plus fins, toujours générés par code.
+16. Tutoriel au premier lancement.
+17. Autotest qui enchaîne tous les circuits et difficultés, échec si anomalie ou < 30 i/s sur Mac.
+18. Tester manette réelle, multi-touch (tourner + drift) et bouton OBJET sur téléphone.
+19. Version iOS (simulateur puis iPhone).
+20. Publication : icône par code, captures boutique, nom définitif, version, AAB signé pour Google Play.
