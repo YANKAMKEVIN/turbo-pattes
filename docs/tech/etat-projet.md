@@ -22,13 +22,20 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 
 - **Circuit 1** « Prairie des Pattes » (~1,1 km, plat, rayon mini ~15 m) : spline fermée, bitume, vibreurs, murets, portique de départ, tribune, arbres, collines, nuages. Tout est généré par code.
 - **Circuit 2** « Canyon Caramel » (~1,18 km, rayon mini ~16 m) : un huit dans un désert de roches rousses. Départ, passage sous le pont, boucle ouest qui ondule (bosse à 5 m, creux, remontée), retour **sur le pont à 8 m** au-dessus du premier passage, plateau, **tremplin** (rampe de 10 m, +1,5 m) au sommet d'une longue descente vers la ligne (~0,9 s de vol). Décor : sable, talus sous la piste surélevée, mesas à strates, cheminées de fée, cactus, rochers, muret terre cuite, ambiance chaude (soleil, brouillard).
+- **Circuits 3 à 10** (tracés générés puis vérifiés : rayon mini 16 à 58 m, pente ≤ 8 %, ≥ 8 m de dénivelé aux croisements) :
+  « Jungle Papaye » (arbres géants, ruines, 2 tremplins), « Lagon Coco » (îlots de sable, eau, palmiers, voiliers, pont-ponton),
+  « Récif Bulle » (sous la mer : coraux, algues, bulles, poissons, brouillard bleu), « Route des Nuages » (piste suspendue entre 30 et 50 m
+  au-dessus d'une mer de nuages, îles volantes, montgolfières, gravité 0,85), « Orbite Comète » (huit dans l'espace, étoiles, planètes,
+  astéroïdes, gravité 0,55 : sauts de 1,3 s), « Banquise Givrée » (huit avec pont de glace, sapins enneigés, igloos, bonshommes de neige),
+  « Volcan Grondant » (montée à 14 m, coulées et mares de lave, volcan fumant), « Ville Néon » (huit de nuit avec échangeur, tours
+  aux fenêtres allumées, lampadaires, néons). Ambiance par thème dans `Track/ThemeStyle` (ciel procédural, brouillard, lumière, sol, murets, eau).
 - **Relief** : hauteur par point de contrôle (`Circuit.Heights`), reliée par une cubique monotone sans dépassement (`Core/HeightProfile`, avec les tremplins par-dessus, seulement sur bitume + vibreurs). `KartMotor` suit le sol, les côtes freinent et les descentes poussent (45 % de la gravité), il décolle quand le sol se dérobe plus vite que la gravité (`Core/VerticalMotion`, g = 24 m/s²), volant réduit en l'air, tassement et son à la réception, tangage selon la pente. Au croisement, la recherche du tronçon le plus proche tient compte de la hauteur (`Core/TrackProjection`) : tours, IA, objets et chocs entre karts ne confondent pas le pont et la route dessous.
 - **Pilotes** (8, modèles en primitives) : Roxy (renarde, joueuse), Bambou (panda), Flip (grenouille), Lili (lapine), Bruno (ours), Mimi (chatte), Pingo (pingouin), Rosa (cochonne).
 - **Conduite** arcade sans moteur physique (`KartMotor`) : saut + drift à 3 niveaux (étincelles jaunes, vertes, roses), turbo au lâcher, hors-piste lent, rebond sur les murets, chocs entre karts, super départ (accélérer dans la dernière seconde du compte à rebours), tapis turbo.
 - **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier. Tirage selon la place (`ItemRoll`).
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
 - **Commandes** : clavier (flèches/WASD/ZQSD, Espace = drift, E = objet, R = rejouer), manette (stick, RT/A, LT/B, RB = drift, X/Y = objet, Start), tactile (glisser à gauche pour tourner, boutons DRIFT / OBJET / FREIN, accélération auto).
-- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), circuit Prairie/Canyon (la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
+- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), circuit (sélecteur < nom n/10 >, la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
 - **Icônes dessinées par code** (`Visuals/IconCanvas` + `Visuals/Icons`, aucun fichier image) : 4 objets (carotte, noix de coco, pot de miel, bulle) et 8 portraits de pilotes, sur les cartes du menu, le classement, les résultats et l'emplacement d'objet. Planche de contrôle : `docs/icones.png`.
 - **Musique composée et jouée par code** : partitions originales notées dans `Core/Tune.cs` (morceau de menu à 100 BPM et de course à 150 BPM, 16 mesures chacun, testées), synthétiseur `Audio/MusicSynth` (mélodie avec écho, basse, arpège, nappe, batterie), calculé en arrière-plan au lancement. `Audio/Jukebox` survit aux rechargements de scène : musique du menu, silence pendant le compte à rebours, musique de course au « PARTEZ ! », plus basse en pause et à l'arrivée. Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
 - **Interface de course** IMGUI : tour, chrono, place, objet avec roulette, classement, vitesse, compte à rebours, « Mauvais sens ! ».
@@ -43,7 +50,9 @@ Assets/TurboPattes/
   Game/
     App/      KartApp : point d'entrée (seul objet de la scène), construit le monde (LoadCircuit, ambiance par thème) ; autotest
     Track/    Circuit (données des 2 circuits), TrackPath (spline + hauteur + requêtes), TrackBuilder (maillages et décor),
-              TrackBuilder.Relief (terrain à talus, ponts, tremplins, décor du canyon)
+              TrackBuilder.Relief (terrain à talus, ponts, tremplins, décor du canyon),
+              TrackBuilder.Themes (décors des 8 autres thèmes), ThemeStyle (ambiance par thème)
+    App/      QualityTuner : qualité adaptative (échelle de rendu, MSAA, HDR, ombres, post), niveau mémorisé
     Kart/     KartMotor (conduite), KartFactory + Animals (modèles), AiDriver, PlayerInput, KartInput
     Items/    ItemSystem (bulles, coco, miel, effets)
     Race/     RaceManager (déroulé de course), ChaseCamera
@@ -66,6 +75,9 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 # -tp-circuit 1 (Prairie, par défaut) ou 2 (Canyon : en plus, vues fixes du pont et du tremplin, captures saut/pont/dessous,
 # nombre de sauts par kart et alerte si un kart passe sous la piste). Dossier relatif = stockage de l'appli (Android).
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1 -tp-circuit 2
+# Les 10 circuits d'affilée (1 tour chacun) : résumé OK/ECHEC, fluidité, sauts ; échoue si course non finie, anomalie ou < 30 i/s
+~/dev/turbo-pattes/tools/autotest-tous.sh /tmp/tp-tous 1
+# Diagnostic de fluidité sur téléphone : -tp-diag affiche les temps CPU/GPU ; -tp-quality N impose un niveau (0 à 4)
 # Musiques en WAV (deux tours de boucle) pour les écouter :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.MusicExport.Export -tp-out Builds/Musique -logFile -
 # Planche PNG de toutes les icônes (objets + portraits) :
@@ -78,7 +90,12 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ~/Library/Android/sdk/platform-tools/adb logcat -s Unity | grep TPDiag
 ```
 
-## Vérifications faites (2026-10-31)
+## Vérifications faites (2026-11-01)
+
+- **10 circuits** : `tools/autotest-tous.sh` sur Mac, tous OK (course finie, aucune anomalie ni exception), 38 à 57 i/s, 1 ou 2 sauts par tour selon le circuit. Vues d'ensemble vérifiées. Menu : sélecteur « Canyon 2/10 » vérifié par `-tp-menutest`. 37 tests NUnit verts.
+- **Galaxy A17** : Orbite Comète, Route des Nuages et Récif Bulle terminés à 60 i/s (niveau de qualité mémorisé), sauts de 1,25 s dans l'espace. Captures : `docs/capture-a17-espace-ciel-recif.png`, planches Mac `docs/capture-circuits-3-8.png` et `docs/capture-circuits-9-10.png`. Le niveau de qualité ne remonte jamais tout seul (mis à 2 sur l'A17) ; `-tp-quality N` le change.
+- **Fluidité Galaxy A17** : le MSAA 4x saturait le GPU (45 ms par image). La qualité adaptative descend d'un cran toutes les 4 s sous 45 i/s ; au niveau 2 (échelle 0,75, sans MSAA) ~17 ms soit ~55-60 i/s. Le décor est fusionné par matériau (Canyon : 881 maillages -> 33 objets).
+
 
 - **Circuit 2 / relief** : 37 tests NUnit verts (dont 10 nouveaux : profil de hauteur, saut et réception, tronçon au croisement d'un huit, un seul tour compté). Autotest Mac sur le Canyon, 3 tours : terminé, ~60 i/s, chaque kart saute 3 fois (~0,9 s), aucune anomalie ; peloton serré (1,2 s). Prairie : 1 tour sans régression. `-tp-menutest` : choix Canyon, piste reconstruite, course lancée sur le Canyon, choix mémorisé. Construction du Canyon ~0,3–0,55 s sur Mac. Captures : `docs/capture-canyon-pont.png`, `docs/capture-canyon-saut.png`, `docs/capture-menu-circuit.png`.
   - Corrigé en route : le sable recouvrait la route dans les côtes (talus pris sur les points de piste suivants) ; près de la piste le sol suit maintenant l'échantillon le plus proche.
@@ -110,12 +127,12 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 Objectif fixé par Kevin (2026-10-31) : **au moins 10 circuits** aux décors variés (ciel, espace, eau, désert, jungle…),
 dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms propres au jeu.
 
-1. Vérifier le Canyon sur le S24.
-2. Qualité adaptative pour les téléphones modestes (échelle de rendu, ombres) : l'A17 plafonne à ~15 i/s.
-3. Fusionner le décor en quelques gros maillages par matériau (aujourd'hui ~1 300 objets dessinés).
+1. Vérifier les 10 circuits sur le S24.
+2. ~~Qualité adaptative~~ (fait) ; laisser la qualité remonter quand le téléphone a de la marge ; réglage manuel dans un écran de réglages.
+3. ~~Fusion du décor~~ (fait).
 4. Test de ressenti par Kevin (S24 + manette) : vitesse, drift, côtes, saut, IA.
 5. Écran de réglages : volume musique/effets, sensibilité tactile, qualité graphique.
-6. Huit circuits de plus (10 au total), dont ciel, espace, eau, jungle ; virages relevés.
+6. ~~Dix circuits~~ (fait) ; à venir : virages relevés, boucles, passages anti-gravité, décors animés (lave, vagues, nuages), coupes de 4 circuits.
 7. Une musique par circuit.
 8. Nouveaux objets propres au jeu (plume planante, pelote rebondissante…).
 9. Raccourcis risqués (sable lent mais court, second tremplin).
