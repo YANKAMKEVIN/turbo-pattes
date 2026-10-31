@@ -25,6 +25,7 @@ Dernière mise à jour : 2026-10-31.
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
 - **Commandes** : clavier (flèches/WASD/ZQSD, Espace = drift, E = objet, R = rejouer), manette (stick, RT/A, LT/B, RB = drift, X/Y = objet, Start), tactile (glisser à gauche pour tourner, boutons DRIFT / OBJET / FREIN, accélération auto).
 - **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
+- **Icônes dessinées par code** (`Visuals/IconCanvas` + `Visuals/Icons`, aucun fichier image) : 4 objets (carotte, noix de coco, pot de miel, bulle) et 8 portraits de pilotes, sur les cartes du menu, le classement, les résultats et l'emplacement d'objet. Planche de contrôle : `docs/icones.png`.
 - **Interface de course** IMGUI : tour, chrono, place, objet avec roulette, classement, vitesse, compte à rebours, « Mauvais sens ! ».
 - **Sons** synthétisés par code (moteur, bips, turbo, chocs, objets).
 
@@ -56,7 +57,9 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.BuildScript.BuildAndroid -logFile -
 # Course automatique (le joueur est piloté par l'IA), captures + journal dans le dossier :
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1
-# Parcours des menus (titre, pilote, choix de Bruno, course, pause) avec captures :
+# Planche PNG de toutes les icônes (objets + portraits) :
+/Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
+# Parcours des menus (titre, pilote, choix de Bruno, course avec un pot de miel en main, pause) avec captures :
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-menutest /tmp/tp-menutest
 # Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
 ~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
@@ -81,7 +84,7 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 - Matériaux : toujours passer par `Mats` (clones des gabarits de `Resources`), sinon les shaders URP peuvent manquer dans le build.
 - **Builds en ligne de commande : toujours `-buildTarget`.** Si l'éditeur démarre sur la cible macOS et que le build Android change de cible en route, URP filtre les shaders avec les réglages de l'autre plateforme : Lit perd une passe entière et le monde est invisible sur le téléphone (seuls ciel et IMGUI). `BuildScript` refuse maintenant de builder si la cible active n'est pas la bonne. Le diagnostic `-tp-diag` affiche le nombre de passes (Lit = 5 quand tout va bien).
 - Tapes tactiles : lire `EnhancedTouch` (`UiKit.Tap`), pas `Touchscreen.wasReleasedThisFrame` qui rate les tapes appuyées et relâchées dans la même image.
-- Couleurs des boîtes arrondies IMGUI (`GUI.DrawTexture` avec rayon) : convertir en linéaire, sinon délavées.
+- Couleurs IMGUI en espace linéaire : convertir en linéaire (`UiKit.Linear`), sinon délavées. Les icônes stockent directement des valeurs linéaires dans une texture marquée linéaire. Les pastilles (`UiKit.Disc`) passent par une boîte à rayon 100 %.
 - Ne jamais utiliser `GameObject.CreatePrimitive` (ni rien qui ajoute un collider) : le module physique est retiré des builds IL2CPP, l'objet ne s'affiche pas sur mobile. Passer par `MeshKit.Prim`.
 - Brouillard : la scène enregistrée a le brouillard activé pour que ses variantes de shader ne soient pas retirées du build.
 - Hérités de Check/KevChess : « Strip Unused Post Processing Variants » désactivé (sinon écran noir Android) ; Mac = Mono seulement ; un seul éditeur Unity par dossier.
@@ -89,6 +92,6 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ## Prochaines étapes envisagées
 
 1. Faire tester le ressenti de conduite par Kevin (S24 + manette) et régler vitesses, drift, IA.
-2. Icônes dessinées pour les objets et portraits des pilotes (aujourd'hui des initiales), son des menus, musique.
+2. Son des menus, musique.
 3. Deuxième circuit, relief (ponts, sauts), plus d'objets propres au jeu.
 4. Modèles 3D plus fins pour les pilotes (ou génération), musique.

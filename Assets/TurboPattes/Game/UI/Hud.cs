@@ -21,10 +21,6 @@ namespace TurboPattes.Game.UI
         float _scale;
         int _focus;
         static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier" };
-        static readonly Color[] ItemColors =
-        {
-            Color.clear, new(1f, 0.55f, 0.15f), new(0.55f, 0.35f, 0.2f), new(1f, 0.75f, 0.1f), new(0.5f, 0.85f, 1f),
-        };
         static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Menu" };
         static readonly string[] ResultChoices = { "Rejouer", "Menu" };
 
@@ -213,7 +209,7 @@ namespace TurboPattes.Game.UI
         void DrawItemSlot(Vector2 c, float r, KartMotor p)
         {
             Disc(c, r + 5 * _scale, new Color(1f, 1f, 1f, 0.9f));
-            Disc(c, r, new Color(0.12f, 0.15f, 0.25f, 0.85f));
+            Disc(c, r, new Color(0.12f, 0.15f, 0.28f));
             var kind = p.Item;
             if (kind == ItemKind.None) return;
             if (p.ItemRoll > 0f)
@@ -221,9 +217,8 @@ namespace TurboPattes.Game.UI
                 // Roulette : fait défiler les objets.
                 kind = (ItemKind)(1 + (int)(Time.time * 14f) % 4);
             }
-            Disc(c, r * 0.62f, ItemColors[(int)kind]);
-            string letter = kind switch { ItemKind.Carrot => "C", ItemKind.Coconut => "N", ItemKind.Honey => "M", _ => "B" };
-            Label(new Rect(c.x - r, c.y - r, r * 2f, r * 2f), letter, _medium, Color.white, TextAnchor.MiddleCenter);
+            float ir = r * 0.9f;
+            GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(kind), ScaleMode.ScaleToFit);
             if (p.ItemRoll <= 0f)
                 Label(new Rect(c.x - 150 * _scale, c.y + r + 4 * _scale, 300 * _scale, 30 * _scale), ItemNames[(int)kind], _small, Color.white,
                     TextAnchor.UpperCenter);
@@ -239,8 +234,8 @@ namespace TurboPattes.Game.UI
                 float yy = y + r * row;
                 if (k.IsPlayer) Box(new Rect(x - 6 * s, yy, 170 * s, row), new Color(1f, 0.85f, 0.2f, 0.35f));
                 Label(new Rect(x, yy, 30 * s, row), (r + 1).ToString(), _small, Color.white);
-                Disc(new Vector2(x + 36 * s, yy + row * 0.5f), 7 * s, k.Spec.Kart);
-                Label(new Rect(x + 50 * s, yy, 120 * s, row), k.Spec.Name, _small, k.IsPlayer ? new Color(1f, 0.92f, 0.5f) : Color.white);
+                UiKit.Portrait(new Vector2(x + 38 * s, yy + row * 0.5f), 10 * s, k.Spec);
+                Label(new Rect(x + 54 * s, yy, 116 * s, row), k.Spec.Name, _small, k.IsPlayer ? new Color(1f, 0.92f, 0.5f) : Color.white);
             }
         }
 
@@ -294,7 +289,7 @@ namespace TurboPattes.Game.UI
                 float yy = y + r * row;
                 if (k.IsPlayer) Box(new Rect(x, yy, panelW, row), new Color(1f, 0.85f, 0.2f, 0.3f));
                 Label(new Rect(x + 16 * s, yy, 60 * s, row), Ordinal(r + 1), _medium, Color.white);
-                Disc(new Vector2(x + 110 * s, yy + row * 0.5f), 11 * s, k.Spec.Kart);
+                UiKit.Portrait(new Vector2(x + 110 * s, yy + row * 0.5f), 16 * s, k.Spec);
                 Label(new Rect(x + 130 * s, yy, 220 * s, row), k.Spec.Name, _medium, Color.white);
                 string time = k.Finished ? FormatTime(k.FinishTime) : "en course…";
                 Label(new Rect(x + panelW - 236 * s, yy, 220 * s, row), time, _medium, new Color(1f, 1f, 1f, 0.85f), TextAnchor.UpperRight);

@@ -323,10 +323,7 @@ namespace TurboPattes.Game.UI
                 UiKit.Box(r, sel ? new Color(0.16f, 0.2f, 0.36f, 0.95f) : new Color(0.1f, 0.12f, 0.22f, 0.7f), 14 * s);
                 float rad = Mathf.Min(r.width * 0.3f, 30 * s);
                 var c = new Vector2(r.center.x, r.y + 12 * s + rad);
-                UiKit.Disc(c, rad + 3 * s, a.KartTrim);
-                UiKit.Disc(c, rad, a.Fur);
-                _ui.Label(new Rect(c.x - rad, c.y - rad, rad * 2f, rad * 2f), a.Name.Substring(0, 1), _ui.Medium,
-                    a.Fur.grayscale > 0.6f ? new Color(0.15f, 0.15f, 0.2f) : Color.white, TextAnchor.MiddleCenter, 0f);
+                UiKit.Portrait(c, rad, a, 3 * s);
                 _ui.Label(new Rect(r.x, r.yMax - 32 * s, r.width, 26 * s), a.Name, _ui.Small, sel ? gold : Color.white, TextAnchor.MiddleCenter);
             }
 

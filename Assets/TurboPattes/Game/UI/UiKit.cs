@@ -1,3 +1,4 @@
+using TurboPattes.Game.Kart;
 using TurboPattes.Game.Visuals;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -39,18 +40,27 @@ namespace TurboPattes.Game.UI
 
         public static void Disc(Vector2 center, float radius, Color color)
         {
-            var old = GUI.color;
-            GUI.color = color;
-            GUI.DrawTexture(new Rect(center.x - radius, center.y - radius, radius * 2f, radius * 2f), ProceduralTextures.Circle);
-            GUI.color = old;
+            // Boîte aux coins arrondis à 100 % : même chemin que les boutons, couleurs justes.
+            Box(new Rect(center.x - radius, center.y - radius, radius * 2f, radius * 2f), color, radius);
+        }
+
+        /// <summary>Portrait du pilote sur une pastille de la couleur de son kart.</summary>
+        public static void Portrait(Vector2 center, float radius, AnimalSpec spec, float ring = 0f)
+        {
+            if (ring > 0f) Disc(center, radius + ring, spec.KartTrim);
+            Disc(center, radius, spec.Kart);
+            float r = radius * 1.12f;
+            GUI.DrawTexture(new Rect(center.x - r, center.y - r * 1.06f, r * 2f, r * 2f), Icons.Portrait(spec), ScaleMode.ScaleToFit);
         }
 
         public static void Box(Rect r, Color color, float radius = 0f)
         {
-            // Cette surcharge ne convertit pas la couleur en espace linéaire : sans ça, tout sort délavé.
-            if (QualitySettings.activeColorSpace == ColorSpace.Linear) color = new Color(color.linear.r, color.linear.g, color.linear.b, color.a);
-            GUI.DrawTexture(r, ProceduralTextures.White, ScaleMode.StretchToFill, true, 0f, color, 0f, radius);
+            GUI.DrawTexture(r, ProceduralTextures.White, ScaleMode.StretchToFill, true, 0f, Linear(color), 0f, radius);
         }
+
+        // IMGUI ne convertit pas les couleurs en espace linéaire : sans ça, tout sort délavé.
+        static Color Linear(Color c) =>
+            QualitySettings.activeColorSpace == ColorSpace.Linear ? new Color(c.linear.r, c.linear.g, c.linear.b, c.a) : c;
 
         /// <summary>Bouton arrondi avec ombre portée ; <paramref name="focused"/> l'entoure (navigation clavier/manette).</summary>
         public void Button(Rect r, string text, Color color, bool focused = false, GUIStyle style = null)

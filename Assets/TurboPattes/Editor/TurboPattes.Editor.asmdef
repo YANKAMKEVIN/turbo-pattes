@@ -2,6 +2,7 @@
     "name": "TurboPattes.Editor",
     "rootNamespace": "TurboPattes.EditorTools",
     "references": [
+        "TurboPattes.Core",
         "TurboPattes.Game",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.Universal.Runtime"

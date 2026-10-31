@@ -77,6 +77,10 @@ namespace TurboPattes.Game.App
             yield return new WaitForSeconds(0.3f);
             menu.TestStart();
             yield return new WaitForSeconds(7f);
+            // Objet en main pour voir son icône sur la capture.
+            _race.Player.Item = Core.ItemKind.Honey;
+            _race.Player.ItemRoll = 0f;
+            yield return null;
             ScreenCapture.CaptureScreenshot(Shot("4_course"));
             yield return new WaitForSeconds(0.3f);
             _race.SetPaused(true);
