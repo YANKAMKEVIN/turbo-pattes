@@ -6,6 +6,8 @@ propres au jeu (pas de reprise de Mario Kart ni d'aucun autre jeu existant).
 
 Dernière mise à jour : 2026-10-31.
 
+Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). Pousser après chaque tâche.
+
 ## Décisions prises (avec Kevin)
 
 | Sujet | Décision |
