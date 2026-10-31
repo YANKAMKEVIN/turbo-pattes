@@ -1,0 +1,26 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+*.csproj
+!tests/**/*.csproj
+*.sln
+*.slnx
+*.unityproj
+*.pidb
+*.booproj
+*.userprefs
+.vs/
+.idea/
+.DS_Store
+# Tests .NET
+tests/**/bin/
+tests/**/obj/
+# Fichiers temporaires du Test Framework pendant les builds
+/Assets/Resources/PerformanceTestRun*
+/Assets/Resources.meta

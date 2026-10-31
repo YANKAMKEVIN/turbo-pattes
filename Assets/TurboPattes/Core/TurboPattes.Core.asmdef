@@ -1,0 +1,6 @@
+{
+    "name": "TurboPattes.Core",
+    "rootNamespace": "TurboPattes.Core",
+    "references": [],
+    "noEngineReferences": true
+}
