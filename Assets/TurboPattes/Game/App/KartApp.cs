@@ -30,6 +30,7 @@ namespace TurboPattes.Game.App
         int _circuitIndex;
         Transform _world, _trackRoot;
         Light _sun;
+        QualityTuner _tuner;
         RaceManager _race;
         Circuit _circuit;
         TrackPath _path;
@@ -49,6 +50,7 @@ namespace TurboPattes.Game.App
                 if (args[i] == "-tp-autotest") _autotestDir = args[i + 1];
                 if (args[i] == "-tp-menutest") _menuTestDir = args[i + 1];
                 if (args[i] == "-tp-laps" && int.TryParse(args[i + 1], out int l)) _lapsOverride = Mathf.Clamp(l, 1, 9);
+                if (args[i] == "-tp-quality" && int.TryParse(args[i + 1], out int q)) QualityTuner.Level = Mathf.Clamp(q, 0, QualityTuner.MaxLevel);
                 if (args[i] == "-tp-circuit" && int.TryParse(args[i + 1], out int c)) _circuitOverride = Mathf.Clamp(c - 1, 0, GameSession.CircuitCount - 1);
             }
 
@@ -60,6 +62,11 @@ namespace TurboPattes.Game.App
             BuildWorld();
             if (_autotestDir != null || !GameSession.ShowMenu) StartRace();
             else ShowMenu();
+        }
+
+        void Update()
+        {
+            if (_tuner != null) _tuner.Measuring = _race != null && _race.State == RaceManager.Phase.Racing && !_race.Paused;
         }
 
         void ShowMenu()
@@ -158,6 +165,11 @@ namespace TurboPattes.Game.App
             {
                 var p = _race.Player;
                 var input = _race.LastPlayerInput;
+                FrameTimingManager.CaptureFrameTimings();
+                var timings = new FrameTiming[1];
+                if (FrameTimingManager.GetLatestTimings(1, timings) > 0)
+                    Debug.Log($"[TPDiag] cpu={timings[0].cpuFrameTime:0.0}ms (principal {timings[0].cpuMainThreadFrameTime:0.0}, rendu {timings[0].cpuRenderThreadFrameTime:0.0}) gpu={timings[0].gpuFrameTime:0.0}ms " +
+                              $"echelle={QualityTuner.Level}");
                 Debug.Log($"[TPDiag] t={Time.timeSinceLevelLoad:0} touch={_race.Input.TouchMode} gaz={input.Throttle:0.0} frein={input.Brake:0.0} volant={input.Steer:0.0} " +
                           $"drift={input.Drift} vF={p.ForwardSpeed:0.0} lat={p.Lateral:0.0} horsPiste={p.Offroad} controles={p.ControlsEnabled} spin={p.SpinTime:0.0} etat={_race.State}");
                 yield return new WaitForSeconds(1f);
@@ -193,6 +205,7 @@ namespace TurboPattes.Game.App
             data.renderPostProcessing = true;
             data.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
             _chase = camGo.AddComponent<ChaseCamera>();
+            _tuner = gameObject.AddComponent<QualityTuner>();
             BuildPostProcessing(world);
 
             _sound = SoundBank.Create(world);

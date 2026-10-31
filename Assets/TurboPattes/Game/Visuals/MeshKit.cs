@@ -134,5 +134,44 @@ namespace TurboPattes.Game.Visuals
             foreach (var r in root.GetComponentsInChildren<Renderer>())
                 r.shadowCastingMode = cast ? ShadowCastingMode.On : ShadowCastingMode.Off;
         }
+    
+        /// <summary>
+        /// Fusionne les maillages immobiles sous <paramref name="root"/> : un objet par matériau (et par mode d'ombre),
+        /// au lieu de centaines. Les maillages non lisibles restent tels quels.
+        /// </summary>
+        /// <returns>(maillages fusionnés, maillages non lisibles laissés tels quels, objets obtenus)</returns>
+        public static (int merged, int skipped, int result) Combine(Transform root)
+        {
+            int skipped = 0;
+            var groups = new Dictionary<(Material, ShadowCastingMode), List<CombineInstance>>();
+            var done = new List<GameObject>();
+            var toLocal = root.worldToLocalMatrix;
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>())
+            {
+                var r = mf.GetComponent<MeshRenderer>();
+                var mesh = mf.sharedMesh;
+                if (r == null || mesh == null || r.sharedMaterial == null) continue;
+                if (!mesh.isReadable) { skipped++; continue; }
+                var key = (r.sharedMaterial, r.shadowCastingMode);
+                if (!groups.TryGetValue(key, out var list)) groups[key] = list = new List<CombineInstance>();
+                list.Add(new CombineInstance { mesh = mesh, transform = toLocal * mf.transform.localToWorldMatrix });
+                done.Add(mf.gameObject);
+            }
+            foreach (var go in done)
+            {
+                // L'objet peut porter des enfants non fusionnés : on retire seulement son rendu.
+                Object.Destroy(go.GetComponent<MeshRenderer>());
+                Object.Destroy(go.GetComponent<MeshFilter>());
+            }
+            foreach (var ((mat, shadows), list) in groups)
+            {
+                var mesh = new Mesh { name = "Combined " + mat.name, indexFormat = IndexFormat.UInt32 };
+                mesh.CombineMeshes(list.ToArray(), true, true);
+                mesh.RecalculateBounds();
+                var go = MeshObject("Combined", mesh, mat, root, shadows != ShadowCastingMode.Off);
+                go.GetComponent<MeshRenderer>().shadowCastingMode = shadows;
+            }
+            return (done.Count, skipped, groups.Count);
+        }
     }
 }

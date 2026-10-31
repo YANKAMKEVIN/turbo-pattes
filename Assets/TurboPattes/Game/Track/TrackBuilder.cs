@@ -29,6 +29,9 @@ namespace TurboPattes.Game.Track
             var pads = BuildBoostPads(circuit, path, root);
             if (circuit.Theme == Theme.Canyon) BuildCanyonDecor(path, terrain, root, rng);
             else BuildDecor(path, root, rng);
+            // Tout le circuit est immobile : un objet par matériau au lieu de centaines.
+            var (merged, skipped, result) = MeshKit.Combine(root);
+            Debug.Log($"[TurboPattes] Décor fusionné : {merged} maillages -> {result} objets ({skipped} non lisibles)");
             return pads;
         }
 

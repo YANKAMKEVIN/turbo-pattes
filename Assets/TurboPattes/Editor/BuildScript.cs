@@ -43,6 +43,7 @@ namespace TurboPattes.EditorTools
             Setup();
             EditorUserBuildSettings.buildAppBundle = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.enableFrameTimingStats = true; // temps CPU/GPU dans le diagnostic -tp-diag
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             Build(BuildTarget.Android, "Builds/Android/TurboPattes.apk");
         }
