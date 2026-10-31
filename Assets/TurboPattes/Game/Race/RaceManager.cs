@@ -29,6 +29,7 @@ namespace TurboPattes.Game.Race
         public KartMotor[] Karts { get; private set; }
         public KartMotor Player { get; private set; }
         public PlayerInput Input { get; private set; }
+        public KartInput LastPlayerInput { get; private set; }
         public ItemSystem Items { get; private set; }
         public int[] Order { get; private set; }
         public bool WrongWay => _wrongWayTime > 1f;
@@ -109,6 +110,7 @@ namespace TurboPattes.Game.Race
             if (Karts == null) return;
             float dt = Mathf.Min(Time.deltaTime, 0.1f);
             var playerInput = Input.Read();
+            LastPlayerInput = playerInput;
             if (Input.RestartPressed) { Restart(); return; }
 
             if (State == Phase.Countdown) UpdateCountdown(dt, playerInput);

@@ -54,6 +54,10 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -executeMethod TurboPattes.EditorTools.BuildScript.BuildAndroid -logFile -
 # Course automatique (le joueur est piloté par l'IA), captures + journal dans le dossier :
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1
+# Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
+~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
+~/Library/Android/sdk/platform-tools/adb shell am start -n com.kevinyankam.turbopattes/com.unity3d.player.UnityPlayerGameActivity -e unity "-tp-diag"
+~/Library/Android/sdk/platform-tools/adb logcat -s Unity | grep TPDiag
 ```
 
 ## Vérifications faites (2026-10-31)
@@ -61,12 +65,16 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 - 16 tests NUnit verts sur le Core.
 - Build Mac OK : course autotest de 1 tour sans erreur ni exception, ~60 i/s, joueur (piloté par l'IA) 4e en 42,8 s, peloton serré (~2 s). Captures vérifiées : rendu, HUD, résultats.
 - Correction faite après la première course : l'IA coupait la boucle serrée par l'herbe (visée trop lointaine).
-- Build Android OK (APK 32 Mo, `Builds/Android/TurboPattes.apk`) mais **pas encore installé** : le S24 s'est déconnecté. Installation : `~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk`.
-- Non testé : commandes tactiles et manette sur un vrai appareil, ressenti du drift par un humain.
+- **Galaxy S24 (Vulkan, Xclipse 940)** : jeu affiché et jouable, ~60 i/s. Testé par commandes adb simulées : accélération auto, glisser pour tourner, frein/marche arrière. Capture : `docs/capture-android.png`.
+  - Corrigé : le monde était invisible sur Android (seuls ciel et HUD) car `GameObject.CreatePrimitive` échouait, le module physique étant retiré du build. `MeshKit.Prim` utilise maintenant les maillages intégrés.
+  - Corrigé : l'accélération auto ne s'appliquait pas tant que `Touchscreen.current` était nul (avant le premier toucher).
+  - Corrigé : un kart plaqué contre un muret restait presque arrêté ; maintenant il se redresse et longe le mur (rebond seulement sur vrai choc).
+- Non testé : manette, multi-touch réel (tourner + DRIFT en même temps), bouton OBJET, ressenti du drift par un humain.
 
 ## Pièges connus
 
 - Matériaux : toujours passer par `Mats` (clones des gabarits de `Resources`), sinon les shaders URP peuvent manquer dans le build.
+- Ne jamais utiliser `GameObject.CreatePrimitive` (ni rien qui ajoute un collider) : le module physique est retiré des builds IL2CPP, l'objet ne s'affiche pas sur mobile. Passer par `MeshKit.Prim`.
 - Brouillard : la scène enregistrée a le brouillard activé pour que ses variantes de shader ne soient pas retirées du build.
 - Hérités de Check/KevChess : « Strip Unused Post Processing Variants » désactivé (sinon écran noir Android) ; Mac = Mono seulement ; un seul éditeur Unity par dossier.
 

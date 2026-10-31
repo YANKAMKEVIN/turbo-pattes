@@ -51,7 +51,8 @@ namespace TurboPattes.Game.Kart
                 input.Drift |= kb.spaceKey.isPressed || kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
                 input.UseItem |= kb.eKey.wasPressedThisFrame || kb.leftCtrlKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame;
                 RestartPressed |= kb.rKey.wasPressedThisFrame;
-                if (kb.anyKey.wasPressedThisFrame) TouchMode = false;
+                // Sur téléphone, un événement clavier système (réveil, volume) ne doit pas couper l'accélération auto.
+                if (kb.anyKey.wasPressedThisFrame && !Application.isMobilePlatform) TouchMode = false;
             }
 
             var pad = Gamepad.current;
@@ -70,6 +71,13 @@ namespace TurboPattes.Game.Kart
             }
 
             ReadTouch(ref input);
+            // Hors de ReadTouch : sur Android, Touchscreen.current peut rester nul tant qu'on n'a pas touché l'écran.
+            if (TouchMode)
+            {
+                input.Drift |= DriftHeld;
+                if (BrakeHeld) input.Brake = 1f;
+                else input.Throttle = Mathf.Max(input.Throttle, 1f);
+            }
             input.Steer = Mathf.Clamp(input.Steer, -1f, 1f);
             return input;
         }
@@ -142,13 +150,6 @@ namespace TurboPattes.Game.Kart
             ItemHeld = itemTouch;
             if (itemTouch && !_prevItemTouch) input.UseItem = true;
             _prevItemTouch = itemTouch;
-
-            if (TouchMode)
-            {
-                input.Drift |= DriftHeld;
-                if (BrakeHeld) input.Brake = 1f;
-                else input.Throttle = Mathf.Max(input.Throttle, 1f);
-            }
         }
 
         static bool Inside(Vector2 p, Vector2 c, float r) => (p - c).sqrMagnitude <= r * r;

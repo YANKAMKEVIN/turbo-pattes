@@ -13,15 +13,31 @@ namespace TurboPattes.Game.Visuals
         public static GameObject Prim(PrimitiveType type, Transform parent, Vector3 localPos, Vector3 scale, Material mat,
             Quaternion? rot = null, string name = null)
         {
-            var go = GameObject.CreatePrimitive(type);
-            Object.Destroy(go.GetComponent<Collider>());
-            if (name != null) go.name = name;
-            go.transform.SetParent(parent, false);
+            // Pas de CreatePrimitive : il ajoute un collider, or le module physique est retiré du build mobile.
+            var go = MeshObject(name ?? type.ToString(), PrimitiveMesh(type), mat, parent);
             go.transform.localPosition = localPos;
             go.transform.localRotation = rot ?? Quaternion.identity;
             go.transform.localScale = scale;
-            go.GetComponent<MeshRenderer>().sharedMaterial = mat;
             return go;
+        }
+
+        static readonly Dictionary<PrimitiveType, Mesh> PrimitiveMeshes = new();
+
+        public static Mesh PrimitiveMesh(PrimitiveType type)
+        {
+            if (PrimitiveMeshes.TryGetValue(type, out var mesh)) return mesh;
+            string file = type switch
+            {
+                PrimitiveType.Sphere => "New-Sphere.fbx",
+                PrimitiveType.Capsule => "New-Capsule.fbx",
+                PrimitiveType.Cylinder => "New-Cylinder.fbx",
+                PrimitiveType.Plane => "New-Plane.fbx",
+                PrimitiveType.Quad => "Quad.fbx",
+                _ => "Cube.fbx",
+            };
+            mesh = Resources.GetBuiltinResource<Mesh>(file);
+            PrimitiveMeshes[type] = mesh;
+            return mesh;
         }
 
         public static GameObject MeshObject(string name, Mesh mesh, Material mat, Transform parent, bool castShadows = true)

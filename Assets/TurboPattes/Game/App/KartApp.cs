@@ -22,6 +22,7 @@ namespace TurboPattes.Game.App
         public const int PlayerSlot = 5;
 
         string _autotestDir;
+        bool _diag;
         RaceManager _race;
 
         void Awake()
@@ -39,7 +40,40 @@ namespace TurboPattes.Game.App
             }
 
             BuildWorld(laps);
+            _diag = Array.IndexOf(args, "-tp-diag") >= 0;
             if (_autotestDir != null) StartCoroutine(Autotest());
+            if (_diag) StartCoroutine(Diagnostics());
+        }
+
+        /// <summary><c>-tp-diag</c> : état du rendu dans le journal (logcat sur Android).</summary>
+        IEnumerator Diagnostics()
+        {
+            yield return new WaitForSeconds(5f);
+            Debug.Log($"[TPDiag] API={SystemInfo.graphicsDeviceType} GPU={SystemInfo.graphicsDeviceName} quality={QualitySettings.names[QualitySettings.GetQualityLevel()]} " +
+                      $"pipeline={GraphicsSettings.currentRenderPipeline?.name}");
+            var shaders = new System.Collections.Generic.HashSet<Shader>();
+            int renderers = 0, visible = 0, noMat = 0, noMesh = 0;
+            foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                renderers++;
+                if (r.isVisible) visible++;
+                if (r.sharedMaterial == null) noMat++;
+                else shaders.Add(r.sharedMaterial.shader);
+                if (r is MeshRenderer && r.GetComponent<MeshFilter>()?.sharedMesh == null) noMesh++;
+            }
+            foreach (var sh in shaders) Debug.Log($"[TPDiag] shader {sh.name} supported={sh.isSupported} passes={sh.passCount}");
+            var cam = Camera.main;
+            Debug.Log($"[TPDiag] renderers={renderers} visibles={visible} sansMateriau={noMat} sansMaillage={noMesh} " +
+                      $"camera={cam.transform.position} joueur={_race.Player.transform.position}");
+            Debug.Log("[TPDiag] devices: " + string.Join(", ", System.Linq.Enumerable.Select(UnityEngine.InputSystem.InputSystem.devices, d => $"{d.GetType().Name}:{d.displayName}")));
+            for (int i = 0; i < 40; i++)
+            {
+                var p = _race.Player;
+                var input = _race.LastPlayerInput;
+                Debug.Log($"[TPDiag] t={Time.timeSinceLevelLoad:0} touch={_race.Input.TouchMode} gaz={input.Throttle:0.0} frein={input.Brake:0.0} volant={input.Steer:0.0} " +
+                          $"drift={input.Drift} vF={p.ForwardSpeed:0.0} lat={p.Lateral:0.0} horsPiste={p.Offroad} controles={p.ControlsEnabled} spin={p.SpinTime:0.0} etat={_race.State}");
+                yield return new WaitForSeconds(1f);
+            }
         }
 
         void BuildWorld(int laps)

@@ -214,9 +214,18 @@ namespace TurboPattes.Game.Kart
                 float vn = Vector3.Dot(Velocity, n);
                 if (vn > 0f)
                 {
-                    Velocity -= n * vn * 1.4f;
-                    Velocity *= 0.88f;
-                    if (vn > 3f) BarrierHit?.Invoke(this);
+                    if (vn > 3f)
+                    {
+                        // Vrai choc : rebond et perte de vitesse.
+                        Velocity -= n * vn * 1.4f;
+                        Velocity *= 0.88f;
+                        BarrierHit?.Invoke(this);
+                    }
+                    else Velocity -= n * vn; // simple frottement : seule la poussée vers le mur disparaît
+                    // Le muret redresse le kart dans l'axe de la piste : il longe le mur au lieu d'y rester planté.
+                    Vector3 t = Path.Tangents[TrackIndex];
+                    if (Vector3.Dot(Forward, t) < 0f) t = -t;
+                    Yaw = Mathf.LerpAngle(Yaw * Mathf.Rad2Deg, Mathf.Atan2(t.x, t.z) * Mathf.Rad2Deg, 0.12f) * Mathf.Deg2Rad;
                 }
                 lat = side * limit;
             }
