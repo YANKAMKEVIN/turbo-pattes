@@ -24,7 +24,8 @@ Dernière mise à jour : 2026-10-31.
 - **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier. Tirage selon la place (`ItemRoll`).
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
 - **Commandes** : clavier (flèches/WASD/ZQSD, Espace = drift, E = objet, R = rejouer), manette (stick, RT/A, LT/B, RB = drift, X/Y = objet, Start), tactile (glisser à gauche pour tourner, boutons DRIFT / OBJET / FREIN, accélération auto).
-- **Interface** IMGUI (provisoire) : tour, chrono, place, objet avec roulette, classement, vitesse, compte à rebours, « Mauvais sens ! », résultats + Rejouer.
+- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
+- **Interface de course** IMGUI : tour, chrono, place, objet avec roulette, classement, vitesse, compte à rebours, « Mauvais sens ! ».
 - **Sons** synthétisés par code (moteur, bips, turbo, chocs, objets).
 
 ## Architecture
@@ -50,10 +51,13 @@ tests/TurboPattes.Tests/  tests NUnit hors Unity du dossier Core
 
 ```bash
 cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/Resources/Scripting/DotNetSdk/dotnet test
-/Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -executeMethod TurboPattes.EditorTools.BuildScript.BuildMac -logFile -
-/Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -executeMethod TurboPattes.EditorTools.BuildScript.BuildAndroid -logFile -
+# -buildTarget est OBLIGATOIRE (sinon le script refuse) : voir « Pièges connus »
+/Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget OSXUniversal -executeMethod TurboPattes.EditorTools.BuildScript.BuildMac -logFile -
+/Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.BuildScript.BuildAndroid -logFile -
 # Course automatique (le joueur est piloté par l'IA), captures + journal dans le dossier :
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1
+# Parcours des menus (titre, pilote, choix de Bruno, course, pause) avec captures :
+~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-menutest /tmp/tp-menutest
 # Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
 ~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
 ~/Library/Android/sdk/platform-tools/adb shell am start -n com.kevinyankam.turbopattes/com.unity3d.player.UnityPlayerGameActivity -e unity "-tp-diag"
@@ -69,11 +73,15 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
   - Corrigé : le monde était invisible sur Android (seuls ciel et HUD) car `GameObject.CreatePrimitive` échouait, le module physique étant retiré du build. `MeshKit.Prim` utilise maintenant les maillages intégrés.
   - Corrigé : l'accélération auto ne s'appliquait pas tant que `Touchscreen.current` était nul (avant le premier toucher).
   - Corrigé : un kart plaqué contre un muret restait presque arrêté ; maintenant il se redresse et longe le mur (rebond seulement sur vrai choc).
+- Menus testés sur Mac (`-tp-menutest`) et sur le S24 avec de vraies tapes adb : titre → Lili → 1 tour → course avec son kart → pause → Menu → titre. Captures : `docs/capture-menu-titre.png`, `docs/capture-menu-pilote.png`.
 - Non testé : manette, multi-touch réel (tourner + DRIFT en même temps), bouton OBJET, ressenti du drift par un humain.
 
 ## Pièges connus
 
 - Matériaux : toujours passer par `Mats` (clones des gabarits de `Resources`), sinon les shaders URP peuvent manquer dans le build.
+- **Builds en ligne de commande : toujours `-buildTarget`.** Si l'éditeur démarre sur la cible macOS et que le build Android change de cible en route, URP filtre les shaders avec les réglages de l'autre plateforme : Lit perd une passe entière et le monde est invisible sur le téléphone (seuls ciel et IMGUI). `BuildScript` refuse maintenant de builder si la cible active n'est pas la bonne. Le diagnostic `-tp-diag` affiche le nombre de passes (Lit = 5 quand tout va bien).
+- Tapes tactiles : lire `EnhancedTouch` (`UiKit.Tap`), pas `Touchscreen.wasReleasedThisFrame` qui rate les tapes appuyées et relâchées dans la même image.
+- Couleurs des boîtes arrondies IMGUI (`GUI.DrawTexture` avec rayon) : convertir en linéaire, sinon délavées.
 - Ne jamais utiliser `GameObject.CreatePrimitive` (ni rien qui ajoute un collider) : le module physique est retiré des builds IL2CPP, l'objet ne s'affiche pas sur mobile. Passer par `MeshKit.Prim`.
 - Brouillard : la scène enregistrée a le brouillard activé pour que ses variantes de shader ne soient pas retirées du build.
 - Hérités de Check/KevChess : « Strip Unused Post Processing Variants » désactivé (sinon écran noir Android) ; Mac = Mono seulement ; un seul éditeur Unity par dossier.
@@ -81,6 +89,6 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ## Prochaines étapes envisagées
 
 1. Faire tester le ressenti de conduite par Kevin (S24 + manette) et régler vitesses, drift, IA.
-2. Interface en uGUI avec icônes d'objets dessinées, menu de départ et choix du pilote.
+2. Icônes dessinées pour les objets et portraits des pilotes (aujourd'hui des initiales), son des menus, musique.
 3. Deuxième circuit, relief (ponts, sauts), plus d'objets propres au jeu.
 4. Modèles 3D plus fins pour les pilotes (ou génération), musique.

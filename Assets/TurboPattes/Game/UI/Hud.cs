@@ -1,8 +1,10 @@
 using TurboPattes.Core;
+using TurboPattes.Game.App;
 using TurboPattes.Game.Kart;
 using TurboPattes.Game.Race;
 using TurboPattes.Game.Visuals;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace TurboPattes.Game.UI
 {
@@ -14,51 +16,118 @@ namespace TurboPattes.Game.UI
     {
         public RaceManager Race;
 
+        readonly UiKit _ui = new();
         GUIStyle _big, _medium, _small, _center;
         float _scale;
+        int _focus;
         static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier" };
         static readonly Color[] ItemColors =
         {
             Color.clear, new(1f, 0.55f, 0.15f), new(0.55f, 0.35f, 0.2f), new(1f, 0.75f, 0.1f), new(0.5f, 0.85f, 1f),
         };
+        static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Menu" };
+        static readonly string[] ResultChoices = { "Rejouer", "Menu" };
 
         void EnsureStyles()
         {
-            float scale = Screen.height / 720f;
-            if (_big != null && Mathf.Approximately(scale, _scale)) return;
-            _scale = scale;
-            _big = new GUIStyle { fontSize = Mathf.RoundToInt(64 * scale), fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
-            _medium = new GUIStyle(_big) { fontSize = Mathf.RoundToInt(30 * scale) };
-            _small = new GUIStyle(_big) { fontSize = Mathf.RoundToInt(19 * scale), fontStyle = FontStyle.Bold };
+            _ui.EnsureStyles();
+            _scale = _ui.Scale;
+            _big = _ui.Big;
+            _medium = _ui.Medium;
+            _small = _ui.Small;
             _center = new GUIStyle(_big) { alignment = TextAnchor.MiddleCenter };
         }
 
         static string Ordinal(int rank) => rank == 1 ? "1er" : rank + "e";
 
-        void Label(Rect r, string text, GUIStyle style, Color color, TextAnchor anchor = TextAnchor.UpperLeft)
+        void Label(Rect r, string text, GUIStyle style, Color color, TextAnchor anchor = TextAnchor.UpperLeft) =>
+            _ui.Label(r, text, style, color, anchor);
+
+        static void Disc(Vector2 center, float radius, Color color) => UiKit.Disc(center, radius, color);
+
+        static void Box(Rect r, Color color) => UiKit.Box(r, color);
+
+        // ------------------------------------------------------------------ boutons de pause et de fin (logique)
+
+        static float S => Screen.height / 720f;
+
+        static Rect PauseButton()
         {
-            var s = new GUIStyle(style) { alignment = anchor };
-            float o = Mathf.Max(1f, 2.5f * _scale);
-            s.normal.textColor = new Color(0f, 0f, 0f, 0.6f * color.a);
-            GUI.Label(new Rect(r.x + o, r.y + o, r.width, r.height), text, s);
-            s.normal.textColor = color;
-            GUI.Label(r, text, s);
+            var safe = Screen.safeArea;
+            float s = S, r = 30 * s;
+            return new Rect(safe.xMax - 24 * s - 2 * r, Screen.height - safe.yMax + 120 * s, 2 * r, 2 * r);
         }
 
-        static void Disc(Vector2 center, float radius, Color color)
+        static Rect[] MenuButtons(int count, float y, bool row)
         {
-            var old = GUI.color;
-            GUI.color = color;
-            GUI.DrawTexture(new Rect(center.x - radius, center.y - radius, radius * 2f, radius * 2f), ProceduralTextures.Circle);
-            GUI.color = old;
+            float s = S, w = Screen.width;
+            var rects = new Rect[count];
+            for (int i = 0; i < count; i++)
+                rects[i] = row
+                    ? new Rect(w * 0.5f - (count * 290 * s - 20 * s) * 0.5f + i * 290 * s, y, 270 * s, 70 * s)
+                    : new Rect(w * 0.5f - 160 * s, y + i * 88 * s, 320 * s, 70 * s);
+            return rects;
         }
 
-        static void Box(Rect r, Color color)
+        Rect[] PauseRects() => MenuButtons(PauseChoices.Length, Screen.height * 0.36f, false);
+
+        Rect[] ResultRects()
         {
-            var old = GUI.color;
-            GUI.color = color;
-            GUI.DrawTexture(r, ProceduralTextures.White);
-            GUI.color = old;
+            float row = 38 * S;
+            return MenuButtons(ResultChoices.Length, 130 * S + row * Race.Karts.Length + 74 * S, true);
+        }
+
+        void Update()
+        {
+            if (Race == null || Race.Player == null) return;
+            var tap = UiKit.Tap();
+            if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
+            else if (Race.State == RaceManager.Phase.Results) Navigate(ResultRects(), tap, ChooseResult, vertical: false);
+            else
+            {
+                _focus = 0;
+                if (tap.HasValue && Race.Input.TouchMode && PauseButton().Contains(tap.Value)) Race.SetPaused(true);
+            }
+        }
+
+        void Navigate(Rect[] buttons, Vector2? tap, System.Action<int> choose, bool vertical)
+        {
+            var kb = Keyboard.current;
+            var pad = Gamepad.current;
+            int d = 0;
+            if (kb != null)
+            {
+                if ((vertical ? kb.upArrowKey : kb.leftArrowKey).wasPressedThisFrame) d--;
+                if ((vertical ? kb.downArrowKey : kb.rightArrowKey).wasPressedThisFrame) d++;
+            }
+            if (pad != null)
+            {
+                if ((vertical ? pad.dpad.up : pad.dpad.left).wasPressedThisFrame) d--;
+                if ((vertical ? pad.dpad.down : pad.dpad.right).wasPressedThisFrame) d++;
+            }
+            _focus = Mathf.Clamp(_focus + d, 0, buttons.Length - 1);
+            bool confirm = kb != null && (kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
+                           || pad != null && pad.buttonSouth.wasPressedThisFrame;
+            bool back = kb != null && kb.escapeKey.wasPressedThisFrame || pad != null && (pad.buttonEast.wasPressedThisFrame || pad.startButton.wasPressedThisFrame);
+            if (confirm) { choose(_focus); return; }
+            if (back && Race.Paused) { choose(0); return; }
+            if (!tap.HasValue) return;
+            for (int i = 0; i < buttons.Length; i++)
+                if (buttons[i].Contains(tap.Value)) { choose(i); return; }
+        }
+
+        void ChoosePause(int i)
+        {
+            if (i == 0) Race.SetPaused(false);
+            else Leave(toMenu: i == 2);
+        }
+
+        void ChooseResult(int i) => Leave(toMenu: i == 1);
+
+        void Leave(bool toMenu)
+        {
+            GameSession.ShowMenu = toMenu;
+            Race.Restart();
         }
 
         void OnGUI()
@@ -74,6 +143,11 @@ namespace TurboPattes.Game.UI
             if (Race.State == RaceManager.Phase.Results)
             {
                 DrawResults(w, h, s);
+                return;
+            }
+            if (Race.Paused)
+            {
+                DrawPause(w, h, s);
                 return;
             }
 
@@ -122,10 +196,17 @@ namespace TurboPattes.Game.UI
             if (Race.WrongWay && Mathf.Repeat(Time.time, 0.8f) < 0.55f)
                 Label(new Rect(0, h * 0.4f, w, 80 * s), "Mauvais sens !", _big, new Color(1f, 0.3f, 0.3f), TextAnchor.MiddleCenter);
 
-            if (Race.Input.TouchMode) DrawTouchControls(h, s);
+            if (Race.Input.TouchMode)
+            {
+                DrawTouchControls(h, s);
+                var pb = PauseButton();
+                Disc(pb.center, pb.width * 0.5f, new Color(0f, 0f, 0f, 0.35f));
+                Box(new Rect(pb.center.x - 9 * s, pb.center.y - 11 * s, 6 * s, 22 * s), Color.white);
+                Box(new Rect(pb.center.x + 3 * s, pb.center.y - 11 * s, 6 * s, 22 * s), Color.white);
+            }
             else if (Race.State == RaceManager.Phase.Countdown)
                 Label(new Rect(0, h - safe.yMin - 50 * s, w, 30 * s),
-                    "Flèches : conduire   Espace : drift   E : objet   R : rejouer   (manette : RT, RB, X)", _small,
+                    "Flèches : conduire   Espace : drift   E : objet   Échap : pause   (manette : RT, RB, X, Start)", _small,
                     new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
         }
 
@@ -225,11 +306,18 @@ namespace TurboPattes.Game.UI
             for (int i = 0; i < laps.Length; i++) lapsText += (i > 0 ? "   " : "") + $"T{i + 1} {FormatTime(laps[i])}";
             Label(new Rect(0, by, w, 30 * s), lapsText, _small, Color.white, TextAnchor.MiddleCenter);
 
-            var btn = new Rect(w * 0.5f - 140 * s, by + 44 * s, 280 * s, 70 * s);
-            Box(btn, new Color(1f, 0.55f, 0.2f, 0.95f));
-            Label(btn, "Rejouer", _medium, Color.white, TextAnchor.MiddleCenter);
-            if (GUI.Button(btn, GUIContent.none, GUIStyle.none)) Race.Restart();
-            Label(new Rect(0, btn.yMax + 8 * s, w, 30 * s), "ou R / Start", _small, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
+            var buttons = ResultRects();
+            for (int i = 0; i < buttons.Length; i++)
+                _ui.Button(buttons[i], ResultChoices[i], i == 0 ? new Color(1f, 0.5f, 0.15f) : new Color(0.25f, 0.45f, 0.8f), i == _focus);
+        }
+
+        void DrawPause(float w, float h, float s)
+        {
+            Box(new Rect(0, 0, w, h), new Color(0.05f, 0.08f, 0.18f, 0.6f));
+            Label(new Rect(0, h * 0.14f, w, 90 * s), "Pause", _big, new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+            var buttons = PauseRects();
+            for (int i = 0; i < buttons.Length; i++)
+                _ui.Button(buttons[i], PauseChoices[i], i == 0 ? new Color(1f, 0.5f, 0.15f) : new Color(0.25f, 0.45f, 0.8f), i == _focus);
         }
 
         static string FormatTime(float t)

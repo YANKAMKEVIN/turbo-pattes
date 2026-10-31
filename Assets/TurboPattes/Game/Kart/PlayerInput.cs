@@ -29,6 +29,8 @@ namespace TurboPattes.Game.Kart
         public bool BrakeHeld { get; private set; }
         /// <summary>Relancer la course (R ou Start).</summary>
         public bool RestartPressed { get; private set; }
+        /// <summary>Pause (Échap, P ou Start).</summary>
+        public bool PausePressed { get; private set; }
 
         int _steerTouch = -1;
         bool _prevItemTouch;
@@ -36,7 +38,7 @@ namespace TurboPattes.Game.Kart
         public KartInput Read()
         {
             var input = new KartInput();
-            RestartPressed = false;
+            RestartPressed = PausePressed = false;
             ComputeLayout();
 
             var kb = Keyboard.current;
@@ -51,6 +53,7 @@ namespace TurboPattes.Game.Kart
                 input.Drift |= kb.spaceKey.isPressed || kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
                 input.UseItem |= kb.eKey.wasPressedThisFrame || kb.leftCtrlKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame;
                 RestartPressed |= kb.rKey.wasPressedThisFrame;
+                PausePressed |= kb.escapeKey.wasPressedThisFrame || kb.pKey.wasPressedThisFrame;
                 // Sur téléphone, un événement clavier système (réveil, volume) ne doit pas couper l'accélération auto.
                 if (kb.anyKey.wasPressedThisFrame && !Application.isMobilePlatform) TouchMode = false;
             }
@@ -66,7 +69,7 @@ namespace TurboPattes.Game.Kart
                 input.Brake = Mathf.Max(input.Brake, pad.leftTrigger.ReadValue(), pad.buttonEast.isPressed ? 1f : 0f);
                 input.Drift |= pad.rightShoulder.isPressed || pad.leftShoulder.isPressed;
                 input.UseItem |= pad.buttonWest.wasPressedThisFrame || pad.buttonNorth.wasPressedThisFrame;
-                RestartPressed |= pad.startButton.wasPressedThisFrame;
+                PausePressed |= pad.startButton.wasPressedThisFrame;
                 if (pad.wasUpdatedThisFrame && (pad.buttonSouth.wasPressedThisFrame || Mathf.Abs(stick) > 0.5f)) TouchMode = false;
             }
 

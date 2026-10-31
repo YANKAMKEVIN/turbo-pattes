@@ -15,8 +15,8 @@ namespace TurboPattes.EditorTools
 {
     /// <summary>
     /// Configuration du projet et builds en ligne de commande :
-    ///   Unity -batchmode -quit -projectPath . -executeMethod TurboPattes.EditorTools.BuildScript.BuildAndroid
-    ///   Unity -batchmode -quit -projectPath . -executeMethod TurboPattes.EditorTools.BuildScript.BuildMac
+    ///   Unity -batchmode -quit -projectPath . -buildTarget Android -executeMethod TurboPattes.EditorTools.BuildScript.BuildAndroid
+    ///   Unity -batchmode -quit -projectPath . -buildTarget OSXUniversal -executeMethod TurboPattes.EditorTools.BuildScript.BuildMac
     /// </summary>
     public static class BuildScript
     {
@@ -39,6 +39,7 @@ namespace TurboPattes.EditorTools
         [MenuItem("Turbo Pattes/Build Android (APK)")]
         public static void BuildAndroid()
         {
+            if (!RequireActiveTarget(BuildTarget.Android, "Android")) return;
             Setup();
             EditorUserBuildSettings.buildAppBundle = false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
@@ -49,10 +50,24 @@ namespace TurboPattes.EditorTools
         [MenuItem("Turbo Pattes/Build macOS")]
         public static void BuildMac()
         {
+            if (!RequireActiveTarget(BuildTarget.StandaloneOSX, "OSXUniversal")) return;
             Setup();
             // Seul le module Mac Mono est installé (pas IL2CPP).
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
             Build(BuildTarget.StandaloneOSX, "Builds/macOS/TurboPattes.app");
+        }
+
+        /// <summary>
+        /// En ligne de commande, l'éditeur doit démarrer sur la bonne cible (<c>-buildTarget Android</c>) : si le build
+        /// change de cible en cours de route, URP filtre les shaders avec les réglages de l'ancienne plateforme et
+        /// retire des passes entières (monde invisible sur Android après un build Mac).
+        /// </summary>
+        static bool RequireActiveTarget(BuildTarget target, string argName)
+        {
+            if (!Application.isBatchMode || EditorUserBuildSettings.activeBuildTarget == target) return true;
+            Debug.LogError($"[TurboPattes] Relancer avec -buildTarget {argName} (cible active : {EditorUserBuildSettings.activeBuildTarget}).");
+            EditorApplication.Exit(3);
+            return false;
         }
 
         static void Build(BuildTarget target, string output)

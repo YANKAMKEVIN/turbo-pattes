@@ -21,9 +21,15 @@ namespace TurboPattes.Game.App
     {
         public const int PlayerSlot = 5;
 
-        string _autotestDir;
+        string _autotestDir, _menuTestDir;
         bool _diag;
+        int _lapsOverride;
         RaceManager _race;
+        Circuit _circuit;
+        TrackPath _path;
+        System.Collections.Generic.List<BoostPad> _pads;
+        ChaseCamera _chase;
+        SoundBank _sound;
 
         void Awake()
         {
@@ -31,17 +37,74 @@ namespace TurboPattes.Game.App
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             QualitySettings.vSyncCount = 0;
 
-            int laps = 3;
             var args = Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
             {
                 if (args[i] == "-tp-autotest") _autotestDir = args[i + 1];
-                if (args[i] == "-tp-laps" && int.TryParse(args[i + 1], out int l)) laps = Mathf.Clamp(l, 1, 9);
+                if (args[i] == "-tp-menutest") _menuTestDir = args[i + 1];
+                if (args[i] == "-tp-laps" && int.TryParse(args[i + 1], out int l)) _lapsOverride = Mathf.Clamp(l, 1, 9);
             }
 
-            BuildWorld(laps);
             _diag = Array.IndexOf(args, "-tp-diag") >= 0;
-            if (_autotestDir != null) StartCoroutine(Autotest());
+            BuildWorld();
+            if (_autotestDir != null || !GameSession.ShowMenu) StartRace();
+            else ShowMenu();
+        }
+
+        void ShowMenu()
+        {
+            var menu = new GameObject("Menu").AddComponent<UI.MainMenu>();
+            menu.Setup(_path, _chase.GetComponent<Camera>(), _sound);
+            menu.Play = StartRace;
+            if (_menuTestDir != null) StartCoroutine(MenuTest(menu));
+        }
+
+        /// <summary><c>-tp-menutest &lt;dossier&gt;</c> : parcourt menu, choix du pilote, course et pause en prenant des captures.</summary>
+        IEnumerator MenuTest(UI.MainMenu menu)
+        {
+            Directory.CreateDirectory(_menuTestDir);
+            string Shot(string name) => Path.Combine(_menuTestDir, name + ".png");
+            yield return new WaitForSeconds(2.5f);
+            ScreenCapture.CaptureScreenshot(Shot("1_titre"));
+            yield return new WaitForSeconds(0.5f);
+            menu.TestGoToPilots();
+            yield return new WaitForSeconds(2.5f);
+            ScreenCapture.CaptureScreenshot(Shot("2_pilote"));
+            yield return new WaitForSeconds(0.3f);
+            menu.TestSelect(4, 0, Difficulty.Hard);
+            yield return new WaitForSeconds(1.5f);
+            ScreenCapture.CaptureScreenshot(Shot("3_bruno"));
+            yield return new WaitForSeconds(0.3f);
+            menu.TestStart();
+            yield return new WaitForSeconds(7f);
+            ScreenCapture.CaptureScreenshot(Shot("4_course"));
+            yield return new WaitForSeconds(0.3f);
+            _race.SetPaused(true);
+            yield return null;
+            yield return null;
+            ScreenCapture.CaptureScreenshot(Shot("5_pause"));
+            yield return new WaitForSecondsRealtime(0.5f);
+            File.WriteAllText(Path.Combine(_menuTestDir, "menutest.log"),
+                $"pilote={_race.Player.Spec.Name} tours={_race.Laps} karts={string.Join(",", Array.ConvertAll(_race.Karts, k => k.Spec.Name))}\n");
+            Application.Quit();
+        }
+
+        void StartRace()
+        {
+            // « Rejouer » relance directement la course ; seul le bouton Menu remet ce drapeau.
+            GameSession.ShowMenu = false;
+            bool auto = _autotestDir != null;
+            int laps = _lapsOverride > 0 ? _lapsOverride : auto ? 3 : GameSession.Laps;
+            int pilot = auto ? 0 : GameSession.Pilot;
+            var difficulty = auto ? Difficulty.Normal : GameSession.Difficulty;
+            int seed = auto ? 1234 : Environment.TickCount;
+
+            _race = new GameObject("Race").AddComponent<RaceManager>();
+            _race.Autopilot = auto;
+            _race.Setup(_circuit, _path, _pads, _chase, _sound, PlayerSlot, laps, seed, pilot, GameSession.AiSpeedRange(difficulty));
+            var hud = new GameObject("Hud").AddComponent<Hud>();
+            hud.Race = _race;
+            if (auto) StartCoroutine(Autotest());
             if (_diag) StartCoroutine(Diagnostics());
         }
 
@@ -76,7 +139,7 @@ namespace TurboPattes.Game.App
             }
         }
 
-        void BuildWorld(int laps)
+        void BuildWorld()
         {
             var world = new GameObject("World").transform;
 
@@ -114,20 +177,13 @@ namespace TurboPattes.Game.App
             var data = camGo.AddComponent<UniversalAdditionalCameraData>();
             data.renderPostProcessing = true;
             data.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
-            var chase = camGo.AddComponent<ChaseCamera>();
+            _chase = camGo.AddComponent<ChaseCamera>();
             BuildPostProcessing(world);
 
-            var circuit = Circuit.Meadow();
-            var path = new TrackPath(circuit.Control, 40, circuit.HalfWidth, circuit.CurbWidth, circuit.BarrierOffset);
-            int seed = _autotestDir != null ? 1234 : Environment.TickCount;
-            var pads = TrackBuilder.Build(circuit, path, world, 42);
-
-            var sound = SoundBank.Create(world);
-            _race = new GameObject("Race").AddComponent<RaceManager>();
-            _race.Autopilot = _autotestDir != null;
-            _race.Setup(circuit, path, pads, chase, sound, PlayerSlot, laps, seed);
-            var hud = new GameObject("Hud").AddComponent<Hud>();
-            hud.Race = _race;
+            _circuit = Circuit.Meadow();
+            _path = new TrackPath(_circuit.Control, 40, _circuit.HalfWidth, _circuit.CurbWidth, _circuit.BarrierOffset);
+            _pads = TrackBuilder.Build(_circuit, _path, world, 42);
+            _sound = SoundBank.Create(world);
         }
 
         static void BuildPostProcessing(Transform parent)

@@ -39,6 +39,7 @@ namespace TurboPattes.Game.Race
         /// <summary>Le joueur est conduit par l'IA (mode autotest).</summary>
         public bool Autopilot { get; set; }
         public float[] LapTimes { get; private set; }
+        public bool Paused { get; private set; }
 
         AiDriver[] _ai;
         float[] _baseScale;
@@ -52,7 +53,8 @@ namespace TurboPattes.Game.Race
         float _lapStart;
         float _resultsDelay = -1f;
 
-        public void Setup(Circuit circuit, TrackPath path, List<BoostPad> pads, ChaseCamera cam, SoundBank sound, int playerSlot, int laps, int seed)
+        public void Setup(Circuit circuit, TrackPath path, List<BoostPad> pads, ChaseCamera cam, SoundBank sound, int playerSlot, int laps, int seed,
+            int pilot = 0, Vector2? aiSpeed = null)
         {
             Circuit = circuit;
             Path = path;
@@ -71,8 +73,9 @@ namespace TurboPattes.Game.Race
             var rng = new System.Random(seed);
             for (int slot = 0; slot < roster.Length; slot++)
             {
-                // Le joueur pilote toujours Roxy ; les autres se répartissent la grille.
-                int specIndex = slot == playerSlot ? 0 : (slot < playerSlot ? slot + 1 : slot);
+                // Le joueur pilote l'animal choisi ; les autres se répartissent le reste de la grille.
+                int other = slot < playerSlot ? slot : slot - 1;
+                int specIndex = slot == playerSlot ? pilot : (other < pilot ? other : other + 1);
                 var spec = roster[specIndex];
                 var rig = KartFactory.Build(spec, transform);
                 var kart = rig.Root.gameObject.AddComponent<KartMotor>();
@@ -83,7 +86,8 @@ namespace TurboPattes.Game.Race
                 kart.IsPlayer = slot == playerSlot;
                 if (kart.IsPlayer) Player = kart;
                 float skill = Mathf.Lerp(0.55f, 0.95f, (float)rng.NextDouble());
-                kart.SpeedScale = kart.IsPlayer ? 1f : Mathf.Lerp(0.93f, 0.99f, skill);
+                var range = aiSpeed ?? new Vector2(0.93f, 0.99f);
+                kart.SpeedScale = kart.IsPlayer ? 1f : Mathf.Lerp(range.x, range.y, skill);
                 _baseScale[slot] = kart.SpeedScale;
                 _ai[slot] = new AiDriver(kart, seed * 31 + slot, kart.IsPlayer ? 0.8f : skill);
                 Karts[slot] = kart;
@@ -108,10 +112,12 @@ namespace TurboPattes.Game.Race
         void Update()
         {
             if (Karts == null) return;
+            if (Paused) return;
             float dt = Mathf.Min(Time.deltaTime, 0.1f);
             var playerInput = Input.Read();
             LastPlayerInput = playerInput;
             if (Input.RestartPressed) { Restart(); return; }
+            if (Input.PausePressed && State != Phase.Results) { SetPaused(true); return; }
 
             if (State == Phase.Countdown) UpdateCountdown(dt, playerInput);
             else RaceTime += dt;
@@ -272,6 +278,18 @@ namespace TurboPattes.Game.Race
             BannerTime = seconds;
         }
 
-        public void Restart() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        public void SetPaused(bool paused)
+        {
+            Paused = paused;
+            Time.timeScale = paused ? 0f : 1f;
+            AudioListener.pause = paused;
+        }
+
+        /// <summary>Recharge la scène : <see cref="App.GameSession.ShowMenu"/> dit si l'on revient au menu ou si l'on recourt.</summary>
+        public void Restart()
+        {
+            SetPaused(false);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
     }
 }

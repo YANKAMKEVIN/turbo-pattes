@@ -24,3 +24,4 @@ tests/**/obj/
 # Fichiers temporaires du Test Framework pendant les builds
 /Assets/Resources/PerformanceTestRun*
 /Assets/Resources.meta
+/.utmp/
