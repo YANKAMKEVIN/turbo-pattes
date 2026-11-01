@@ -252,6 +252,8 @@ namespace TurboPattes.Game.UI
         {
             _ui.Card(r, UiKit.Charcoal, 14 * _scale, 5f, 0f);
             UiKit.Box(new Rect(r.x + 16 * _scale, r.yMax - 8 * _scale, r.width - 32 * _scale, 3 * _scale), UiKit.Ochre);
+            if (p.Item == ItemKind.None)
+                Label(r, "OBJET", _tiny, new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.35f), TextAnchor.MiddleCenter);
             DrawItemIcon(r.center, r.height * 0.36f, p);
         }
 
@@ -346,14 +348,17 @@ namespace TurboPattes.Game.UI
             var p = Race.Player;
             var lay = ResultLayout();
 
-            // Colonne gauche : rang et temps du joueur.
-            float lx = lay.Card.x - 380 * s, ly = lay.Card.y;
-            var rankStyle = new GUIStyle(_ui.Huge) { fontSize = Mathf.RoundToInt(150 * s) };
-            Label(new Rect(lx, ly - 20 * s, 300 * s, 170 * s), (p.Rank + 1).ToString(), rankStyle, p.Rank == 0 ? UiKit.Ochre : UiKit.Cream,
-                TextAnchor.MiddleCenter, 8f);
-            Label(new Rect(lx + 196 * s, ly + 22 * s, 90 * s, 50 * s), p.Rank == 0 ? "er" : "e", _medium, UiKit.Cream, TextAnchor.UpperLeft, 3f);
-            var tag = new Rect(lx + 20 * s, ly + 160 * s, 260 * s, 54 * s);
-            _ui.Card(tag, p.Rank == 0 ? UiKit.Ochre : UiKit.Vermilion, 16 * s, 5f, 3f);
+            // Colonne gauche : fiche encre avec le rang, la mention et le meilleur tour du joueur.
+            float lx = lay.Card.x - 340 * s, ly = lay.Card.y;
+            var side = new Rect(lx, ly, 300 * s, 340 * s);
+            _ui.Card(side, UiKit.Charcoal, 0f, 6f, 0f);
+            UiKit.Box(new Rect(side.x, side.y, side.width, 8 * s), p.Rank == 0 ? UiKit.Ochre : UiKit.Vermilion);
+            var rankStyle = new GUIStyle(_ui.Huge) { fontSize = Mathf.RoundToInt(140 * s) };
+            Label(new Rect(side.x, side.y + 6 * s, side.width - 60 * s, 160 * s), (p.Rank + 1).ToString(), rankStyle,
+                p.Rank == 0 ? UiKit.Ochre : UiKit.Cream, TextAnchor.MiddleRight);
+            Label(new Rect(side.xMax - 64 * s, side.y + 36 * s, 60 * s, 50 * s), p.Rank == 0 ? "er" : "e", _medium, UiKit.Cream);
+            var tag = new Rect(side.x + 24 * s, side.y + 176 * s, side.width - 48 * s, 52 * s);
+            _ui.Card(tag, p.Rank == 0 ? UiKit.Ochre : UiKit.Vermilion, 16 * s, 4f, 0f);
             Label(tag, p.Rank == 0 ? "VICTOIRE !" : p.Rank < 3 ? "PODIUM !" : "ARRIVÉE", _medium, p.Rank == 0 ? UiKit.Charcoal : UiKit.Cream,
                 TextAnchor.MiddleCenter);
             var laps = Race.LapTimes;
@@ -361,8 +366,8 @@ namespace TurboPattes.Game.UI
             foreach (float t in laps) best = Mathf.Min(best, t);
             if (laps.Length > 0)
             {
-                Label(new Rect(lx + 20 * s, tag.yMax + 22 * s, 260 * s, 30 * s), "MEILLEUR TOUR", _tiny, UiKit.Ochre, TextAnchor.MiddleCenter, 2f);
-                Label(new Rect(lx + 20 * s, tag.yMax + 46 * s, 260 * s, 40 * s), FormatTime(best), _medium, UiKit.Cream, TextAnchor.MiddleCenter, 3f);
+                Label(new Rect(side.x, tag.yMax + 18 * s, side.width, 26 * s), "MEILLEUR TOUR", _tiny, UiKit.Ochre, TextAnchor.MiddleCenter);
+                Label(new Rect(side.x, tag.yMax + 42 * s, side.width, 44 * s), FormatTime(best), _medium, UiKit.Cream, TextAnchor.MiddleCenter);
             }
 
             // Fiche de classement.

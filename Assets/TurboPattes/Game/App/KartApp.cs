@@ -184,8 +184,9 @@ namespace TurboPattes.Game.App
             // Lumière du soleil (couleur et angle selon le circuit, voir ApplyTheme)
             var sun = _sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.shadows = LightShadows.Soft;
-            sun.shadowStrength = 0.75f;
+            // Ombres franches, bien marquées : rendu d'affiche (et moins cher que les ombres douces).
+            sun.shadows = LightShadows.Hard;
+            sun.shadowStrength = 0.85f;
 
             var sky = Mats.Sky();
             if (sky != null) RenderSettings.skybox = sky;
@@ -267,14 +268,25 @@ namespace TurboPattes.Game.App
             volume.isGlobal = true;
             var profile = ScriptableObject.CreateInstance<VolumeProfile>();
             var bloom = profile.Add<Bloom>(true);
-            bloom.threshold.Override(1.05f);
-            bloom.intensity.Override(0.5f);
-            bloom.scatter.Override(0.6f);
+            bloom.threshold.Override(1.1f);
+            bloom.intensity.Override(0.35f);
+            bloom.scatter.Override(0.55f);
+            // Étalonnage « Atelier plein gaz » : ombres tirées vers le bleu atelier, lumières chaudes ocre,
+            // contraste franc, couleurs un peu resserrées (moins « bonbon »).
+            var tone = profile.Add<Tonemapping>(true);
+            tone.mode.Override(TonemappingMode.Neutral);
+            var split = profile.Add<SplitToning>(true);
+            split.shadows.Override(new Color(0.24f, 0.56f, 0.57f));
+            split.highlights.Override(new Color(0.91f, 0.73f, 0.29f));
+            split.balance.Override(-15f);
             var color = profile.Add<ColorAdjustments>(true);
-            color.saturation.Override(12f);
-            color.contrast.Override(6f);
+            color.postExposure.Override(0.15f);
+            color.contrast.Override(18f);
+            color.saturation.Override(-4f);
+            color.colorFilter.Override(new Color(1f, 0.97f, 0.92f));
             var vignette = profile.Add<Vignette>(true);
-            vignette.intensity.Override(0.18f);
+            vignette.intensity.Override(0.24f);
+            vignette.color.Override(new Color(0.14f, 0.19f, 0.18f));
             volume.sharedProfile = profile;
         }
 

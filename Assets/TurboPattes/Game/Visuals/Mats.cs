@@ -45,7 +45,7 @@ namespace TurboPattes.Game.Visuals
             return m;
         }
 
-        public static Material Lit(Color color, float smoothness = 0.25f, float metallic = 0f)
+        public static Material Lit(Color color, float smoothness = 0.1f, float metallic = 0f)
         {
             var key = (color, smoothness, metallic);
             if (LitCache.TryGetValue(key, out var m)) return m;
