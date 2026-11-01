@@ -14,7 +14,8 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 |---|---|
 | Moteur | Unity 6000.6.3f1 + URP 17 + Input System (configuration reprise de `~/dev/check`) |
 | Plateformes | Mobile Android **et** PC/manette dès le départ (iOS plus tard) |
-| Univers | Animaux cartoon |
+| Univers | Animaux pilotes, **tous publics (8-50 ans), pas « bébé »** |
+| Direction artistique (2026-11-01) | **« Atelier plein gaz »** : port méditerranéen, rendu peint façon affiche de sport, pilotes athlétiques en combinaison + casque, karts artisanaux en tubes soudés. Palette `#24302D` `#D94D3F` `#E9B949` `#3C8F91` `#F2E7CE`, police Saira (OFL). Fiche : `docs/da/directions-v2/directions.md`, planche `direction-3.png`. Un peu plus coloré et moins réaliste que la planche (accessible comme les grands jeux de kart). Les DA « Club des Pattes » (`docs/da/maquettes-codex`) et l'UI actuelle sont rejetées : trop enfantines. |
 | Première étape | Prototype jouable : conduite, drift/turbo, un circuit, IA |
 | Identifiant | `com.kevinyankam.turbopattes`, écran en paysage |
 
@@ -122,7 +123,16 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 - Brouillard : la scène enregistrée a le brouillard activé pour que ses variantes de shader ne soient pas retirées du build.
 - Hérités de Check/KevChess : « Strip Unused Post Processing Variants » désactivé (sinon écran noir Android) ; Mac = Mono seulement ; un seul éditeur Unity par dossier.
 
-## Prochaines étapes envisagées
+## Refonte DA « Atelier plein gaz » (prioritaire)
+
+Toute l'apparence actuelle (pilotes en primitives, karts en blocs, UI IMGUI arrondie) est à remplacer. Grandes étapes :
+
+1. **Interface** : police Saira (fichier OFL dans le projet), palette, nouveaux composants `UiKit` (fiches crème, repères obliques, surlignage vermillon, chiffres à largeur fixe), puis HUD, titre, choix du pilote/circuit, pause, résultats. Commandes tactiles : volant/zone de direction, FREIN, DÉRAPAGE, OBJET avec icône. Icônes d'objets et portraits redessinés dans le nouveau style.
+2. **Rendu** : shader URP stylisé (ombres en quelques valeurs, lumière chaude), étalonnage, ciel, matériaux peints ; version allégée pour mobile.
+3. **Karts** : châssis tubulaires soudés, moteur, pneus crédibles, numéro et livrée par pilote (code : `MeshKit` tubes, chanfreins, normales).
+4. **Pilotes** : modèles 3D athlétiques (combinaison, gants, casque) créés par scripts **Blender** (installé : `/opt/homebrew/bin/blender`) et importés en FBX, avec squelette et quelques animations ; remplaçables plus tard par des modèles achetés ou commandés. Jalon : Roxy + son kart, validé par Kevin, avant les 7 autres.
+5. **Décors** : harmoniser les 10 circuits avec la palette ; circuit du port méditerranéen comme vitrine.
+
 
 Objectif fixé par Kevin (2026-10-31) : **au moins 10 circuits** aux décors variés (ciel, espace, eau, désert, jungle…),
 dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms propres au jeu.
