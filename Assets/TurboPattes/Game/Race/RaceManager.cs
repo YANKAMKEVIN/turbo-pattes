@@ -274,7 +274,7 @@ namespace TurboPattes.Game.Race
                     App.Haptics.Pulse(220);
                     Jukebox.Instance.SetLevel(0.15f);
                     Jukebox.Instance.Sting(Songs.Finish);
-                    ShowBanner(k.Rank == 0 ? "Victoire !" : "Arrivée !", 2.5f);
+                    ShowBanner(k.Rank == 0 && !Solo ? "Victoire !" : "Arrivée !", 2.5f);
                     _cam.Orbit = true;
                     _resultsDelay = 2.5f;
                 }
