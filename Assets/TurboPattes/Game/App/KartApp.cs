@@ -24,6 +24,7 @@ namespace TurboPattes.Game.App
         public const int PlayerSlot = 5;
 
         string _autotestDir, _menuTestDir;
+        int _pilotOverride = 4;
         bool _diag;
         int _lapsOverride;
         int _circuitOverride = -1;
@@ -52,6 +53,7 @@ namespace TurboPattes.Game.App
                 if (args[i] == "-tp-menutest") _menuTestDir = args[i + 1];
                 if (args[i] == "-tp-laps" && int.TryParse(args[i + 1], out int l)) _lapsOverride = Mathf.Clamp(l, 1, 9);
                 if (args[i] == "-tp-quality" && int.TryParse(args[i + 1], out int q)) QualityTuner.Level = Mathf.Clamp(q, 0, QualityTuner.MaxLevel);
+                if (args[i] == "-tp-pilot" && int.TryParse(args[i + 1], out int pi)) _pilotOverride = Mathf.Clamp(pi - 1, 0, Kart.AnimalSpec.Roster.Length - 1);
                 if (args[i] == "-tp-circuit" && int.TryParse(args[i + 1], out int c)) _circuitOverride = Mathf.Clamp(c - 1, 0, GameSession.CircuitCount - 1);
             }
 
@@ -85,7 +87,7 @@ namespace TurboPattes.Game.App
             if (_menuTestDir != null) StartCoroutine(MenuTest(menu));
         }
 
-        /// <summary><c>-tp-menutest &lt;dossier&gt;</c> : parcourt menu, choix du pilote, course et pause en prenant des captures.</summary>
+        /// <summary><c>-tp-menutest &lt;dossier&gt;</c> : parcourt menu, choix du pilote (<c>-tp-pilot N</c>, Bruno par défaut), course et pause en prenant des captures.</summary>
         IEnumerator MenuTest(UI.MainMenu menu)
         {
             Directory.CreateDirectory(_menuTestDir);
@@ -97,9 +99,9 @@ namespace TurboPattes.Game.App
             yield return new WaitForSeconds(2.5f);
             ScreenCapture.CaptureScreenshot(Shot("2_pilote"));
             yield return new WaitForSeconds(0.3f);
-            menu.TestSelect(4, 0, Difficulty.Hard, 1);
+            menu.TestSelect(_pilotOverride, 0, Difficulty.Hard, 1);
             yield return new WaitForSeconds(1.5f);
-            ScreenCapture.CaptureScreenshot(Shot("3_bruno"));
+            ScreenCapture.CaptureScreenshot(Shot("3_choix"));
             yield return new WaitForSeconds(0.3f);
             menu.TestStart();
             yield return new WaitForSeconds(7f);

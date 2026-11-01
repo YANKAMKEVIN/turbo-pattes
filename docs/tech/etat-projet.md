@@ -133,6 +133,15 @@ Toute l'apparence actuelle (pilotes en primitives, karts en blocs, UI IMGUI arro
 4. **Pilotes** : modèles 3D athlétiques (combinaison, gants, casque) créés par scripts **Blender** (installé : `/opt/homebrew/bin/blender`) et importés en FBX, avec squelette et quelques animations ; remplaçables plus tard par des modèles achetés ou commandés. Jalon : Roxy + son kart, validé par Kevin, avant les 7 autres.
 5. **Décors** : harmoniser les 10 circuits avec la palette ; circuit du port méditerranéen comme vitrine.
 
+Avancement (branche `da-atelier`, worktree `~/dev/turbo-pattes-da`, pas encore mergée dans main) :
+- **Fait — interface** : police Saira (3 graisses statiques générées depuis la variable OFL, `Resources/Fonts`, licence jointe), `UiKit` refait (palette, `Plate` en parallélogramme, `Card` à ombre franche, `Stripes` « // », `Button` primaire/secondaire/sombre, `Badge` de numéro). HUD : plaque de place, bandeau tour/chrono/vitesse, mini-classement joueur + voisins, case objet (PC) ou objet dans le bouton OBJET (tactile), commandes DÉRAPAGE/FREIN/OBJET. Titre, choix du pilote (numéro + devise, fiche « Ta course »), pause, résultats refaits. Plus de portraits mignons dans l'UI. Captures `docs/da/atelier/`.
+- **Fait — pilotes** : livrées d'atelier, numéro de course et devise dans `AnimalSpec`.
+- **Fait — rendu** : tonemapping Neutral, split toning bleu atelier / ocre, contraste +18, vignette encre, ombres dures, matières mates (lissé 0,1 par défaut). Pas encore de shader toon dédié.
+- **Fait — karts** : châssis en tubes soudés (`KartFactory.Tube`), pontons, nez avec numéro en 7 segments, baquet, moteur latéral à ailettes, pneus avec flancs et jantes. Autotest Mac Prairie 1 tour : course finie, ~60 i/s.
+- **Jalon Roxy soumis à Kevin** : `tools/blender/pilote.py` (Skin + subdivision, matériaux TP_* remplacés par la livrée en jeu), FBX dans `Resources/Pilots/Fox.fbx`, chargé par `KartFactory.SculptedDriver` (échelle 1,35). Les autres espèces gardent l'ancien pilote en primitives tant que Kevin n'a pas validé. Aperçu `docs/da/atelier/roxy-blender.png`.
+- À faire : retours de Kevin sur Roxy, puis les 7 autres pilotes (paramètres d'espèce dans `ANIMALS`), décors, icônes d'objets, test A17, merge dans main (avec l'accord de Kevin).
+- `-tp-pilot N` choisit le pilote du `-tp-menutest` (capture `3_choix`).
+
 
 Objectif fixé par Kevin (2026-10-31) : **au moins 10 circuits** aux décors variés (ciel, espace, eau, désert, jungle…),
 dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms propres au jeu.

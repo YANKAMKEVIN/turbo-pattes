@@ -169,6 +169,9 @@ namespace TurboPattes.Game.Kart
 
         static Transform BuildDriver(AnimalSpec spec, Transform body)
         {
+            var model = Resources.Load<GameObject>("Pilots/" + spec.Kind);
+            if (model != null) return SculptedDriver(spec, body, model);
+
             var d = new GameObject("Driver").transform;
             d.SetParent(body, false);
             d.localPosition = new Vector3(0, 0.6f, -0.25f);
@@ -261,6 +264,44 @@ namespace TurboPattes.Game.Kart
             MeshKit.Prim(PrimitiveType.Cylinder, head, new Vector3(0, 0.2f, -0.02f), new Vector3(0.84f, 0.05f, 0.8f),
                 Mats.Lit(spec.Kart, 0.5f), Quaternion.Euler(-8, 0, 0));
             return d;
+        }
+
+        /// <summary>
+        /// Pilote sculpté sous Blender (<c>tools/blender/pilote.py</c>), assis sur le baquet. Les matériaux nommés
+        /// TP_* du modèle sont remplacés par la livrée du pilote.
+        /// </summary>
+        static Transform SculptedDriver(AnimalSpec spec, Transform body, GameObject model)
+        {
+            var d = new GameObject("Driver").transform;
+            d.SetParent(body, false);
+            d.localPosition = new Vector3(0, 0.5f, -0.36f);
+            var go = Object.Instantiate(model, d, false);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.Euler(0f, SculptYaw, 0f);
+            go.transform.localScale = Vector3.one * SculptScale;
+            foreach (var r in go.GetComponentsInChildren<Renderer>())
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = Livery(spec, mats[i] != null ? mats[i].name : "");
+                r.sharedMaterials = mats;
+            }
+            return d;
+        }
+
+        /// <summary>Rotation du modèle importé pour qu'il regarde vers l'avant du kart (+z).</summary>
+        const float SculptYaw = 0f;
+        /// <summary>Échelle du modèle : silhouette lisible derrière le kart, à la taille des autres pilotes.</summary>
+        const float SculptScale = 1.35f;
+
+        static Material Livery(AnimalSpec spec, string name)
+        {
+            if (name.StartsWith("TP_Suit") || name.StartsWith("TP_Helmet")) return Mats.Lit(spec.Kart, 0.3f);
+            if (name.StartsWith("TP_Trim")) return Mats.Lit(spec.KartTrim, 0.3f);
+            if (name.StartsWith("TP_Fur")) return Mats.Lit(spec.Fur, 0.12f);
+            if (name.StartsWith("TP_Accent")) return Mats.Lit(spec.Accent, 0.12f);
+            if (name.StartsWith("TP_Eye") || name.StartsWith("TP_Nose") || name.StartsWith("TP_Visor"))
+                return Mats.Lit(new Color(0.04f, 0.04f, 0.05f), 0.7f);
+            return Mats.Lit(new Color(0.11f, 0.13f, 0.12f), 0.2f); // TP_Dark : gants, bottines, col
         }
 
         static void Snout(Transform head, Material muzzle, Material nose, float width, float length)
