@@ -98,11 +98,20 @@ namespace TurboPattes.Game.Kart
                 input = new KartInput { Steer = -input.Steer, Brake = 1f };
             }
 
-            wantsItem = DecideItem(dt, karts);
+            // Figure en l'air sur les grands sauts (turbo à la réception), plus souvent chez les bons pilotes.
+            if (k.Airborne && !k.Trick.Active && !k.Trick.Done && k.Vertical.AirTime > AirTrick.MinAirTime + 0.05f && _trickRoll < 0.35 + 0.6 * _skill)
+                input.Drift = !_trickPressed;
+            _trickPressed = input.Drift && k.Airborne;
+            if (!k.Airborne) _trickRoll = _rng.NextDouble();
+
+            wantsItem = DecideItem(dt, karts, items);
             return input;
         }
 
-        bool DecideItem(float dt, KartMotor[] karts)
+        bool _trickPressed;
+        double _trickRoll;
+
+        bool DecideItem(float dt, KartMotor[] karts, ItemSystem items)
         {
             var k = _kart;
             if (k.Item == ItemKind.None || k.ItemRoll > 0f) return false;
@@ -112,10 +121,20 @@ namespace TurboPattes.Game.Kart
             switch (k.Item)
             {
                 case ItemKind.Carrot:
-                    use = k.Path.TurnBetween(k.Laps.S, k.Laps.S + 50f) < 25f;
+                    // Sur une ligne droite, ou pour sortir vite de l'herbe.
+                    use = k.Path.TurnBetween(k.Laps.S, k.Laps.S + 50f) < 25f || k.Offroad && k.ForwardSpeed < 14f;
                     break;
                 case ItemKind.Shield:
-                    use = true;
+                    // Gardé pour parer un projectile ou quand quelqu'un colle derrière.
+                    use = items != null && items.ThreatNear(k, 25f) || AnyoneBehind(karts, 12f) || _itemDelay < -12f;
+                    break;
+                case ItemKind.Feather:
+                    // Sauter par-dessus un pot de miel ou un projectile, sinon prendre l'élan sur une ligne droite.
+                    use = items != null && (items.HoneyAhead(k, 14f, out _) || items.ThreatNear(k, 12f))
+                          || _itemDelay < -6f && k.Path.TurnBetween(k.Laps.S, k.Laps.S + 40f) < 15f;
+                    break;
+                case ItemKind.Yarn:
+                    use = AnyoneAheadProgress(karts, 150f) || _itemDelay < -6f;
                     break;
                 case ItemKind.Honey:
                     use = AnyoneBehind(karts, 30f) || _itemDelay < -8f;
@@ -135,6 +154,17 @@ namespace TurboPattes.Game.Kart
                 if (o == _kart) continue;
                 float d = _kart.Progress - o.Progress;
                 if (d > 2f && d < range) return true;
+            }
+            return false;
+        }
+
+        bool AnyoneAheadProgress(KartMotor[] karts, float range)
+        {
+            foreach (var o in karts)
+            {
+                if (o == _kart) continue;
+                float d = o.Progress - _kart.Progress;
+                if (d > 5f && d < range) return true;
             }
             return false;
         }

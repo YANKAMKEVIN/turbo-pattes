@@ -31,6 +31,7 @@ namespace TurboPattes.EditorTools
             CreateMaterialTemplates();
             EnsureScene();
             ConfigurePlayer();
+            AppIcon.Apply(); // icône Mac et Android dessinée par code
             ConfigureRendering();
             AssetDatabase.SaveAssets();
             Debug.Log("[TurboPattes] Projet configuré");
@@ -189,11 +190,11 @@ namespace TurboPattes.EditorTools
         {
             PlayerSettings.companyName = "Kevin Yankam";
             PlayerSettings.productName = "Turbo Pattes";
-            PlayerSettings.bundleVersion = "0.1.0";
+            PlayerSettings.bundleVersion = "0.2.0";
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, BundleId);
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, BundleId);
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Standalone, BundleId);
-            PlayerSettings.Android.bundleVersionCode = Math.Max(1, PlayerSettings.Android.bundleVersionCode);
+            PlayerSettings.Android.bundleVersionCode = Math.Max(2, PlayerSettings.Android.bundleVersionCode);
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;

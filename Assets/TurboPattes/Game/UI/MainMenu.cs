@@ -1,4 +1,5 @@
 using System;
+using TurboPattes.Core;
 using TurboPattes.Game.App;
 using TurboPattes.Game.Audio;
 using TurboPattes.Game.Kart;
@@ -18,7 +19,7 @@ namespace TurboPattes.Game.UI
     {
         enum Screen { Title, Pilot }
         // Lignes navigables de l'écran pilote, au clavier ou à la manette.
-        enum Row { Pilot, Circuit, Laps, Difficulty, Start }
+        enum Row { Pilot, Mode, Circuit, Laps, Difficulty, Start }
 
         public Action Play;
         /// <summary>Le joueur a choisi un autre circuit : l'application reconstruit la piste puis appelle <see cref="SetTrack"/>.</summary>
@@ -27,9 +28,10 @@ namespace TurboPattes.Game.UI
         readonly UiKit _ui = new();
         Screen _screen;
         Row _row = Row.Start;
-        int _pilot, _laps, _circuit;
+        int _pilot, _laps, _circuit, _cup, _shownTrack;
         string[] _circuitNames;
         Difficulty _difficulty;
+        GameMode _mode;
 
         Camera _cam;
         TrackPath _path;
@@ -48,11 +50,15 @@ namespace TurboPattes.Game.UI
             if (_laps < 0) _laps = 1;
             _difficulty = GameSession.Difficulty;
             _circuit = circuit;
+            _shownTrack = circuit;
+            _mode = GameSession.Mode;
+            _cup = GameSession.CupChoice;
             _circuitNames = Array.ConvertAll(Circuit.All(), c => c.ShortName);
 
             BuildStage();
             SetTrack(path);
             ShowPilot(_pilot);
+            if (_mode == GameMode.Cup) ShowTrack(Cups.All[_cup].Circuits[0]);
         }
 
         /// <summary>Recadre le survol et repose le plateau sur la (nouvelle) piste.</summary>
@@ -98,8 +104,8 @@ namespace TurboPattes.Game.UI
         {
             public float S;
             public Rect Safe;
-            public Rect PlayButton, Back, Go, Prev, Next;
-            public Rect[] Cards, CircuitButtons, LapButtons, DifficultyButtons;
+            public Rect PlayButton, Back, Go, Prev, Next, Settings;
+            public Rect[] Cards, ModeButtons, CircuitButtons, LapButtons, DifficultyButtons;
         }
 
         Layout ComputeLayout()
@@ -112,6 +118,7 @@ namespace TurboPattes.Game.UI
             float cx = safe.center.x;
             l.PlayButton = new Rect(cx - 180 * s, safe.y + safe.height * 0.68f, 360 * s, 84 * s);
             l.Back = new Rect(safe.x, safe.y, 160 * s, 52 * s);
+            l.Settings = new Rect(safe.x, safe.yMax - 56 * s, 200 * s, 52 * s);
 
             // Plaques des pilotes (numéro + nom), en bas à gauche.
             int n = AnimalSpec.Roster.Length;
@@ -127,22 +134,24 @@ namespace TurboPattes.Game.UI
             l.Prev = new Rect(midX - 300 * s, midY - 36 * s, 76 * s, 72 * s);
             l.Next = new Rect(midX + 224 * s, midY - 36 * s, 76 * s, 72 * s);
 
-            // Fiche « Ta course » à droite.
+            // Fiche « Ta course » à droite : mode, circuit (ou coupe), tours, difficulté.
             float px = safe.xMax - panelW, pw = panelW;
-            float aw = 54 * s;
+            float aw = 54 * s, bh = 52 * s;
             l.CircuitButtons = new[]
             {
-                new Rect(px + 16 * s, safe.y + 156 * s, aw, 52 * s),
-                new Rect(px + 16 * s + aw + 8 * s, safe.y + 156 * s, pw - 32 * s - 2 * (aw + 8 * s), 52 * s),
-                new Rect(px + pw - 16 * s - aw, safe.y + 156 * s, aw, 52 * s),
+                new Rect(px + 16 * s, safe.y + 236 * s, aw, bh),
+                new Rect(px + 16 * s + aw + 8 * s, safe.y + 236 * s, pw - 32 * s - 2 * (aw + 8 * s), bh),
+                new Rect(px + pw - 16 * s - aw, safe.y + 236 * s, aw, bh),
             };
+            l.ModeButtons = new Rect[3];
             l.LapButtons = new Rect[3];
             l.DifficultyButtons = new Rect[3];
             float bw = (pw - 32 * s - 2 * 8 * s) / 3f;
             for (int i = 0; i < 3; i++)
             {
-                l.LapButtons[i] = new Rect(px + 16 * s + i * (bw + 8 * s), safe.y + 252 * s, bw, 52 * s);
-                l.DifficultyButtons[i] = new Rect(px + 16 * s + i * (bw + 8 * s), safe.y + 348 * s, bw, 52 * s);
+                l.ModeButtons[i] = new Rect(px + 16 * s + i * (bw + 8 * s), safe.y + 146 * s, bw, bh);
+                l.LapButtons[i] = new Rect(px + 16 * s + i * (bw + 8 * s), safe.y + 346 * s, bw, bh);
+                l.DifficultyButtons[i] = new Rect(px + 16 * s + i * (bw + 8 * s), safe.y + 436 * s, bw, bh);
             }
             l.Go = new Rect(px, safe.yMax - 90 * s, pw, 90 * s);
             return l;
@@ -185,6 +194,7 @@ namespace TurboPattes.Game.UI
 
         void HandleInput()
         {
+            if (SettingsScreen.IsOpen) return;
             var l = ComputeLayout();
             var kb = Keyboard.current;
             var pad = Gamepad.current;
@@ -211,6 +221,14 @@ namespace TurboPattes.Game.UI
 
             if (_screen == Screen.Title)
             {
+                // Réglages : bouton en bas à gauche, Tab ou Y à la manette.
+                if (kb != null && kb.tabKey.wasPressedThisFrame || pad != null && pad.buttonNorth.wasPressedThisFrame
+                    || tap.HasValue && l.Settings.Contains(tap.Value))
+                {
+                    Jukebox.Instance.Confirm();
+                    SettingsScreen.Open();
+                    return;
+                }
                 if (confirm || tap.HasValue && (l.PlayButton.Contains(tap.Value) || tap.Value.y > l.Safe.y + l.Safe.height * 0.2f))
                 {
                     _screen = Screen.Pilot;
@@ -228,17 +246,26 @@ namespace TurboPattes.Game.UI
             }
             if (confirm || tap.HasValue && l.Go.Contains(tap.Value))
             {
+                // Coupe encore fermée : il faut d'abord monter sur le podium de la précédente.
+                if (_mode == GameMode.Cup && !GameSession.CupUnlocked(_cup)) { Jukebox.Instance.Back(); return; }
                 StartRace();
                 return;
             }
 
-            if (dy != 0) { _row = (Row)Mathf.Clamp((int)_row + dy, 0, (int)Row.Start); Jukebox.Instance.Move(); }
+            if (dy != 0)
+            {
+                _row = (Row)Mathf.Clamp((int)_row + dy, 0, (int)Row.Start);
+                // Pas de difficulté en contre-la-montre : la ligne est sautée.
+                if (_row == Row.Difficulty && _mode == GameMode.TimeTrial) _row += dy;
+                Jukebox.Instance.Move();
+            }
             if (dx != 0)
             {
                 switch (_row)
                 {
                     case Row.Pilot: case Row.Start: ChangePilot(_pilot + dx); break;
-                    case Row.Circuit: ChangeCircuit(_circuit + dx); break;
+                    case Row.Mode: ChangeMode((GameMode)Mathf.Clamp((int)_mode + dx, 0, 2)); break;
+                    case Row.Circuit: if (_mode == GameMode.Cup) ChangeCup(_cup + dx); else ChangeCircuit(_circuit + dx); break;
                     case Row.Laps: _laps = Mathf.Clamp(_laps + dx, 0, 2); Jukebox.Instance.Move(); break;
                     case Row.Difficulty: _difficulty = (Difficulty)Mathf.Clamp((int)_difficulty + dx, 0, 2); Jukebox.Instance.Move(); break;
                 }
@@ -250,12 +277,18 @@ namespace TurboPattes.Game.UI
             else if (l.Next.Contains(p)) ChangePilot(_pilot + 1);
             for (int i = 0; i < l.Cards.Length; i++)
                 if (l.Cards[i].Contains(p)) { ChangePilot(i); _row = Row.Pilot; }
-            if (l.CircuitButtons[0].Contains(p)) { ChangeCircuit(_circuit - 1); _row = Row.Circuit; }
-            else if (l.CircuitButtons[1].Contains(p) || l.CircuitButtons[2].Contains(p)) { ChangeCircuit(_circuit + 1); _row = Row.Circuit; }
+            int step = l.CircuitButtons[0].Contains(p) ? -1 : l.CircuitButtons[1].Contains(p) || l.CircuitButtons[2].Contains(p) ? 1 : 0;
+            if (step != 0)
+            {
+                if (_mode == GameMode.Cup) ChangeCup(_cup + step);
+                else ChangeCircuit(_circuit + step);
+                _row = Row.Circuit;
+            }
             for (int i = 0; i < 3; i++)
             {
+                if (l.ModeButtons[i].Contains(p)) { ChangeMode((GameMode)i); _row = Row.Mode; }
                 if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; Jukebox.Instance.Move(); }
-                if (l.DifficultyButtons[i].Contains(p)) { _difficulty = (Difficulty)i; _row = Row.Difficulty; Jukebox.Instance.Move(); }
+                if (l.DifficultyButtons[i].Contains(p) && _mode != GameMode.TimeTrial) { _difficulty = (Difficulty)i; _row = Row.Difficulty; Jukebox.Instance.Move(); }
             }
         }
 
@@ -270,6 +303,7 @@ namespace TurboPattes.Game.UI
             _row = Row.Circuit;
         }
         public void TestStart() => StartRace();
+        public void TestMode(GameMode mode) { ChangeMode(mode); _row = Row.Mode; }
 
         void ChangePilot(int index)
         {
@@ -284,6 +318,32 @@ namespace TurboPattes.Game.UI
             if (index == _circuit) return;
             _circuit = index;
             Jukebox.Instance.Move();
+            ShowTrack(index);
+        }
+
+        void ChangeCup(int index)
+        {
+            index = (index % Cups.All.Length + Cups.All.Length) % Cups.All.Length;
+            if (index == _cup) return;
+            _cup = index;
+            Jukebox.Instance.Move();
+            ShowTrack(Cups.All[index].Circuits[0]);
+        }
+
+        void ChangeMode(GameMode mode)
+        {
+            if (mode == _mode) return;
+            _mode = mode;
+            Jukebox.Instance.Move();
+            // En coupe, la piste derrière le menu est la première de la coupe.
+            ShowTrack(mode == GameMode.Cup ? Cups.All[_cup].Circuits[0] : _circuit);
+        }
+
+        /// <summary>Reconstruit la piste derrière le menu si elle change.</summary>
+        void ShowTrack(int index)
+        {
+            if (index == _shownTrack) return;
+            _shownTrack = index;
             CircuitChanged?.Invoke(index);
         }
 
@@ -293,6 +353,9 @@ namespace TurboPattes.Game.UI
             GameSession.Circuit = _circuit;
             GameSession.Laps = GameSession.LapChoices[_laps];
             GameSession.Difficulty = _difficulty;
+            GameSession.Mode = _mode;
+            GameSession.CupChoice = _cup;
+            GameSession.Cup = _mode == GameMode.Cup ? new CupRun { CupIndex = _cup, Player = _pilot } : null;
             Jukebox.Instance.Confirm();
             Play?.Invoke();
             Destroy(gameObject);
@@ -303,6 +366,7 @@ namespace TurboPattes.Game.UI
         void OnGUI()
         {
             _ui.EnsureStyles();
+            if (SettingsScreen.IsOpen) return;
             var l = ComputeLayout();
             if (_screen == Screen.Title && _camBlend < 0.5f) DrawTitle(l);
             else if (_screen == Screen.Pilot && _camBlend > 0.5f) DrawPilot(l);
@@ -332,6 +396,7 @@ namespace TurboPattes.Game.UI
             bool touch = Touchscreen.current != null;
             _ui.Label(new Rect(0, l.PlayButton.yMax + 20 * s, w, 30 * s), touch ? "Touche l'écran pour commencer" : "Entrée ou bouton A pour commencer",
                 _ui.Small, cream, TextAnchor.MiddleCenter, 2f);
+            _ui.Button(l.Settings, touch ? "RÉGLAGES" : "RÉGLAGES (TAB)", UiKit.Kind.Dark, false, false, _ui.Small);
         }
 
         void DrawPilot(Layout l)
@@ -353,6 +418,7 @@ namespace TurboPattes.Game.UI
             _ui.Badge(new Rect(motto.x - 74 * s, motto.y + 2 * s, 64 * s, 34 * s), spec);
             _ui.Card(motto, UiKit.Ochre, 12 * s, 4f, 0f);
             _ui.Label(motto, spec.Motto, _ui.Small, UiKit.Charcoal, TextAnchor.MiddleCenter);
+            DrawStats(new Vector2(midX, motto.yMax + 16 * s), s, Drivers.For(_pilot));
 
             bool pilotRow = _row == Row.Pilot;
             _ui.Button(l.Prev, "‹", UiKit.Kind.Dark, pilotRow, false, _ui.Big);
@@ -371,30 +437,79 @@ namespace TurboPattes.Game.UI
             }
 
             // Fiche « Ta course ».
-            var panel = new Rect(l.Go.x, l.Safe.y + 62 * s, l.Go.width, 360 * s);
+            var panel = new Rect(l.Go.x, l.Safe.y + 62 * s, l.Go.width, 442 * s);
             _ui.Card(panel, UiKit.Cream, 0f, 6f, 3f);
             UiKit.Box(new Rect(panel.x, panel.y, panel.width, 8 * s), UiKit.Vermilion);
             _ui.Label(new Rect(panel.x + 16 * s, panel.y + 14 * s, panel.width, 34 * s), "TA COURSE", _ui.Medium, UiKit.Charcoal, TextAnchor.MiddleLeft);
-            Caption(l.CircuitButtons[0], "Circuit");
+            Caption(l.ModeButtons[0], "Mode");
+            bool cup = _mode == GameMode.Cup, chrono = _mode == GameMode.TimeTrial;
+            int trophy = cup ? GameSession.CupTrophy(_cup) : 0;
+            Caption(l.CircuitButtons[0], cup ? (trophy > 0 ? $"Coupe · trophée {TrophyNames[trophy]}" : "Coupe") : "Circuit");
             bool circuitRow = _row == Row.Circuit;
             Segment(l.CircuitButtons[0], "‹", false, circuitRow);
-            Segment(l.CircuitButtons[1], $"{_circuitNames[_circuit]}  {_circuit + 1}/{_circuitNames.Length}", true, circuitRow);
+            Segment(l.CircuitButtons[1], cup ? $"{Cups.All[_cup].Name.Replace("Coupe ", "")}  {_cup + 1}/{Cups.All.Length}"
+                : $"{_circuitNames[_circuit]}  {_circuit + 1}/{_circuitNames.Length}", true, circuitRow);
             Segment(l.CircuitButtons[2], "›", false, circuitRow);
+            // Sous le sélecteur : record en contre-la-montre, circuits de la coupe.
+            string info = cup ? CupText() : chrono ? RecordText() : null;
+            if (info != null)
+                _ui.Label(new Rect(l.CircuitButtons[0].x, l.CircuitButtons[0].yMax + 4 * s, panel.width - 32 * s, 24 * s), info, _ui.Tiny,
+                    UiKit.Vermilion, TextAnchor.MiddleCenter);
             Caption(l.LapButtons[0], "Tours");
-            Caption(l.DifficultyButtons[0], "Difficulté");
+            Caption(l.DifficultyButtons[0], "Difficulté", chrono ? 0.35f : 1f);
             for (int i = 0; i < 3; i++)
             {
+                Segment(l.ModeButtons[i], GameSession.ModeNames[i], i == (int)_mode, _row == Row.Mode && i == (int)_mode);
                 Segment(l.LapButtons[i], GameSession.LapChoices[i].ToString(), i == _laps, _row == Row.Laps && i == _laps);
-                Segment(l.DifficultyButtons[i], GameSession.DifficultyNames[i], i == (int)_difficulty, _row == Row.Difficulty && i == (int)_difficulty);
+                if (chrono) UiKit.Plate(l.DifficultyButtons[i], new Color(UiKit.Charcoal.r, UiKit.Charcoal.g, UiKit.Charcoal.b, 0.15f), l.DifficultyButtons[i].height * 0.28f);
+                else Segment(l.DifficultyButtons[i], GameSession.DifficultyNames[i], i == (int)_difficulty, _row == Row.Difficulty && i == (int)_difficulty);
             }
 
+            bool closed = _mode == GameMode.Cup && !GameSession.CupUnlocked(_cup);
             var goStyle = new GUIStyle(_ui.Big) { fontSize = Mathf.RoundToInt(40 * s) };
-            _ui.Button(l.Go, "C'EST PARTI", UiKit.Kind.Primary, _row == Row.Start, false, goStyle);
+            _ui.Button(l.Go, closed ? "COUPE FERMÉE" : "C'EST PARTI", closed ? UiKit.Kind.Dark : UiKit.Kind.Primary, _row == Row.Start, false, goStyle);
         }
 
-        void Caption(Rect firstButton, string text) =>
+        static readonly string[] TrophyNames = { "", "bronze", "argent", "or" };
+
+        string CupText()
+        {
+            if (!GameSession.CupUnlocked(_cup)) return "Podium de la coupe d'avant requis";
+            string circuits = string.Join(", ", Array.ConvertAll(Cups.All[_cup].Circuits, c => _circuitNames[c]));
+            return circuits;
+        }
+
+        string RecordText()
+        {
+            int laps = GameSession.LapChoices[_laps];
+            float best = GameSession.BestTime(_circuit, laps), lap = GameSession.BestLap(_circuit);
+            if (best <= 0f && lap <= 0f) return "Pas encore de record";
+            string Fmt(float t) => t <= 0f ? "--" : $"{(int)(t / 60f)}:{t % 60f:00.00}";
+            var medal = Medals.For(_circuit, lap);
+            return $"Record {Fmt(best)}   Tour {Fmt(lap)}" + (medal != Medal.None ? $"   {Medals.Name(medal)}" : "");
+        }
+
+        static readonly string[] StatNames = { "VITESSE", "ACCÉLÉRATION", "ADHÉRENCE", "POIDS" };
+
+        /// <summary>Caractère du pilote : quatre jauges de 5 crans obliques, sur une plaque encre.</summary>
+        void DrawStats(Vector2 top, float s, DriverStats st)
+        {
+            int[] values = { st.Speed, st.Accel, st.Grip, st.Weight };
+            float cw = 120 * s, x0 = top.x - cw * 2f;
+            _ui.Card(new Rect(x0 - 12 * s, top.y, cw * 4f + 24 * s, 56 * s), new Color(UiKit.Charcoal.r, UiKit.Charcoal.g, UiKit.Charcoal.b, 0.92f), 14 * s, 4f, 0f);
+            for (int i = 0; i < 4; i++)
+            {
+                float x = x0 + i * cw;
+                _ui.Label(new Rect(x, top.y + 4 * s, cw, 22 * s), StatNames[i], _ui.Tiny, UiKit.Ochre, TextAnchor.MiddleCenter);
+                for (int n = 0; n < 5; n++)
+                    UiKit.Plate(new Rect(x + 14 * s + n * 19 * s, top.y + 30 * s, 17 * s, 14 * s),
+                        n < values[i] ? UiKit.Vermilion : new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f), 4 * s);
+            }
+        }
+
+        void Caption(Rect firstButton, string text, float alpha = 1f) =>
             _ui.Label(new Rect(firstButton.x, firstButton.y - 34 * _ui.Scale, 300 * _ui.Scale, 30 * _ui.Scale), text.ToUpperInvariant(), _ui.Small,
-                UiKit.Teal, TextAnchor.MiddleLeft);
+                new Color(UiKit.Teal.r, UiKit.Teal.g, UiKit.Teal.b, alpha), TextAnchor.MiddleLeft);
 
         void Segment(Rect r, string text, bool selected, bool focused)
         {

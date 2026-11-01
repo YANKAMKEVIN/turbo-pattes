@@ -19,6 +19,10 @@ namespace TurboPattes.Game.Race
         float _orbitAngle;
         Vector3 _smoothPos;
         bool _init;
+        float _shake;
+
+        /// <summary>Secousse (réception d'un saut, choc) : amplitude en mètres, s'amortit en ~0,4 s.</summary>
+        public void Shake(float amount) => _shake = Mathf.Max(_shake, amount);
 
         void Awake() => _cam = GetComponent<Camera>();
 
@@ -55,6 +59,12 @@ namespace TurboPattes.Game.Race
             else _smoothPos = Vector3.Lerp(_smoothPos, desired, 1f - Mathf.Exp(-14f * dt));
             transform.position = _smoothPos;
             transform.rotation = Quaternion.LookRotation(look - _smoothPos, Vector3.up);
+            if (_shake > 0.001f)
+            {
+                float t = Time.time * 47f;
+                transform.position += transform.rotation * new Vector3(Mathf.Sin(t) * _shake, Mathf.Sin(t * 1.37f + 1f) * _shake * 0.7f, 0f);
+                _shake = Mathf.MoveTowards(_shake, 0f, dt * 1.2f);
+            }
 
             float speed01 = Mathf.Clamp01(k.Speed / KartMotor.MaxSpeed);
             float fov = 62f + speed01 * 8f + (k.BoostTime > 0f ? 9f : 0f);

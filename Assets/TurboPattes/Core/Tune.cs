@@ -32,13 +32,23 @@ namespace TurboPattes.Core
         /// <summary>Un accord par mesure : « C », « Am », « F#m »…</summary>
         public string[] Chords;
         public string Melody;
-        /// <summary>Style d'accompagnement : true = course (basse pompée, arpège rapide, batterie pleine).</summary>
-        public bool Driving;
+        /// <summary>Style d'accompagnement (basse, accords, batterie).</summary>
+        public SongStyle Style;
+        /// <summary>Timbre de la mélodie.</summary>
+        public LeadVoice Lead;
+        /// <summary>Tonalité (« C », « F#m »…) : la mélodie et les accords n'en sortent pas.</summary>
+        public string Key;
 
         public int Bars => Chords.Length;
         public int Steps => Bars * StepsPerBar;
         public float StepSeconds => 30f / Bpm;
     }
+
+    /// <summary>Accompagnements : chacun a sa basse, ses accords et sa batterie.</summary>
+    public enum SongStyle { Calm, Driving, Gallop, Tropical, Calypso, Aquatic, Airy, Space, Sleigh, Heavy, Disco }
+
+    /// <summary>Timbres de mélodie.</summary>
+    public enum LeadVoice { Square, Twang, Mallet, Steel, Bubble, Flute, Bell, Saw, Fuzz, Sync }
 
     public static class Tune
     {
@@ -108,6 +118,18 @@ namespace TurboPattes.Core
             int r = ParseNote(root + "3");
             return new[] { r, r + (minor ? 3 : 4), r + 7 };
         }
+
+        static readonly int[] MajorScale = { 0, 2, 4, 5, 7, 9, 11 };
+        static readonly int[] MinorScale = { 0, 2, 3, 5, 7, 8, 10 };
+
+        /// <summary>La note appartient-elle à la gamme de la tonalité (« G » majeur, « Em » mineur naturel) ?</summary>
+        public static bool InKey(int midi, string key)
+        {
+            bool minor = key.EndsWith("m");
+            int tonic = ParseNote((minor ? key.Substring(0, key.Length - 1) : key) + "4");
+            int degree = ((midi - tonic) % 12 + 12) % 12;
+            return Array.IndexOf(minor ? MinorScale : MajorScale, degree) >= 0;
+        }
     }
 
     /// <summary>Les morceaux du jeu (compositions originales).</summary>
@@ -118,7 +140,9 @@ namespace TurboPattes.Core
         {
             Name = "Menu",
             Bpm = 100f,
-            Driving = false,
+            Style = SongStyle.Calm,
+            Lead = LeadVoice.Square,
+            Key = "C",
             Chords = new[] { "C", "Am", "F", "G", "C", "Em", "F", "G", "Am", "F", "C", "G", "Am", "F", "Dm", "G" },
             Melody =
                 "E5 - - - G5 - E5 - | C5 - - - A4 - C5 - | A4 - C5 - F5 - E5 - | D5 - - - B4 - - - |" +
@@ -127,12 +151,14 @@ namespace TurboPattes.Core
                 "A5 - - - G5 - E5 - | F5 - - - A5 - C6 - | A5 - - - F5 - D5 - | B4 - D5 - G5 - . . ",
         };
 
-        /// <summary>Course : rapide et entraînant.</summary>
+        /// <summary>Prairie des Pattes : rapide et entraînant.</summary>
         public static readonly Song Race = new()
         {
-            Name = "Course",
+            Name = "Prairie",
             Bpm = 150f,
-            Driving = true,
+            Style = SongStyle.Driving,
+            Lead = LeadVoice.Square,
+            Key = "C",
             Chords = new[] { "F", "G", "Em", "Am", "F", "G", "C", "C", "Am", "F", "C", "G", "Am", "F", "G", "G" },
             Melody =
                 "A4 . C5 . F5 - E5 C5 | D5 - B4 G4 D5 . E5 F5 | G5 - E5 . B4 . E5 G5 | A5 - - . G5 E5 C5 E5 |" +
@@ -140,5 +166,182 @@ namespace TurboPattes.Core
                 "A4 C5 E5 A5 - G5 E5 C5 | F5 - E5 F5 A5 - F5 C5 | E5 - G5 - C6 - B5 G5 | D5 - G5 F5 E5 D5 B4 G4 |" +
                 "E5 . A5 . E5 C5 A4 C5 | C5 F5 A5 C6 A5 F5 C5 A4 | B4 D5 G5 B5 A5 G5 F5 D5 | G5 - - - D5 - G4 . ",
         };
+            /// <summary>Canyon Caramel : galop de western en ré mineur, guitare pincée.</summary>
+        public static readonly Song Canyon = new()
+        {
+            Name = "Canyon",
+            Bpm = 140f,
+            Style = SongStyle.Gallop,
+            Lead = LeadVoice.Twang,
+            Key = "Dm",
+            Chords = new[] { "Dm", "Dm", "C", "Dm", "Bb", "C", "Dm", "Dm", "F", "C", "Dm", "Am", "Bb", "C", "Dm", "Dm" },
+            Melody =
+                "D5 - A4 - D5 E5 F5 - | E5 - D5 - C5 - A4 - | G4 - C5 - E5 - G5 - | F5 - E5 D5 - - . . |" +
+                "F5 - D5 - Bb4 - D5 F5 | E5 - C5 - G4 - C5 E5 | D5 - - F5 A5 - G5 F5 | D5 - - - . . A4 C5 |" +
+                "F5 - A5 - C6 - A5 F5 | G5 - E5 - C5 - E5 G5 | F5 - D5 - A4 - D5 F5 | E5 - - - C5 - A4 - |" +
+                "Bb4 D5 F5 - Bb5 - A5 G5 | C5 E5 G5 - C6 - Bb5 G5 | A5 - F5 - D5 - E5 F5 | D5 - - - - - . . ",
+        };
+
+        /// <summary>Jungle Papaye : marimba bondissant et congas.</summary>
+        public static readonly Song Jungle = new()
+        {
+            Name = "Jungle",
+            Bpm = 145f,
+            Style = SongStyle.Tropical,
+            Lead = LeadVoice.Mallet,
+            Key = "F",
+            Chords = new[] { "F", "F", "Bb", "C", "F", "Dm", "Bb", "C", "Dm", "Bb", "F", "C", "Dm", "Bb", "C", "F" },
+            Melody =
+                "C5 . A4 C5 . F5 . A5 | G5 - F5 . C5 . A4 . | Bb4 . D5 F5 . D5 . Bb4 | C5 - E5 - G5 - . . |" +
+                "A5 . F5 A5 . C6 . A5 | F5 - D5 . A4 . D5 . | D5 . F5 Bb5 . F5 . D5 | E5 - G5 - C6 - . . |" +
+                "D5 - F5 - A5 - F5 D5 | Bb4 - D5 - F5 - D5 Bb4 | A4 - C5 - F5 - A5 - | G5 - E5 - C5 - . . |" +
+                "F5 . D5 F5 . A5 . F5 | D5 . Bb4 D5 . F5 . D5 | E5 . G5 C6 . G5 . E5 | F5 - - - . . . . ",
+        };
+
+        /// <summary>Lagon Coco : calypso décontracté, tambour d'acier.</summary>
+        public static readonly Song Lagoon = new()
+        {
+            Name = "Lagon",
+            Bpm = 128f,
+            Style = SongStyle.Calypso,
+            Lead = LeadVoice.Steel,
+            Key = "G",
+            Chords = new[] { "G", "C", "D", "G", "G", "Em", "C", "D", "C", "D", "Bm", "Em", "C", "D", "G", "G" },
+            Melody =
+                "B4 - D5 . G5 - D5 . | E5 - G5 . C6 - G5 E5 | F#5 - A5 . D5 - F#5 . | G5 - - - . . D5 . |" +
+                "B4 . D5 G5 - . B5 . | G5 . E5 B4 - . E5 . | E5 - G5 - C6 - B5 A5 | F#5 - - - A5 - . . |" +
+                "G5 - E5 - C5 - E5 G5 | A5 - F#5 - D5 - F#5 A5 | B5 - F#5 - D5 - B4 D5 | E5 - - - G5 - B5 - |" +
+                "C6 - B5 A5 G5 - E5 . | D5 - F#5 A5 D6 - C6 A5 | B5 - G5 . D5 . B4 . | G4 - - - . . . . ",
+        };
+
+        /// <summary>Récif Bulle : rêveur et mouillé, notes qui remontent comme des bulles, échos.</summary>
+        public static readonly Song Reef = new()
+        {
+            Name = "Recif",
+            Bpm = 120f,
+            Style = SongStyle.Aquatic,
+            Lead = LeadVoice.Bubble,
+            Key = "Am",
+            Chords = new[] { "Am", "F", "C", "G", "Am", "F", "G", "Em", "F", "G", "Am", "Am", "F", "G", "Em", "Am" },
+            Melody =
+                "E5 - - - A5 - - - | C6 - - - A5 - F5 - | G5 - - - E5 - C5 - | D5 - - - B4 - - - |" +
+                "C5 - E5 - A5 - B5 - | C6 - - - F5 - - - | D5 - - - G5 - B5 - | G5 - - - - - . . |" +
+                "A5 - - - C6 - A5 - | B5 - - - D6 - B5 - | C6 - - - E5 - A5 - | A5 - - - - - . . |" +
+                "F5 - A5 - C6 - A5 - | G5 - B5 - D6 - B5 - | E5 - G5 - B5 - G5 - | A5 - - - - - - - ",
+        };
+
+        /// <summary>Route des Nuages : aérien, flûte et arpèges qui montent.</summary>
+        public static readonly Song Sky = new()
+        {
+            Name = "Nuages",
+            Bpm = 138f,
+            Style = SongStyle.Airy,
+            Lead = LeadVoice.Flute,
+            Key = "D",
+            Chords = new[] { "D", "A", "Bm", "G", "D", "A", "G", "A", "Bm", "G", "D", "A", "Bm", "G", "A", "D" },
+            Melody =
+                "F#5 - A5 - D6 - A5 - | E5 - A5 - C#6 - A5 - | D5 - F#5 - B5 - F#5 - | G5 - B5 - D6 - B5 - |" +
+                "A5 - F#5 - D5 - F#5 A5 | C#6 - A5 - E5 - A5 C#6 | B5 - G5 - D5 - G5 B5 | A5 - - - E5 - C#5 - |" +
+                "D6 - - B5 F#5 - B5 - | D6 - - B5 G5 - B5 - | A5 - - F#5 D5 - F#5 - | E5 - - - C#6 - A5 - |" +
+                "B5 - D6 - B5 - F#5 - | G5 - B5 - D6 - B5 - | A5 - C#6 - E6 - C#6 - | D6 - - - - - . . ",
+        };
+
+        /// <summary>Orbite Comète : synthé spatial, arpèges en doubles croches, grande caisse claire.</summary>
+        public static readonly Song Space = new()
+        {
+            Name = "Espace",
+            Bpm = 132f,
+            Style = SongStyle.Space,
+            Lead = LeadVoice.Saw,
+            Key = "Em",
+            Chords = new[] { "Em", "C", "G", "D", "Em", "C", "D", "D", "C", "D", "Bm", "Em", "C", "D", "Em", "Em" },
+            Melody =
+                "E5 . . B4 E5 . G5 . | E5 . C5 . G5 - - . | D5 . . B4 D5 . G5 . | F#5 - - - A5 - . . |" +
+                "B5 . . G5 B5 . E6 . | C6 - - . G5 . E5 . | F#5 . A5 . D6 - - . | A5 - - - F#5 - D5 - |" +
+                "E5 - G5 - C6 - - - | D6 - - - A5 - F#5 - | F#5 - B5 - D6 - - - | E6 - - - B5 - G5 - |" +
+                "C6 - B5 - G5 - E5 - | D6 - C6 - A5 - F#5 - | E5 - G5 - B5 - E6 - | E6 - - - - - . . ",
+        };
+
+        /// <summary>Banquise Givrée : clochettes, grelots et cordes pincées.</summary>
+        public static readonly Song Ice = new()
+        {
+            Name = "Banquise",
+            Bpm = 144f,
+            Style = SongStyle.Sleigh,
+            Lead = LeadVoice.Bell,
+            Key = "Bb",
+            Chords = new[] { "Bb", "Gm", "Eb", "F", "Bb", "Gm", "Eb", "F", "Gm", "Eb", "Bb", "F", "Eb", "F", "Bb", "Bb" },
+            Melody =
+                "D5 F5 Bb5 . F5 . D5 . | G5 Bb5 D6 . Bb5 . G5 . | Eb5 G5 Bb5 . G5 . Eb5 . | F5 - A5 - C6 - . . |" +
+                "Bb5 . A5 . Bb5 . F5 . | G5 . F5 . G5 . D5 . | Eb5 . D5 . Eb5 . G5 . | F5 - - - . . . . |" +
+                "G5 - Bb5 - D6 - Bb5 - | G5 - Eb5 - Bb4 - Eb5 G5 | F5 - D5 - Bb4 - D5 F5 | A5 - - - C6 - A5 - |" +
+                "G5 . Bb5 . Eb6 . Bb5 . | A5 . C6 . F6 . C6 . | D6 - Bb5 - F5 - D5 - | Bb4 - - - . . . . ",
+        };
+
+        /// <summary>Volcan Grondant : lourd et grondant, guitare saturée, double grosse caisse.</summary>
+        public static readonly Song Volcano = new()
+        {
+            Name = "Volcan",
+            Bpm = 156f,
+            Style = SongStyle.Heavy,
+            Lead = LeadVoice.Fuzz,
+            Key = "Cm",
+            Chords = new[] { "Cm", "Ab", "Bb", "Cm", "Cm", "Ab", "Fm", "Gm", "Fm", "Gm", "Cm", "Ab", "Ab", "Bb", "Cm", "Cm" },
+            Melody =
+                "C5 C5 . Eb5 . G5 . C6 | Ab5 - G5 - Eb5 - C5 . | Bb4 - D5 - F5 - Bb5 . | C6 - - - G5 - Eb5 - |" +
+                "C5 C5 . Eb5 . G5 . Bb5 | C6 - Bb5 - Ab5 - Eb5 . | F5 - Ab5 - C6 - Ab5 F5 | G5 - - - D5 - Bb4 - |" +
+                "F5 . F5 Ab5 . C6 . Ab5 | G5 . G5 Bb5 . D6 . Bb5 | C6 - G5 - Eb5 - G5 C6 | Eb6 - C6 - Ab5 - Eb5 - |" +
+                "Ab5 - C6 - Eb6 - C6 - | Bb5 - D6 - F6 - D6 - | C6 - G5 - Eb5 - C5 - | C5 - - - . . . . ",
+        };
+
+        /// <summary>Ville Néon : disco de nuit, basse en octaves, grosse caisse sur chaque temps.</summary>
+        public static readonly Song City = new()
+        {
+            Name = "Neon",
+            Bpm = 124f,
+            Style = SongStyle.Disco,
+            Lead = LeadVoice.Sync,
+            Key = "F#m",
+            Chords = new[] { "F#m", "D", "A", "E", "F#m", "D", "A", "E", "Bm", "D", "F#m", "C#m", "Bm", "D", "E", "C#m" },
+            Melody =
+                "F#5 - . F#5 A5 - C#6 - | D6 - . A5 F#5 - D5 - | E5 - . A5 C#6 - A5 - | B5 - - - G#5 - E5 - |" +
+                "C#6 - . C#6 B5 - A5 - | F#5 - . A5 D6 - A5 - | C#6 - E6 - C#6 - A5 - | B5 - - - . . E5 G#5 |" +
+                "B5 - D6 - F#6 - D6 - | A5 - - D6 - - F#5 - | C#6 - - A5 - - F#5 - | G#5 - - - E5 - C#5 - |" +
+                "D5 - F#5 - B5 - D6 - | F#5 - A5 - D6 - F#6 - | E6 - D6 - C#6 - B5 - | G#5 - - - E5 - - - ",
+        };
+
+        /// <summary>Podium de fin de coupe : fanfare festive en do majeur, 8 mesures qui bouclent.</summary>
+        public static readonly Song Podium = new()
+        {
+            Name = "Podium",
+            Bpm = 120f,
+            Style = SongStyle.Driving,
+            Lead = LeadVoice.Bell,
+            Key = "C",
+            Chords = new[] { "C", "F", "C", "G", "C", "F", "G", "C" },
+            Melody =
+                "G5 - E5 G5 C6 - - - | A5 - F5 A5 C6 - A5 - | G5 - E5 G5 E6 - D6 C6 | D6 - - - B5 G5 - . |" +
+                "E6 - C6 E6 G6 - E6 C6 | F6 - A5 C6 F6 - E6 D6 | D6 - B5 G5 B5 D6 G6 - | C6 - - E6 C6 - - - ",
+        };
+
+        /// <summary>Jingle d'arrivée : deux mesures qui montent et finissent sur la tonique tenue.</summary>
+        public static readonly Song Finish = new()
+        {
+            Name = "Arrivee",
+            Bpm = 140f,
+            Style = SongStyle.Driving,
+            Lead = LeadVoice.Square,
+            Key = "C",
+            Chords = new[] { "C", "C" },
+            Melody = "C5 E5 G5 C6 E6 G5 C6 E6 | C6 - - - - - - - ",
+        };
+
+        /// <summary>Un morceau par circuit, dans l'ordre de <c>Circuit.All()</c>.</summary>
+        public static readonly Song[] Circuits = { Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City };
+
+        public static readonly Song[] All = { Menu, Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City, Podium, Finish };
+
+        /// <summary>Morceau du circuit n (0 = Prairie) ; retombe sur la Prairie hors limites.</summary>
+        public static Song ForCircuit(int index) => index >= 0 && index < Circuits.Length ? Circuits[index] : Race;
     }
 }

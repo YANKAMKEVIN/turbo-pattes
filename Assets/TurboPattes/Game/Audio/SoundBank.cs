@@ -103,7 +103,7 @@ namespace TurboPattes.Game.Audio
         /// <param name="speed01">Vitesse rapportée à la vitesse maximale.</param>
         public void SetEngine(float speed01, bool boosting, bool active)
         {
-            float targetVol = active ? 0.28f : 0f;
+            float targetVol = active ? 0.28f * App.GameSession.SfxVolume : 0f;
             _engine.volume = Mathf.MoveTowards(_engine.volume, targetVol, Time.deltaTime);
             float pitch = 0.55f + speed01 * 1.1f + (boosting ? 0.25f : 0f);
             _engine.pitch = Mathf.Lerp(_engine.pitch, pitch, 1f - Mathf.Exp(-8f * Time.deltaTime));
@@ -111,10 +111,10 @@ namespace TurboPattes.Game.Audio
 
         public void SetDrift(bool drifting)
         {
-            _drift.volume = Mathf.MoveTowards(_drift.volume, drifting ? 0.18f : 0f, Time.deltaTime * 2f);
+            _drift.volume = Mathf.MoveTowards(_drift.volume, drifting ? 0.18f * App.GameSession.SfxVolume : 0f, Time.deltaTime * 2f);
         }
 
-        void Play(AudioClip c, float volume = 1f) => _oneShots.PlayOneShot(c, volume);
+        void Play(AudioClip c, float volume = 1f) => _oneShots.PlayOneShot(c, volume * App.GameSession.SfxVolume);
 
         public void Beep() => Play(_beep);
         public void Go() => Play(_go);

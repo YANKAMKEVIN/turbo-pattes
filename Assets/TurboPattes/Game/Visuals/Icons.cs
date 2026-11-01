@@ -28,6 +28,8 @@ namespace TurboPattes.Game.Visuals
                 case ItemKind.Carrot: Carrot(c); break;
                 case ItemKind.Coconut: Coconut(c); break;
                 case ItemKind.Honey: Honey(c); break;
+                case ItemKind.Feather: Feather(c); break;
+                case ItemKind.Yarn: Yarn(c); break;
                 default: Shield(c); break;
             }
             return ItemCache[kind] = c.ToTexture("Item" + kind);
@@ -92,6 +94,34 @@ namespace TurboPattes.Game.Visuals
             c.Fill(Polygon(0f, 0.5f, 0.57f, 0.565f, 0.61f, 0.565f, 0.69f, 0.5f, 0.73f, 0.435f, 0.69f, 0.435f, 0.61f), honey,
                 IconCanvas.Line * 0.6f, 0f);
             c.Fill(Capsule(0.3f, 0.55f, 0.33f, 0.72f, 0.022f), new Color(1f, 0.9f, 0.75f, 0.55f), 0f, 0f);
+        }
+
+        static void Feather(IconCanvas c)
+        {
+            // Plume blanche à bout turquoise, en diagonale, avec deux encoches dans les barbes.
+            var vane = Ellipse(0.52f, 0.46f, 0.15f, 0.36f, 40f);
+            c.Fill(vane, new Color(0.97f, 0.97f, 1f));
+            c.Fill(Intersect(Ellipse(0.66f, 0.3f, 0.12f, 0.19f, 40f), vane), new Color(0.35f, 0.85f, 0.85f), 0f, 0.1f);
+            var notch = new Color(0.82f, 0.86f, 0.95f);
+            c.Fill(Intersect(Capsule(0.3f, 0.5f, 0.46f, 0.56f, 0.012f), vane), notch, 0f, 0f);
+            c.Fill(Intersect(Capsule(0.55f, 0.62f, 0.62f, 0.5f, 0.012f), vane), notch, 0f, 0f);
+            // Tige.
+            c.Fill(Capsule(0.27f, 0.8f, 0.74f, 0.17f, 0.018f), new Color(0.75f, 0.6f, 0.45f), IconCanvas.Line * 0.6f, 0f);
+            c.Fill(Capsule(0.36f, 0.32f, 0.42f, 0.24f, 0.02f), new Color(1f, 1f, 1f, 0.7f), 0f, 0f);
+        }
+
+        static void Yarn(IconCanvas c)
+        {
+            // Pelote rose avec ses fils enroulés et un brin qui s'échappe.
+            var ball = Circle(0.47f, 0.52f, 0.31f);
+            c.Fill(Capsule(0.7f, 0.7f, 0.86f, 0.84f, 0.022f), new Color(0.95f, 0.42f, 0.62f), IconCanvas.Line * 0.6f, 0f);
+            c.Fill(ball, new Color(0.95f, 0.42f, 0.62f));
+            var thread = new Color(1f, 0.72f, 0.82f);
+            c.Fill(Intersect(Ring(0.3f, 0.75f, 0.36f, 0.018f), ball), thread, 0f, 0f);
+            c.Fill(Intersect(Ring(0.3f, 0.75f, 0.27f, 0.018f), ball), thread, 0f, 0f);
+            c.Fill(Intersect(Ring(0.75f, 0.35f, 0.3f, 0.018f), ball), thread, 0f, 0f);
+            c.Fill(Intersect(Ring(0.75f, 0.35f, 0.21f, 0.018f), ball), thread, 0f, 0f);
+            c.Fill(Intersect(Ring(0.47f, 0.52f, 0.24f, 0.025f), Circle(0.28f, 0.3f, 0.2f)), new Color(1f, 1f, 1f, 0.55f), 0f, 0f);
         }
 
         static void Shield(IconCanvas c)

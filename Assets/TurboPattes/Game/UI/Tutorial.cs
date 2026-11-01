@@ -1,0 +1,81 @@
+using TurboPattes.Core;
+using TurboPattes.Game.App;
+using TurboPattes.Game.Race;
+using UnityEngine;
+
+namespace TurboPattes.Game.UI
+{
+    /// <summary>
+    /// Conseils pendant la toute première course : super départ, direction, drift, objets, figures. Chacun s'affiche
+    /// une fois, au moment où il sert, puis le tutoriel est marqué comme vu à l'arrivée (<see cref="GameSession.TutorialDone"/>).
+    /// </summary>
+    public sealed class Tutorial : MonoBehaviour
+    {
+        const float ShowTime = 3.8f;
+        const float Gap = 1.5f;
+
+        public RaceManager Race;
+        /// <summary>Conseils affichés (journal de l'autotest).</summary>
+        public int Shown { get; private set; }
+
+        readonly UiKit _ui = new();
+        readonly bool[] _done = new bool[5];
+        string _text;
+        float _left, _cooldown;
+
+        void Update()
+        {
+            if (Race == null || Race.Player == null || Race.Paused) return;
+            float dt = Time.deltaTime;
+            if (_left > 0f) { _left -= dt; return; }
+            if (_cooldown > 0f) { _cooldown -= dt; return; }
+            var p = Race.Player;
+            bool touch = Race.Input.TouchMode;
+
+            if (Race.State == RaceManager.Phase.Results)
+            {
+                GameSession.TutorialDone = true;
+                enabled = false;
+                return;
+            }
+            if (Race.State == RaceManager.Phase.Countdown)
+            {
+                if (Race.CountdownLeft < 3.2f)
+                    Show(0, touch ? "L'accélération est automatique : prêt pour le départ !" : "Accélère dans la dernière seconde : super départ !");
+                return;
+            }
+            if (Race.RaceTime > 1.5f)
+                Show(1, touch ? "Glisse le doigt à gauche de l'écran pour tourner" : "Flèches ou stick gauche pour tourner");
+            if (Race.RaceTime > 6f && Race.Path.TurnBetween(p.Laps.S, p.Laps.S + 45f) > 45f && p.Speed > 12f)
+                Show(2, $"Maintiens {(touch ? "DÉRAPAGE" : "Espace")} en tournant : les étincelles chargent un turbo");
+            if (p.Item != ItemKind.None && p.ItemRoll <= 0f)
+                Show(3, $"{(touch ? "OBJET" : "E")} pour utiliser ton objet");
+            if (p.Airborne && p.Vertical.AirTime > 0.1f)
+                Show(4, $"{(touch ? "DÉRAPAGE" : "Espace")} en l'air : figure et turbo à l'atterrissage");
+        }
+
+        void Show(int index, string text)
+        {
+            if (_done[index] || _left > 0f) return;
+            _done[index] = true;
+            _text = text;
+            _left = ShowTime;
+            _cooldown = Gap;
+            Shown++;
+        }
+
+        void OnGUI()
+        {
+            if (_left <= 0f || string.IsNullOrEmpty(_text) || Race == null || Race.Paused || Race.State == RaceManager.Phase.Results) return;
+            _ui.EnsureStyles();
+            float s = _ui.Scale, w = Screen.width, h = Screen.height;
+            float a = Mathf.Clamp01(_left * 3f) * Mathf.Clamp01((ShowTime - _left) * 4f);
+            var r = new Rect(w * 0.5f - 420 * s, h * 0.7f, 840 * s, 58 * s);
+            UiKit.Plate(new Rect(r.x + 5 * s, r.y + 5 * s, r.width, r.height), new Color(0f, 0f, 0f, 0.4f * a), 18 * s);
+            UiKit.Plate(r, new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, a), 18 * s);
+            UiKit.Plate(new Rect(r.x + 4 * s, r.y, 70 * s, r.height), new Color(UiKit.Ochre.r, UiKit.Ochre.g, UiKit.Ochre.b, a), 18 * s);
+            _ui.Label(new Rect(r.x + 4 * s, r.y, 70 * s, r.height), "!", _ui.Big, new Color(UiKit.Charcoal.r, UiKit.Charcoal.g, UiKit.Charcoal.b, a), TextAnchor.MiddleCenter);
+            _ui.Label(new Rect(r.x + 80 * s, r.y, r.width - 96 * s, r.height), _text, _ui.Small, new Color(UiKit.Charcoal.r, UiKit.Charcoal.g, UiKit.Charcoal.b, a), TextAnchor.MiddleCenter);
+        }
+    }
+}

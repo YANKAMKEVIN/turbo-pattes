@@ -4,7 +4,7 @@ Jeu de karting arcade original (nom de travail « Turbo Pattes ») : pilotes ani
 objets ramassés sur la piste, 8 pilotes, 3 tours. Codes du genre, mais personnages, circuits, objets et interface
 propres au jeu (pas de reprise de Mario Kart ni d'aucun autre jeu existant).
 
-Dernière mise à jour : 2026-10-31.
+Dernière mise à jour : 2026-11-01.
 
 Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). Pousser après chaque tâche.
 
@@ -31,14 +31,19 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
   « Volcan Grondant » (montée à 14 m, coulées et mares de lave, volcan fumant), « Ville Néon » (huit de nuit avec échangeur, tours
   aux fenêtres allumées, lampadaires, néons). Ambiance par thème dans `Track/ThemeStyle` (ciel procédural, brouillard, lumière, sol, murets, eau).
 - **Relief** : hauteur par point de contrôle (`Circuit.Heights`), reliée par une cubique monotone sans dépassement (`Core/HeightProfile`, avec les tremplins par-dessus, seulement sur bitume + vibreurs). `KartMotor` suit le sol, les côtes freinent et les descentes poussent (45 % de la gravité), il décolle quand le sol se dérobe plus vite que la gravité (`Core/VerticalMotion`, g = 24 m/s²), volant réduit en l'air, tassement et son à la réception, tangage selon la pente. Au croisement, la recherche du tronçon le plus proche tient compte de la hauteur (`Core/TrackProjection`) : tours, IA, objets et chocs entre karts ne confondent pas le pont et la route dessous.
-- **Pilotes** (8, modèles en primitives) : Roxy (renarde, joueuse), Bambou (panda), Flip (grenouille), Lili (lapine), Bruno (ours), Mimi (chatte), Pingo (pingouin), Rosa (cochonne).
-- **Conduite** arcade sans moteur physique (`KartMotor`) : saut + drift à 3 niveaux (étincelles jaunes, vertes, roses), turbo au lâcher, hors-piste lent, rebond sur les murets, chocs entre karts, super départ (accélérer dans la dernière seconde du compte à rebours), tapis turbo.
-- **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier. Tirage selon la place (`ItemRoll`).
+- **Pilotes** (8, modèles en primitives) : Roxy (renarde, joueuse), Bambou (panda), Flip (grenouille), Lili (lapine), Bruno (ours), Mimi (chatte), Pingo (pingouin), Rosa (cochonne). **Caractère** (`Core/DriverStats`) : vitesse, accélération, adhérence, poids de 1 à 5, même total pour tous ; effets de quelques pour cent (pointe ±3 %, accélération ±16 %, braquage ±12 %, le plus lourd est moins bousculé dans les chocs). Jauges affichées sous le nom dans le choix du pilote.
+- **Conduite** arcade sans moteur physique (`KartMotor`) : saut + drift à 3 niveaux (étincelles jaunes, vertes, roses), turbo au lâcher, **figure en l'air** (DRIFT pendant un saut : tonneau, petit turbo si elle est finie avant l'atterrissage, `Core/AirTrick` ; l'IA en fait aussi), poussière et secousse de caméra aux réceptions et aux chocs, vibrations sur téléphone, hors-piste lent, rebond sur les murets, chocs entre karts, super départ (accélérer dans la dernière seconde du compte à rebours), tapis turbo.
+- **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier, **plume planante** (grand bond plané avec élan, passe par-dessus coco, pelote et miel), **pelote de laine** (file le long de la piste vers le kart juste devant ; jamais tirée par le premier). Tirage selon la place (`ItemRoll`). L'IA garde son bouclier pour parer un projectile, saute à la plume par-dessus le miel, lance la pelote quand quelqu'un est devant.
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
 - **Commandes** : clavier (flèches/WASD/ZQSD, Espace = drift, E = objet, R = rejouer), manette (stick, RT/A, LT/B, RB = drift, X/Y = objet, Start), tactile (glisser à gauche pour tourner, boutons DRIFT / OBJET / FREIN, accélération auto).
-- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), circuit (sélecteur < nom n/10 >, la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
+- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), mode Course / Chrono / Coupe, circuit (sélecteur < nom n/10 >, la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
 - **Icônes dessinées par code** (`Visuals/IconCanvas` + `Visuals/Icons`, aucun fichier image) : 4 objets (carotte, noix de coco, pot de miel, bulle) et 8 portraits de pilotes, sur les cartes du menu, le classement, les résultats et l'emplacement d'objet. Planche de contrôle : `docs/icones.png`.
-- **Musique composée et jouée par code** : partitions originales notées dans `Core/Tune.cs` (morceau de menu à 100 BPM et de course à 150 BPM, 16 mesures chacun, testées), synthétiseur `Audio/MusicSynth` (mélodie avec écho, basse, arpège, nappe, batterie), calculé en arrière-plan au lancement. `Audio/Jukebox` survit aux rechargements de scène : musique du menu, silence pendant le compte à rebours, musique de course au « PARTEZ ! », plus basse en pause et à l'arrivée. Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
+- **Musique composée et jouée par code, une par circuit** : 11 partitions originales notées dans `Core/Tune.cs` (menu + 10 circuits, 16 mesures chacune, 120 à 156 BPM), chacune avec sa tonalité, son accompagnement (`SongStyle` : galop western pour le Canyon, marimba et congas pour la Jungle, calypso au tambour d'acier pour le Lagon, échos et bulles pour le Récif, flûte et clochettes pour les Nuages, synthé en doubles croches pour l'Espace, grelots pour la Banquise, guitare saturée et double grosse caisse pour le Volcan, disco pour la Ville Néon) et son timbre de mélodie (`LeadVoice`). Tests : mesures complètes, notes et accords dans la tonalité, tessiture, fin de boucle sur la tonique ou la quinte, un style différent par circuit. Synthétiseur `Audio/MusicSynth` (50 à 170 ms par morceau sur Mac). `Audio/Jukebox` survit aux rechargements de scène : musique du menu, silence pendant le compte à rebours (le morceau du circuit est calculé à ce moment-là), musique du circuit au « PARTEZ ! », plus basse en pause et à l'arrivée ; un seul morceau de circuit gardé en mémoire.
+- **Contre-la-montre** (mode « Chrono ») : **écart avec le meilleur tour** aux quarts de tour et à la ligne (vert/rouge, `Core/LapSplits`, temps intermédiaires sauvegardés avec le fantôme) ; **médailles** bronze/argent/or par circuit d'après le meilleur tour (`Core/Medals`, référence = tour lancé de l'IA), affichées aux résultats et dans le menu ; le joueur seul, sans bulles d'objets ; tour en cours, meilleur tour et record affichés ; records par circuit (temps total par nombre de tours, meilleur tour) dans PlayerPrefs (`GameSession.BestTime/BestLap`). **Fantôme** du meilleur tour (`Core/GhostLap` : une pose tous les 0,1 s, interpolée ; `Race/GhostRunner`) : kart translucide qui rejoue ce tour en même temps que le tour en cours, sauvegardé dans `fantome-N.txt` (stockage de l'appli) quand le record tombe, « Record du tour ! » en course. Résultats : temps des tours (meilleur surligné), total, ancien record.
+- **Coupes** (mode « Coupe ») : Coupe Pâquerette (Prairie, Canyon, Jungle, Lagon), Coupe Coquillage (Récif, Banquise, Nuages, Espace), Coupe Braise (Volcan, Ville Néon, Canyon, Espace). Points selon la place 10-8-6-5-4-3-2-1, classement cumulé (`Core/Cup` : égalité départagée par le nombre de victoires, de 2es places…, puis la dernière course). Après chaque course : place, points gagnés et classement cumulé, « Course suivante » ; après la 4e : **podium** sur la piste (trois marches, karts, vainqueur qui sautille, confettis, classement complet). Coupe en cours dans `GameSession.Cup` (perdue en revenant au menu). **Grille** : à partir de la 2e course, le dernier du classement part en tête. **Trophées** or/argent/bronze mémorisés ; une coupe s'ouvre après un podium dans la précédente (« Coupe fermée » sinon). Fanfare au podium (`Songs.Podium`), jingle à l'arrivée (`Songs.Finish`). Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
+- **Réglages** (`UI/SettingsScreen`, depuis le titre — bouton, Tab ou Y — et la pause) : volume musique, volume effets, sensibilité tactile, vibrations, qualité (Auto ou imposée). La course se met en pause toute seule quand l'appli passe en arrière-plan.
+- **Tutoriel** à la première course (`UI/Tutorial`) : super départ, direction, drift, objet, figure, chacun au moment où il sert ; `-tp-tutorial` le force.
+- **Icône de l'application** dessinée par code (`Editor/AppIcon`, patte crème sur dégradé orange, icône adaptative Android) ; version 0.2.0.
 - **Interface de course** IMGUI : tour, chrono, place, objet avec roulette, classement, vitesse, compte à rebours, « Mauvais sens ! ».
 - **Sons** synthétisés par code (moteur, bips, turbo, chocs, objets).
 
@@ -77,9 +82,13 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 # nombre de sauts par kart et alerte si un kart passe sous la piste). Dossier relatif = stockage de l'appli (Android).
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1 -tp-circuit 2
 # Les 10 circuits d'affilée (1 tour chacun) : résumé OK/ECHEC, fluidité, sauts ; échoue si course non finie, anomalie ou < 30 i/s
+# (tools/autotest-difficultes.sh : les mêmes dans les 3 difficultés, option -tp-difficulty 1|2|3)
 ~/dev/turbo-pattes/tools/autotest-tous.sh /tmp/tp-tous 1
 # Diagnostic de fluidité sur téléphone : -tp-diag affiche les temps CPU/GPU ; -tp-quality N impose un niveau (0 à 4)
-# Musiques en WAV (deux tours de boucle) pour les écouter :
+# Modes : contre-la-montre (3 tours, records effacés, fantôme vu au tour 2-3) puis une coupe entière jusqu'au podium
+~/dev/turbo-pattes/tools/autotest-modes.sh /tmp/tp-modes 2 1   # [dossier] [circuit du chrono] [coupe]
+# Options d'autotest : -tp-mode chrono|coupe|course, -tp-cup N, -tp-fresh (efface records et fantôme du circuit)
+# Musiques en WAV (deux tours de boucle) pour les écouter (menu + 10 circuits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.MusicExport.Export -tp-out Builds/Musique -logFile -
 # Planche PNG de toutes les icônes (objets + portraits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
@@ -92,6 +101,15 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ```
 
 ## Vérifications faites (2026-11-01)
+
+- **20 étapes (réglages, pilotes, objets, figures, médailles, trophées…)** : 89 tests NUnit verts (dont 20 nouveaux : qualité adaptative, caractère des pilotes, figures, plume et pelote, médailles, temps intermédiaires, trophées, grille). Mac : `autotest-tous.sh` 10/10 (42 à 55 i/s), `autotest-modes.sh` OK (chrono : 8 écarts affichés, médaille d'argent, temps intermédiaires sauvegardés ; coupe complète avec grille inversée), **`autotest-difficultes.sh` 30/30** (pilote automatique 1er partout en Facile, 1er à 3e en Normal, 2e à 6e en Difficile). Les IA utilisent plume et pelote et font 1 à 3 figures par course. `-tp-menutest` : réglages et jauges des pilotes. Captures : `docs/capture-reglages-pilotes-tutoriel.png`.
+  - **Galaxy A17** : course sur la Jungle avec tutoriel (4 conseils, 38 à 56 i/s), contre-la-montre avec l'ancien fantôme relu (format 1) et écart « +1,68 » affiché à la ligne. Captures : `docs/capture-a17-tutoriel-ecart.png`. Les autres sessions (KeRush, Kanto, Shonen Clash) reprennent parfois le téléphone en plein test : relancer si le journal est incomplet.
+  - Non vérifié : vibrations ressenties à la main, réglages manipulés au doigt sur le téléphone, icône sur l'écran d'accueil du téléphone.
+
+- **Musiques, contre-la-montre, coupes** : 69 tests NUnit verts (dont 32 nouveaux : partitions, points et classement de coupe, fantôme). `tools/autotest-tous.sh` : 10 circuits OK (41 à 58 i/s, aucune anomalie), chacun avec sa musique. `tools/autotest-modes.sh` : chrono 3 tours sur le Canyon (records enregistrés, fantôme vu à 3,7 m au tour 3, 1 seul kart), coupe Pâquerette complète (4 courses, points cumulés, podium). `-tp-menutest` : lignes Mode, Chrono (record affiché, difficulté grisée) et Coupe (piste de la coupe derrière le menu). Captures : `docs/capture-modes-mac.png`.
+  - **Galaxy A17** : chrono 3 tours sur la Prairie à 56-60 i/s (niveau 2), records enregistrés, fantôme translucide visible à côté du joueur au tour 3 ; course normale OK. Captures adb : `docs/capture-a17-chrono-fantome.png`. Corrigé : en tactile, le bouton pause chevauchait le panneau des records.
+  - **Galaxy A17, coupe Braise** (`-tp-autotest coupe -tp-mode coupe -tp-cup 3 -tp-laps 1 -tp-quality 2`) : Volcan, Ville Néon, Canyon, Espace enchaînés (scène rechargée entre les courses), 50 à 60 i/s, chaque musique calculée pendant le compte à rebours, points cumulés justes (égalité Bambou/Bruno à 20 départagée par la 2e place de Bambou), podium affiché. Captures : `docs/capture-a17-coupe.png`. Sur Android, `ScreenCapture` n'écrit pas les captures de l'autotest : passer par `adb exec-out screencap`.
+  - Pas encore écouté par une oreille humaine : les 9 nouvelles musiques (export WAV avec `MusicExport`).
 
 - **10 circuits** : `tools/autotest-tous.sh` sur Mac, tous OK (course finie, aucune anomalie ni exception), 38 à 57 i/s, 1 ou 2 sauts par tour selon le circuit. Vues d'ensemble vérifiées. Menu : sélecteur « Canyon 2/10 » vérifié par `-tp-menutest`. 37 tests NUnit verts.
 - **Galaxy A17** : Orbite Comète, Route des Nuages et Récif Bulle terminés à 60 i/s (niveau de qualité mémorisé), sauts de 1,25 s dans l'espace. Captures : `docs/capture-a17-espace-ciel-recif.png`, planches Mac `docs/capture-circuits-3-8.png` et `docs/capture-circuits-9-10.png`. Le niveau de qualité ne remonte jamais tout seul (mis à 2 sur l'A17) ; `-tp-quality N` le change.
@@ -139,7 +157,8 @@ Avancement (branche `da-atelier`, worktree `~/dev/turbo-pattes-da`, pas encore m
 - **Fait — rendu** : tonemapping Neutral, split toning bleu atelier / ocre, contraste +18, vignette encre, ombres dures, matières mates (lissé 0,1 par défaut). Pas encore de shader toon dédié.
 - **Fait — karts** : châssis en tubes soudés (`KartFactory.Tube`), pontons, nez avec numéro en 7 segments, baquet, moteur latéral à ailettes, pneus avec flancs et jantes. Autotest Mac Prairie 1 tour : course finie, ~60 i/s.
 - **Fait — les 8 pilotes sculptés** (Roxy validée par Kevin le 2026-11-01) : `tools/blender/pilote.py --animal fox|panda|frog|rabbit|bear|cat|penguin|pig` (Skin + subdivision ; paramètres d'espèce dans `ANIMALS` : museau effilé/arrondi/plat/bec/groin, oreilles pointues/rondes/longues/tombantes, queue, zones d'accent, carrure). FBX dans `Resources/Pilots/{Kind}.fbx` (nom = `AnimalKind`), chargés par `KartFactory.SculptedDriver` (échelle 1,35) ; matières TP_* remplacées par la livrée (TP_Glint → crème, TP_Beak → orange). 15 à 20 k sommets par pilote : à surveiller sur l'A17. Planches `docs/da/atelier/pilotes-*.png`.
-- À faire : merger `main` (réglages, tutoriel, podium, jauges, plume/pelote, icône d'appli — à passer dans la DA), décors des 10 circuits, icônes d'objets, test A17, merge dans main (avec l'accord de Kevin). Pas de squelette ni d'animation sur les pilotes pour l'instant.
+- **Fait — merge de `main` (2026-11-01)** : modes Course/Chrono/Coupe, réglages, conseils de 1re course, podium de coupe, jauges de caractère, médailles, plume et pelote passés dans la DA « Atelier » (fiches crème, plaques encre, `Badge` au lieu des portraits ; HUD chrono : « CE TOUR », écart vert/vermillon, fiche meilleur tour/record ; résultats chrono et coupe sur la même mise en page que la course ; podium aux couleurs de la palette ; icône d'appli ocre/vermillon/crème). Vérifié sur Mac : `-tp-menutest` (titre, réglages, chrono, coupe, choix, course, pause) et `autotest-modes.sh` (chrono OK, médaille d'argent ; coupe 4 courses + podium), aucune exception. Captures `docs/da/atelier/ecrans-modes.png`, `podium.png`.
+- À faire : décors des 10 circuits, icônes d'objets (les 6, dont plume et pelote, encore dans l'ancien style), test A17, merge dans main (avec l'accord de Kevin). Pas de squelette ni d'animation sur les pilotes pour l'instant.
 - `-tp-pilot N` choisit le pilote du `-tp-menutest` (capture `3_choix`).
 
 
@@ -147,22 +166,22 @@ Objectif fixé par Kevin (2026-10-31) : **au moins 10 circuits** aux décors var
 dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms propres au jeu.
 
 1. Vérifier les 10 circuits sur le S24.
-2. ~~Qualité adaptative~~ (fait) ; laisser la qualité remonter quand le téléphone a de la marge ; réglage manuel dans un écran de réglages.
+2. ~~Qualité adaptative qui baisse et remonte (`Core/QualityGovernor`, sans va-et-vient), réglage manuel~~ (fait).
 3. ~~Fusion du décor~~ (fait).
 4. Test de ressenti par Kevin (S24 + manette) : vitesse, drift, côtes, saut, IA.
-5. Écran de réglages : volume musique/effets, sensibilité tactile, qualité graphique.
-6. ~~Dix circuits~~ (fait) ; à venir : virages relevés, boucles, passages anti-gravité, décors animés (lave, vagues, nuages), coupes de 4 circuits.
-7. Une musique par circuit.
-8. Nouveaux objets propres au jeu (plume planante, pelote rebondissante…).
+5. ~~Écran de réglages~~ (fait) ; à restyler avec la DA « Atelier ».
+6. ~~Dix circuits~~ (fait) ; à venir : virages relevés, boucles, passages anti-gravité, décors animés (lave, vagues, nuages).
+7. ~~Une musique par circuit~~ (fait) ; à faire : que Kevin les écoute (export WAV) et dise lesquelles retoucher.
+8. ~~Plume planante et pelote de laine~~ (fait) ; idées : objet rare pour les derniers.
 9. Raccourcis risqués (sable lent mais court, second tremplin).
-10. Effets de relief : poussière à la réception, secousse de caméra, figure en l'air = turbo.
-11. Contre-la-montre avec meilleur temps et fantôme.
-12. Coupes : plusieurs circuits enchaînés, points, podium.
-13. Podium final festif (pilotes, confettis).
-14. Personnalité des pilotes (vitesse, poids, adhérence) et animations de victoire/défaite.
+10. ~~Poussière, secousse, figure en l'air = turbo~~ (fait).
+11. ~~Contre-la-montre, fantôme, écarts en direct, médailles~~ (fait) ; idée : fantôme d'un autre pilote.
+12. ~~Coupes, déblocage, trophées, grille inversée~~ (fait).
+13. ~~Podium, fanfare, jingle d'arrivée~~ (fait) ; à enrichir : animations de victoire (avec les nouveaux pilotes Blender).
+14. ~~Caractère des pilotes~~ (fait) ; animations de victoire/défaite avec la refonte des pilotes.
 15. Modèles de pilotes plus fins, toujours générés par code.
-16. Tutoriel au premier lancement.
-17. Autotest qui enchaîne tous les circuits et difficultés, échec si anomalie ou < 30 i/s sur Mac.
+16. ~~Tutoriel à la première course~~ (fait).
+17. ~~Autotest de tous les circuits dans les 3 difficultés~~ (fait : `tools/autotest-difficultes.sh`).
 18. Tester manette réelle, multi-touch (tourner + drift) et bouton OBJET sur téléphone.
 19. Version iOS (simulateur puis iPhone).
-20. Publication : icône par code, captures boutique, nom définitif, version, AAB signé pour Google Play.
+20. Publication : ~~icône par code, version 0.2.0~~ (fait) ; reste captures boutique, nom définitif, AAB signé (clé à créer avec Kevin).

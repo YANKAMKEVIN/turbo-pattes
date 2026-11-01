@@ -33,6 +33,14 @@ namespace TurboPattes.Core
             AirTime = 0f;
         }
 
+        /// <summary>Bond volontaire (plume) : décolle avec cette vitesse verticale, quel que soit le sol.</summary>
+        public void Launch(float vy)
+        {
+            Grounded = false;
+            AirTime = 0f;
+            Vy = vy;
+        }
+
         /// <param name="groundY">Hauteur du sol sous le kart, après son déplacement horizontal.</param>
         /// <param name="groundVy">Vitesse verticale d'un kart collé à ce sol (pente × vitesse le long de la piste).</param>
         public VerticalEvent Step(float dt, float groundY, float groundVy)
