@@ -50,8 +50,14 @@ namespace TurboPattes.Game.Audio
             _confirm = Blip("UiConfirm", new[] { 784f, 1175f }, 0.07f, 0.35f);
             _back = Blip("UiBack", new[] { 880f, 587f }, 0.07f, 0.3f);
 
-            foreach (var song in new[] { Songs.Menu, Songs.Race })
-                if (!Renders.ContainsKey(song)) Renders[song] = Task.Run(() => MusicSynth.Render(song));
+            Prepare(Songs.Menu);
+        }
+
+        /// <summary>Lance le calcul d'un morceau en arrière-plan (par exemple pendant le compte à rebours).</summary>
+        public void Prepare(Song song)
+        {
+            if (song != null && !_clips.ContainsKey(song) && !Renders.ContainsKey(song))
+                Renders[song] = Task.Run(() => MusicSynth.Render(song));
         }
 
         /// <summary>Enchaîne sur ce morceau (fondu) ; null coupe la musique.</summary>
@@ -104,6 +110,14 @@ namespace TurboPattes.Game.Audio
                 return false;
             }
             var data = task.Result;
+            Renders.Remove(song);
+            // Un seul morceau de circuit en mémoire (~2,5 Mo chacun) : le menu reste, les autres partent.
+            foreach (var old in new List<Song>(_clips.Keys))
+                if (old != Songs.Menu)
+                {
+                    Destroy(_clips[old]);
+                    _clips.Remove(old);
+                }
             clip = AudioClip.Create(song.Name, data.Length, 1, MusicSynth.Rate, false);
             clip.SetData(data, 0);
             _clips[song] = clip;

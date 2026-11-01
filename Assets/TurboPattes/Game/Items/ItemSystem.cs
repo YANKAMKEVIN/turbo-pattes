@@ -35,7 +35,7 @@ namespace TurboPattes.Game.Items
         /// <summary>Événements pour le son : ramassage, objet utilisé, kart touché, bouclier éclaté.</summary>
         public event Action<KartMotor> PickedUp, Used, KartHit, ShieldPopped;
 
-        public ItemSystem(Circuit circuit, TrackPath path, Transform parent, int seed)
+        public ItemSystem(Circuit circuit, TrackPath path, Transform parent, int seed, bool bubbles = true)
         {
             _path = path;
             _rng = new System.Random(seed);
@@ -48,6 +48,7 @@ namespace TurboPattes.Game.Items
             _honeyMat = Mats.Lit(new Color(1f, 0.68f, 0.08f), 0.9f);
             _potMat = Mats.Lit(new Color(0.85f, 0.5f, 0.25f), 0.3f);
 
+            if (bubbles)
             foreach (float row in circuit.ItemRows)
             {
                 float s = row * path.Length;

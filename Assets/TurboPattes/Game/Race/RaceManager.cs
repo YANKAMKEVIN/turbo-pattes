@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TurboPattes.Core;
 using TurboPattes.Game.Audio;
@@ -40,6 +41,16 @@ namespace TurboPattes.Game.Race
         public bool Autopilot { get; set; }
         public float[] LapTimes { get; private set; }
         public bool Paused { get; private set; }
+        /// <summary>Contre-la-montre : le joueur seul, sans bulles d'objets.</summary>
+        public bool Solo { get; set; }
+        /// <summary>Début du tour en cours du joueur (temps de course).</summary>
+        public float LapStartTime => _lapStart;
+        /// <summary>Le joueur vient de finir un tour : numéro du tour (0 = premier) et temps.</summary>
+        public event Action<int, float> LapCompleted;
+        /// <summary>Passage à l'écran de résultats.</summary>
+        public event Action RaceFinished;
+        /// <summary>Musique jouée au « PARTEZ ! » (une par circuit).</summary>
+        public Song Music { get; set; } = Songs.Race;
 
         AiDriver[] _ai;
         float[] _baseScale;
@@ -63,16 +74,17 @@ namespace TurboPattes.Game.Race
             _sound = sound;
             Laps = laps;
             Input = new PlayerInput();
-            Items = new ItemSystem(circuit, path, transform, seed);
+            Items = new ItemSystem(circuit, path, transform, seed, bubbles: !Solo);
             LapTimes = new float[laps];
 
             var roster = AnimalSpec.Roster;
-            Karts = new KartMotor[roster.Length];
-            _ai = new AiDriver[roster.Length];
-            _baseScale = new float[roster.Length];
+            var karts = new List<KartMotor>();
+            var ai = new List<AiDriver>();
+            var baseScale = new List<float>();
             var rng = new System.Random(seed);
             for (int slot = 0; slot < roster.Length; slot++)
             {
+                if (Solo && slot != playerSlot) continue;
                 // Le joueur pilote l'animal choisi ; les autres se répartissent le reste de la grille.
                 int other = slot < playerSlot ? slot : slot - 1;
                 int specIndex = slot == playerSlot ? pilot : (other < pilot ? other : other + 1);
@@ -88,9 +100,9 @@ namespace TurboPattes.Game.Race
                 float skill = Mathf.Lerp(0.55f, 0.95f, (float)rng.NextDouble());
                 var range = aiSpeed ?? new Vector2(0.93f, 0.99f);
                 kart.SpeedScale = kart.IsPlayer ? 1f : Mathf.Lerp(range.x, range.y, skill);
-                _baseScale[slot] = kart.SpeedScale;
-                _ai[slot] = new AiDriver(kart, seed * 31 + slot, kart.IsPlayer ? 0.8f : skill);
-                Karts[slot] = kart;
+                baseScale.Add(kart.SpeedScale);
+                ai.Add(new AiDriver(kart, seed * 31 + slot, kart.IsPlayer ? 0.8f : skill));
+                karts.Add(kart);
 
                 kart.BarrierHit += k => { if (k.IsPlayer) _sound.Bump(); };
                 kart.Boosted += k => { if (k.IsPlayer) _sound.Boost(); };
@@ -98,6 +110,9 @@ namespace TurboPattes.Game.Race
                 kart.DriftLevelUp += k => { if (k.IsPlayer) _sound.LevelUp(); };
                 kart.Landed += k => { if (k.IsPlayer && k.Vertical.LandingSpeed > 4f) _sound.Bump(); };
             }
+            Karts = karts.ToArray();
+            _ai = ai.ToArray();
+            _baseScale = baseScale.ToArray();
             Items.PickedUp += k => { if (k.IsPlayer) _sound.Pop(); };
             Items.Used += k => { if (k.IsPlayer) _sound.Throw(); };
             Items.KartHit += k => { if (!k.IsPlayer && Vector3.Distance(k.Position, Player.Position) < 25f) _sound.Hit(); };
@@ -163,7 +178,11 @@ namespace TurboPattes.Game.Race
             if (_resultsDelay > 0f)
             {
                 _resultsDelay -= dt;
-                if (_resultsDelay <= 0f) State = Phase.Results;
+                if (_resultsDelay <= 0f)
+                {
+                    State = Phase.Results;
+                    RaceFinished?.Invoke();
+                }
             }
         }
 
@@ -183,7 +202,7 @@ namespace TurboPattes.Game.Race
             {
                 State = Phase.Racing;
                 _sound.Go();
-                Jukebox.Instance.Play(Songs.Race, MusicLevel);
+                Jukebox.Instance.Play(Music, MusicLevel);
                 ShowBanner("PARTEZ !", 1.0f);
                 foreach (var k in Karts) k.ControlsEnabled = true;
                 if (_firstThrottleAt > 0f && _firstThrottleAt <= 1.0f)
@@ -193,7 +212,7 @@ namespace TurboPattes.Game.Race
                 }
                 // Les IA ont aussi leurs chances de super départ.
                 for (int i = 0; i < Karts.Length; i++)
-                    if (!Karts[i].IsPlayer && Random.value < 0.4f) Karts[i].GiveBoost(Random.Range(0.6f, 1.2f));
+                    if (!Karts[i].IsPlayer && UnityEngine.Random.value < 0.4f) Karts[i].GiveBoost(UnityEngine.Random.Range(0.6f, 1.2f));
                 _lapStart = 0f;
             }
         }
@@ -234,6 +253,7 @@ namespace TurboPattes.Game.Race
                 {
                     LapTimes[_playerLap] = RaceTime - _lapStart;
                     _lapStart = RaceTime;
+                    LapCompleted?.Invoke(_playerLap, LapTimes[_playerLap]);
                 }
                 if (lap == Laps - 1 && lap > _playerLap && State == Phase.Racing) ShowBanner("Dernier tour !", 2f);
                 _playerLap = Mathf.Max(_playerLap, lap);
@@ -275,7 +295,10 @@ namespace TurboPattes.Game.Race
             _wrongWayTime = wrong ? _wrongWayTime + dt : 0f;
         }
 
-        void ShowBanner(string text, float seconds)
+        /// <summary>Numéro du pilote dans <see cref="AnimalSpec.Roster"/> (sert aux points de la coupe).</summary>
+        public static int SpecIndex(KartMotor k) => Array.IndexOf(AnimalSpec.Roster, k.Spec);
+
+        public void ShowBanner(string text, float seconds)
         {
             Banner = text;
             BannerTime = seconds;

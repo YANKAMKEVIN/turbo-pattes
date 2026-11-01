@@ -18,7 +18,7 @@ namespace TurboPattes.EditorTools
             for (int i = 0; i < args.Length - 1; i++)
                 if (args[i] == "-tp-out") dir = args[i + 1];
             Directory.CreateDirectory(dir);
-            foreach (var song in new[] { Songs.Menu, Songs.Race })
+            foreach (var song in Songs.All)
             {
                 var data = MusicSynth.Render(song);
                 // Deux tours de boucle, pour entendre la jointure.

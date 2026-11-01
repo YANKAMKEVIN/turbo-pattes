@@ -1,4 +1,5 @@
 using System;
+using TurboPattes.Core;
 using TurboPattes.Game.App;
 using TurboPattes.Game.Audio;
 using TurboPattes.Game.Kart;
@@ -18,7 +19,7 @@ namespace TurboPattes.Game.UI
     {
         enum Screen { Title, Pilot }
         // Lignes navigables de l'écran pilote, au clavier ou à la manette.
-        enum Row { Pilot, Circuit, Laps, Difficulty, Start }
+        enum Row { Pilot, Mode, Circuit, Laps, Difficulty, Start }
 
         public Action Play;
         /// <summary>Le joueur a choisi un autre circuit : l'application reconstruit la piste puis appelle <see cref="SetTrack"/>.</summary>
@@ -30,9 +31,10 @@ namespace TurboPattes.Game.UI
         readonly UiKit _ui = new();
         Screen _screen;
         Row _row = Row.Start;
-        int _pilot, _laps, _circuit;
+        int _pilot, _laps, _circuit, _cup, _shownTrack;
         string[] _circuitNames;
         Difficulty _difficulty;
+        GameMode _mode;
 
         Camera _cam;
         TrackPath _path;
@@ -51,11 +53,15 @@ namespace TurboPattes.Game.UI
             if (_laps < 0) _laps = 1;
             _difficulty = GameSession.Difficulty;
             _circuit = circuit;
+            _shownTrack = circuit;
+            _mode = GameSession.Mode;
+            _cup = GameSession.CupChoice;
             _circuitNames = Array.ConvertAll(Circuit.All(), c => c.ShortName);
 
             BuildStage();
             SetTrack(path);
             ShowPilot(_pilot);
+            if (_mode == GameMode.Cup) ShowTrack(Cups.All[_cup].Circuits[0]);
         }
 
         /// <summary>Recadre le survol et repose le plateau sur la (nouvelle) piste.</summary>
@@ -102,7 +108,7 @@ namespace TurboPattes.Game.UI
             public float S;
             public Rect Safe;
             public Rect PlayButton, Back, Go, Prev, Next;
-            public Rect[] Cards, CircuitButtons, LapButtons, DifficultyButtons;
+            public Rect[] Cards, ModeButtons, CircuitButtons, LapButtons, DifficultyButtons;
         }
 
         Layout ComputeLayout()
@@ -132,20 +138,22 @@ namespace TurboPattes.Game.UI
             // Panneau de réglages à droite.
             float px = safe.xMax - 310 * s, pw = 310 * s;
             // Sélecteur de circuit : flèche précédente, nom (touche = suivant), flèche suivante.
-            float aw = 56 * s;
+            float aw = 56 * s, bh = 52 * s;
             l.CircuitButtons = new[]
             {
-                new Rect(px, safe.y + 130 * s, aw, 56 * s),
-                new Rect(px + aw + 8 * s, safe.y + 130 * s, pw - 2 * (aw + 8 * s), 56 * s),
-                new Rect(px + pw - aw, safe.y + 130 * s, aw, 56 * s),
+                new Rect(px, safe.y + 196 * s, aw, bh),
+                new Rect(px + aw + 8 * s, safe.y + 196 * s, pw - 2 * (aw + 8 * s), bh),
+                new Rect(px + pw - aw, safe.y + 196 * s, aw, bh),
             };
+            l.ModeButtons = new Rect[3];
             l.LapButtons = new Rect[3];
             l.DifficultyButtons = new Rect[3];
             float bw = (pw - 2 * 8 * s) / 3f;
             for (int i = 0; i < 3; i++)
             {
-                l.LapButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 236 * s, bw, 56 * s);
-                l.DifficultyButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 342 * s, bw, 56 * s);
+                l.ModeButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 106 * s, bw, bh);
+                l.LapButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 318 * s, bw, bh);
+                l.DifficultyButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 408 * s, bw, bh);
             }
             l.Go = new Rect(px, safe.yMax - 104 * s, pw, 104 * s);
             return l;
@@ -235,13 +243,20 @@ namespace TurboPattes.Game.UI
                 return;
             }
 
-            if (dy != 0) { _row = (Row)Mathf.Clamp((int)_row + dy, 0, (int)Row.Start); Jukebox.Instance.Move(); }
+            if (dy != 0)
+            {
+                _row = (Row)Mathf.Clamp((int)_row + dy, 0, (int)Row.Start);
+                // Pas de difficulté en contre-la-montre : la ligne est sautée.
+                if (_row == Row.Difficulty && _mode == GameMode.TimeTrial) _row += dy;
+                Jukebox.Instance.Move();
+            }
             if (dx != 0)
             {
                 switch (_row)
                 {
                     case Row.Pilot: case Row.Start: ChangePilot(_pilot + dx); break;
-                    case Row.Circuit: ChangeCircuit(_circuit + dx); break;
+                    case Row.Mode: ChangeMode((GameMode)Mathf.Clamp((int)_mode + dx, 0, 2)); break;
+                    case Row.Circuit: if (_mode == GameMode.Cup) ChangeCup(_cup + dx); else ChangeCircuit(_circuit + dx); break;
                     case Row.Laps: _laps = Mathf.Clamp(_laps + dx, 0, 2); Jukebox.Instance.Move(); break;
                     case Row.Difficulty: _difficulty = (Difficulty)Mathf.Clamp((int)_difficulty + dx, 0, 2); Jukebox.Instance.Move(); break;
                 }
@@ -253,12 +268,18 @@ namespace TurboPattes.Game.UI
             else if (l.Next.Contains(p)) ChangePilot(_pilot + 1);
             for (int i = 0; i < l.Cards.Length; i++)
                 if (l.Cards[i].Contains(p)) { ChangePilot(i); _row = Row.Pilot; }
-            if (l.CircuitButtons[0].Contains(p)) { ChangeCircuit(_circuit - 1); _row = Row.Circuit; }
-            else if (l.CircuitButtons[1].Contains(p) || l.CircuitButtons[2].Contains(p)) { ChangeCircuit(_circuit + 1); _row = Row.Circuit; }
+            int step = l.CircuitButtons[0].Contains(p) ? -1 : l.CircuitButtons[1].Contains(p) || l.CircuitButtons[2].Contains(p) ? 1 : 0;
+            if (step != 0)
+            {
+                if (_mode == GameMode.Cup) ChangeCup(_cup + step);
+                else ChangeCircuit(_circuit + step);
+                _row = Row.Circuit;
+            }
             for (int i = 0; i < 3; i++)
             {
+                if (l.ModeButtons[i].Contains(p)) { ChangeMode((GameMode)i); _row = Row.Mode; }
                 if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; Jukebox.Instance.Move(); }
-                if (l.DifficultyButtons[i].Contains(p)) { _difficulty = (Difficulty)i; _row = Row.Difficulty; Jukebox.Instance.Move(); }
+                if (l.DifficultyButtons[i].Contains(p) && _mode != GameMode.TimeTrial) { _difficulty = (Difficulty)i; _row = Row.Difficulty; Jukebox.Instance.Move(); }
             }
         }
 
@@ -273,6 +294,7 @@ namespace TurboPattes.Game.UI
             _row = Row.Circuit;
         }
         public void TestStart() => StartRace();
+        public void TestMode(GameMode mode) { ChangeMode(mode); _row = Row.Mode; }
 
         void ChangePilot(int index)
         {
@@ -287,6 +309,32 @@ namespace TurboPattes.Game.UI
             if (index == _circuit) return;
             _circuit = index;
             Jukebox.Instance.Move();
+            ShowTrack(index);
+        }
+
+        void ChangeCup(int index)
+        {
+            index = (index % Cups.All.Length + Cups.All.Length) % Cups.All.Length;
+            if (index == _cup) return;
+            _cup = index;
+            Jukebox.Instance.Move();
+            ShowTrack(Cups.All[index].Circuits[0]);
+        }
+
+        void ChangeMode(GameMode mode)
+        {
+            if (mode == _mode) return;
+            _mode = mode;
+            Jukebox.Instance.Move();
+            // En coupe, la piste derrière le menu est la première de la coupe.
+            ShowTrack(mode == GameMode.Cup ? Cups.All[_cup].Circuits[0] : _circuit);
+        }
+
+        /// <summary>Reconstruit la piste derrière le menu si elle change.</summary>
+        void ShowTrack(int index)
+        {
+            if (index == _shownTrack) return;
+            _shownTrack = index;
             CircuitChanged?.Invoke(index);
         }
 
@@ -296,6 +344,9 @@ namespace TurboPattes.Game.UI
             GameSession.Circuit = _circuit;
             GameSession.Laps = GameSession.LapChoices[_laps];
             GameSession.Difficulty = _difficulty;
+            GameSession.Mode = _mode;
+            GameSession.CupChoice = _cup;
+            GameSession.Cup = _mode == GameMode.Cup ? new CupRun { CupIndex = _cup, Player = _pilot } : null;
             Jukebox.Instance.Confirm();
             Play?.Invoke();
             Destroy(gameObject);
@@ -369,25 +420,48 @@ namespace TurboPattes.Game.UI
             }
 
             // Réglages.
-            var panel = new Rect(l.LapButtons[0].x - 16 * s, l.Safe.y + 76 * s, l.Go.width + 32 * s, 340 * s);
+            var panel = new Rect(l.LapButtons[0].x - 16 * s, l.Safe.y + 60 * s, l.Go.width + 32 * s, 416 * s);
             UiKit.Box(panel, new Color(0.08f, 0.1f, 0.2f, 0.6f), 18 * s);
-            _ui.Label(new Rect(l.CircuitButtons[0].x, l.CircuitButtons[0].y - 42 * s, 300 * s, 36 * s), "Circuit", _ui.Medium, Color.white);
+            Caption(l.ModeButtons[0], "Mode");
+            bool cup = _mode == GameMode.Cup, chrono = _mode == GameMode.TimeTrial;
+            Caption(l.CircuitButtons[0], cup ? "Coupe" : "Circuit");
             bool circuitRow = _row == Row.Circuit;
             Segment(l.CircuitButtons[0], "<", false, circuitRow);
-            Segment(l.CircuitButtons[1], $"{_circuitNames[_circuit]}  {_circuit + 1}/{_circuitNames.Length}", true, circuitRow);
+            Segment(l.CircuitButtons[1], cup ? $"{Cups.All[_cup].Name.Replace("Coupe ", "")}  {_cup + 1}/{Cups.All.Length}"
+                : $"{_circuitNames[_circuit]}  {_circuit + 1}/{_circuitNames.Length}", true, circuitRow);
             Segment(l.CircuitButtons[2], ">", false, circuitRow);
-            _ui.Label(new Rect(l.LapButtons[0].x, l.LapButtons[0].y - 42 * s, 300 * s, 36 * s), "Tours", _ui.Medium, Color.white);
-            _ui.Label(new Rect(l.DifficultyButtons[0].x, l.DifficultyButtons[0].y - 42 * s, 300 * s, 36 * s), "Difficulté", _ui.Medium, Color.white);
+            // Sous le sélecteur : record en contre-la-montre, circuits de la coupe.
+            string info = cup ? string.Join(", ", Array.ConvertAll(Cups.All[_cup].Circuits, c => _circuitNames[c]))
+                : chrono ? RecordText() : null;
+            if (info != null)
+                _ui.Label(new Rect(l.CircuitButtons[0].x, l.CircuitButtons[0].yMax + 2 * s, l.Go.width, 26 * s), info, _ui.Small,
+                    new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+            Caption(l.LapButtons[0], "Tours");
+            Caption(l.DifficultyButtons[0], "Difficulté", chrono ? 0.35f : 1f);
             for (int i = 0; i < 3; i++)
             {
+                Segment(l.ModeButtons[i], GameSession.ModeNames[i], i == (int)_mode, _row == Row.Mode && i == (int)_mode);
                 Segment(l.LapButtons[i], GameSession.LapChoices[i].ToString(), i == _laps, _row == Row.Laps && i == _laps);
-                Segment(l.DifficultyButtons[i], GameSession.DifficultyNames[i], i == (int)_difficulty, _row == Row.Difficulty && i == (int)_difficulty);
+                if (chrono) _ui.Button(l.DifficultyButtons[i], GameSession.DifficultyNames[i], new Color(0.25f, 0.3f, 0.45f, 0.3f), false, _ui.Small);
+                else Segment(l.DifficultyButtons[i], GameSession.DifficultyNames[i], i == (int)_difficulty, _row == Row.Difficulty && i == (int)_difficulty);
             }
 
             float pulse = Mathf.Sin(Time.time * 4f) * 0.04f;
             var go = l.Go;
             _ui.Button(new Rect(go.x - go.width * pulse * 0.5f, go.y - go.height * pulse * 0.5f, go.width * (1f + pulse), go.height * (1f + pulse)),
                 "C'est parti !", new Color(1f, 0.5f, 0.15f), _row == Row.Start, _ui.Medium);
+        }
+
+        void Caption(Rect under, string text, float alpha = 1f) =>
+            _ui.Label(new Rect(under.x, under.y - 36 * _ui.Scale, 300 * _ui.Scale, 34 * _ui.Scale), text, _ui.Medium, new Color(1f, 1f, 1f, alpha));
+
+        string RecordText()
+        {
+            int laps = GameSession.LapChoices[_laps];
+            float best = GameSession.BestTime(_circuit, laps), lap = GameSession.BestLap(_circuit);
+            if (best <= 0f && lap <= 0f) return "Pas encore de record";
+            string Fmt(float t) => t <= 0f ? "--" : $"{(int)(t / 60f)}:{t % 60f:00.00}";
+            return $"Record {Fmt(best)}   Tour {Fmt(lap)}";
         }
 
         void Segment(Rect r, string text, bool selected, bool focused)

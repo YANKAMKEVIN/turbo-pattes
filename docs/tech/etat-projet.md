@@ -4,7 +4,7 @@ Jeu de karting arcade original (nom de travail « Turbo Pattes ») : pilotes ani
 objets ramassés sur la piste, 8 pilotes, 3 tours. Codes du genre, mais personnages, circuits, objets et interface
 propres au jeu (pas de reprise de Mario Kart ni d'aucun autre jeu existant).
 
-Dernière mise à jour : 2026-10-31.
+Dernière mise à jour : 2026-11-01.
 
 Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). Pousser après chaque tâche.
 
@@ -36,9 +36,11 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 - **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier. Tirage selon la place (`ItemRoll`).
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
 - **Commandes** : clavier (flèches/WASD/ZQSD, Espace = drift, E = objet, R = rejouer), manette (stick, RT/A, LT/B, RB = drift, X/Y = objet, Start), tactile (glisser à gauche pour tourner, boutons DRIFT / OBJET / FREIN, accélération auto).
-- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), circuit (sélecteur < nom n/10 >, la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
+- **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), mode Course / Chrono / Coupe, circuit (sélecteur < nom n/10 >, la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
 - **Icônes dessinées par code** (`Visuals/IconCanvas` + `Visuals/Icons`, aucun fichier image) : 4 objets (carotte, noix de coco, pot de miel, bulle) et 8 portraits de pilotes, sur les cartes du menu, le classement, les résultats et l'emplacement d'objet. Planche de contrôle : `docs/icones.png`.
-- **Musique composée et jouée par code** : partitions originales notées dans `Core/Tune.cs` (morceau de menu à 100 BPM et de course à 150 BPM, 16 mesures chacun, testées), synthétiseur `Audio/MusicSynth` (mélodie avec écho, basse, arpège, nappe, batterie), calculé en arrière-plan au lancement. `Audio/Jukebox` survit aux rechargements de scène : musique du menu, silence pendant le compte à rebours, musique de course au « PARTEZ ! », plus basse en pause et à l'arrivée. Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
+- **Musique composée et jouée par code, une par circuit** : 11 partitions originales notées dans `Core/Tune.cs` (menu + 10 circuits, 16 mesures chacune, 120 à 156 BPM), chacune avec sa tonalité, son accompagnement (`SongStyle` : galop western pour le Canyon, marimba et congas pour la Jungle, calypso au tambour d'acier pour le Lagon, échos et bulles pour le Récif, flûte et clochettes pour les Nuages, synthé en doubles croches pour l'Espace, grelots pour la Banquise, guitare saturée et double grosse caisse pour le Volcan, disco pour la Ville Néon) et son timbre de mélodie (`LeadVoice`). Tests : mesures complètes, notes et accords dans la tonalité, tessiture, fin de boucle sur la tonique ou la quinte, un style différent par circuit. Synthétiseur `Audio/MusicSynth` (50 à 170 ms par morceau sur Mac). `Audio/Jukebox` survit aux rechargements de scène : musique du menu, silence pendant le compte à rebours (le morceau du circuit est calculé à ce moment-là), musique du circuit au « PARTEZ ! », plus basse en pause et à l'arrivée ; un seul morceau de circuit gardé en mémoire.
+- **Contre-la-montre** (mode « Chrono ») : le joueur seul, sans bulles d'objets ; tour en cours, meilleur tour et record affichés ; records par circuit (temps total par nombre de tours, meilleur tour) dans PlayerPrefs (`GameSession.BestTime/BestLap`). **Fantôme** du meilleur tour (`Core/GhostLap` : une pose tous les 0,1 s, interpolée ; `Race/GhostRunner`) : kart translucide qui rejoue ce tour en même temps que le tour en cours, sauvegardé dans `fantome-N.txt` (stockage de l'appli) quand le record tombe, « Record du tour ! » en course. Résultats : temps des tours (meilleur surligné), total, ancien record.
+- **Coupes** (mode « Coupe ») : Coupe Pâquerette (Prairie, Canyon, Jungle, Lagon), Coupe Coquillage (Récif, Banquise, Nuages, Espace), Coupe Braise (Volcan, Ville Néon, Canyon, Espace). Points selon la place 10-8-6-5-4-3-2-1, classement cumulé (`Core/Cup` : égalité départagée par le nombre de victoires, de 2es places…, puis la dernière course). Après chaque course : place, points gagnés et classement cumulé, « Course suivante » ; après la 4e : **podium** sur la piste (trois marches, karts, vainqueur qui sautille, confettis, classement complet). Coupe en cours dans `GameSession.Cup` (perdue en revenant au menu). Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
 - **Interface de course** IMGUI : tour, chrono, place, objet avec roulette, classement, vitesse, compte à rebours, « Mauvais sens ! ».
 - **Sons** synthétisés par code (moteur, bips, turbo, chocs, objets).
 
@@ -79,7 +81,10 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 # Les 10 circuits d'affilée (1 tour chacun) : résumé OK/ECHEC, fluidité, sauts ; échoue si course non finie, anomalie ou < 30 i/s
 ~/dev/turbo-pattes/tools/autotest-tous.sh /tmp/tp-tous 1
 # Diagnostic de fluidité sur téléphone : -tp-diag affiche les temps CPU/GPU ; -tp-quality N impose un niveau (0 à 4)
-# Musiques en WAV (deux tours de boucle) pour les écouter :
+# Modes : contre-la-montre (3 tours, records effacés, fantôme vu au tour 2-3) puis une coupe entière jusqu'au podium
+~/dev/turbo-pattes/tools/autotest-modes.sh /tmp/tp-modes 2 1   # [dossier] [circuit du chrono] [coupe]
+# Options d'autotest : -tp-mode chrono|coupe|course, -tp-cup N, -tp-fresh (efface records et fantôme du circuit)
+# Musiques en WAV (deux tours de boucle) pour les écouter (menu + 10 circuits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.MusicExport.Export -tp-out Builds/Musique -logFile -
 # Planche PNG de toutes les icônes (objets + portraits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
@@ -142,14 +147,14 @@ dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms
 3. ~~Fusion du décor~~ (fait).
 4. Test de ressenti par Kevin (S24 + manette) : vitesse, drift, côtes, saut, IA.
 5. Écran de réglages : volume musique/effets, sensibilité tactile, qualité graphique.
-6. ~~Dix circuits~~ (fait) ; à venir : virages relevés, boucles, passages anti-gravité, décors animés (lave, vagues, nuages), coupes de 4 circuits.
-7. Une musique par circuit.
+6. ~~Dix circuits~~ (fait) ; à venir : virages relevés, boucles, passages anti-gravité, décors animés (lave, vagues, nuages).
+7. ~~Une musique par circuit~~ (fait) ; à faire : que Kevin les écoute (export WAV) et dise lesquelles retoucher.
 8. Nouveaux objets propres au jeu (plume planante, pelote rebondissante…).
 9. Raccourcis risqués (sable lent mais court, second tremplin).
 10. Effets de relief : poussière à la réception, secousse de caméra, figure en l'air = turbo.
-11. Contre-la-montre avec meilleur temps et fantôme.
-12. Coupes : plusieurs circuits enchaînés, points, podium.
-13. Podium final festif (pilotes, confettis).
+11. ~~Contre-la-montre avec meilleur temps et fantôme~~ (fait) ; idées : fantôme d'un autre pilote, écart en direct avec le fantôme.
+12. ~~Coupes : 4 circuits enchaînés, points, podium~~ (fait) ; idées : coupes débloquées une à une, trophées mémorisés, grille de départ selon le classement.
+13. ~~Podium final (pilotes, confettis)~~ (fait, simple) ; à enrichir : animations de victoire, musique de podium.
 14. Personnalité des pilotes (vitesse, poids, adhérence) et animations de victoire/défaite.
 15. Modèles de pilotes plus fins, toujours générés par code.
 16. Tutoriel au premier lancement.

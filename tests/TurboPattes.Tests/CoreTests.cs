@@ -201,13 +201,80 @@ namespace TurboPattes.Tests
         [Test]
         public void Morceaux_UneMesureDeMelodieParAccord()
         {
-            foreach (var song in new[] { Songs.Menu, Songs.Race })
+            foreach (var song in Songs.All)
             {
                 var notes = Tune.ParseMelody(song.Melody);
                 Assert.That(notes.Count, Is.GreaterThan(20), song.Name);
+                Assert.That(song.Bars, Is.EqualTo(16), song.Name);
                 Assert.That(song.Melody.Split('|').Length, Is.EqualTo(song.Bars), song.Name);
                 foreach (var n in notes) Assert.That(n.Start + n.Length, Is.LessThanOrEqualTo(song.Steps), song.Name);
                 foreach (var c in song.Chords) Assert.That(Tune.ChordNotes(c).Length, Is.EqualTo(3), song.Name + " " + c);
+            }
+        }
+
+        [TestCase(67, "G", true)]
+        [TestCase(66, "G", true)]   // fa dièse
+        [TestCase(65, "G", false)]  // fa naturel
+        [TestCase(63, "Cm", true)]  // mi bémol
+        [TestCase(64, "Cm", false)]
+        [TestCase(68, "F#m", true)] // sol dièse
+        [TestCase(70, "Bb", true)]
+        public void InKey_ReconnaitLaGamme(int midi, string key, bool expected) =>
+            Assert.That(Tune.InKey(midi, key), Is.EqualTo(expected));
+
+        [Test]
+        public void Morceaux_RestentDansLeurTonalite()
+        {
+            foreach (var song in Songs.All)
+            {
+                foreach (var n in Tune.ParseMelody(song.Melody))
+                    Assert.That(Tune.InKey(n.Midi, song.Key), song.Name + " : note hors gamme " + n.Midi + " au pas " + n.Start);
+                foreach (var c in song.Chords)
+                foreach (int m in Tune.ChordNotes(c))
+                    Assert.That(Tune.InKey(m, song.Key), song.Name + " : accord hors gamme " + c);
+            }
+        }
+
+        [Test]
+        public void Morceaux_TessitureChantable()
+        {
+            foreach (var song in Songs.All)
+            foreach (var n in Tune.ParseMelody(song.Melody))
+                Assert.That(n.Midi, Is.InRange(Tune.ParseNote("G4"), Tune.ParseNote("G6")), song.Name);
+        }
+
+        [Test]
+        public void Circuits_UnMorceauDifferentChacun()
+        {
+            Assert.That(Songs.Circuits.Length, Is.EqualTo(10));
+            var names = new System.Collections.Generic.HashSet<string>();
+            var melodies = new System.Collections.Generic.HashSet<string>();
+            var styles = new System.Collections.Generic.HashSet<SongStyle>();
+            foreach (var song in Songs.Circuits)
+            {
+                Assert.That(names.Add(song.Name), "nom en double : " + song.Name);
+                Assert.That(melodies.Add(song.Melody), "mélodie en double : " + song.Name);
+                styles.Add(song.Style);
+                Assert.That(song.Bpm, Is.InRange(115f, 170f), song.Name);
+                Assert.That(song.Style, Is.Not.EqualTo(SongStyle.Calm), song.Name + " : accompagnement de menu");
+            }
+            Assert.That(styles.Count, Is.EqualTo(10), "un accompagnement propre à chaque circuit");
+            Assert.That(Songs.ForCircuit(0), Is.SameAs(Songs.Race));
+            Assert.That(Songs.ForCircuit(9), Is.SameAs(Songs.City));
+            Assert.That(Songs.ForCircuit(42), Is.SameAs(Songs.Race));
+        }
+
+        [Test]
+        public void Morceaux_FinissentSurLaToniqueOuSaQuinte()
+        {
+            // La boucle retombe sur ses pieds : dernier accord = tonique, ou dominante qui relance la tonique.
+            foreach (var song in Songs.All)
+            {
+                string tonic = song.Key;
+                string last = song.Chords[song.Bars - 1];
+                int lastRoot = Tune.ChordNotes(last)[0] % 12, tonicRoot = Tune.ChordNotes(tonic)[0] % 12;
+                int interval = ((lastRoot - tonicRoot) % 12 + 12) % 12;
+                Assert.That(interval == 0 || interval == 7, song.Name + " finit sur " + last);
             }
         }
     }
