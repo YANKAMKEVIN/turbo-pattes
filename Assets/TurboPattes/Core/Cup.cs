@@ -25,6 +25,23 @@ namespace TurboPattes.Core
         };
 
         public static int PointsFor(int place) => place >= 0 && place < Points.Length ? Points[place] : 0;
+
+        /// <summary>Trophée selon la place finale : 3 = or (1er), 2 = argent, 1 = bronze, 0 = rien.</summary>
+        public static int TrophyFor(int finalPlace) => finalPlace >= 0 && finalPlace < 3 ? 3 - finalPlace : 0;
+
+        /// <summary>Une coupe s'ouvre quand on est monté sur le podium de la précédente ; la première est toujours ouverte.</summary>
+        public static bool IsUnlocked(int cup, Func<int, int> trophyOf) => cup <= 0 || trophyOf(cup - 1) > 0;
+
+        /// <summary>
+        /// Grille de départ d'une course de coupe : ordre inverse du classement cumulé (le dernier part en tête,
+        /// le leader en fond de grille). <paramref name="ranking"/> : pilotes du premier au dernier.
+        /// </summary>
+        public static int[] Grid(int[] ranking)
+        {
+            var grid = new int[ranking.Length];
+            for (int i = 0; i < ranking.Length; i++) grid[i] = ranking[ranking.Length - 1 - i];
+            return grid;
+        }
     }
 
     /// <summary>

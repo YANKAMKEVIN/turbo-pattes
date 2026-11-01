@@ -204,12 +204,30 @@ namespace TurboPattes.Tests
             foreach (var song in Songs.All)
             {
                 var notes = Tune.ParseMelody(song.Melody);
-                Assert.That(notes.Count, Is.GreaterThan(20), song.Name);
-                Assert.That(song.Bars, Is.EqualTo(16), song.Name);
+                bool long16 = System.Array.IndexOf(Songs.Circuits, song) >= 0 || song == Songs.Menu;
+                if (long16)
+                {
+                    Assert.That(notes.Count, Is.GreaterThan(20), song.Name);
+                    Assert.That(song.Bars, Is.EqualTo(16), song.Name);
+                }
+                else
+                {
+                    Assert.That(notes.Count, Is.GreaterThanOrEqualTo(4), song.Name);
+                    Assert.That(song.Bars, Is.GreaterThanOrEqualTo(2), song.Name);
+                }
                 Assert.That(song.Melody.Split('|').Length, Is.EqualTo(song.Bars), song.Name);
                 foreach (var n in notes) Assert.That(n.Start + n.Length, Is.LessThanOrEqualTo(song.Steps), song.Name);
                 foreach (var c in song.Chords) Assert.That(Tune.ChordNotes(c).Length, Is.EqualTo(3), song.Name + " " + c);
             }
+        }
+
+        [Test]
+        public void PodiumEtArrivee_Courts()
+        {
+            Assert.That(Songs.Podium.Bars, Is.EqualTo(8));
+            Assert.That(Songs.Finish.Bars, Is.EqualTo(2));
+            Assert.That(Songs.Circuits, Does.Not.Contain(Songs.Podium));
+            Assert.That(Songs.Circuits, Does.Not.Contain(Songs.Finish));
         }
 
         [TestCase(67, "G", true)]

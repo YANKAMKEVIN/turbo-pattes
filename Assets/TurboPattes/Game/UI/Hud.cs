@@ -25,8 +25,8 @@ namespace TurboPattes.Game.UI
         GUIStyle _big, _medium, _small, _center;
         float _scale;
         int _focus;
-        static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier" };
-        static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Menu" };
+        static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier", "Plume planante", "Pelote de laine" };
+        static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Réglages", "Menu" };
         static readonly string[] ResultChoices = { "Rejouer", "Menu" };
         static readonly string[] CupChoices = { "Course suivante", "Menu" };
         static readonly string[] CupLastChoices = { "Podium", "Menu" };
@@ -77,7 +77,7 @@ namespace TurboPattes.Game.UI
         Rect[] PauseRects() => MenuButtons(PauseChoices.Length, Screen.height * 0.36f, false);
 
         // Lignes du tableau de résultats : karts, ou tours en contre-la-montre.
-        int ResultRows => Race.Solo ? Race.Laps + 2 : Race.Karts.Length;
+        int ResultRows => Race.Solo ? Race.Laps + 4 : Race.Karts.Length;
 
         Rect[] ResultRects()
         {
@@ -87,7 +87,7 @@ namespace TurboPattes.Game.UI
 
         void Update()
         {
-            if (Race == null || Race.Player == null) return;
+            if (Race == null || Race.Player == null || SettingsScreen.IsOpen) return;
             var tap = UiKit.Tap();
             if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
             else if (Race.State == RaceManager.Phase.Results) Navigate(ResultRects(), tap, ChooseResult, vertical: false);
@@ -129,7 +129,8 @@ namespace TurboPattes.Game.UI
         void ChoosePause(int i)
         {
             if (i == 0) Race.SetPaused(false);
-            else Leave(toMenu: i == 2);
+            else if (i == 2) SettingsScreen.Open();
+            else Leave(toMenu: i == 3);
         }
 
         void ChooseResult(int i)
@@ -163,7 +164,7 @@ namespace TurboPattes.Game.UI
             }
             if (Race.Paused)
             {
-                DrawPause(w, h, s);
+                if (!SettingsScreen.IsOpen) DrawPause(w, h, s);
                 return;
             }
 
@@ -241,7 +242,7 @@ namespace TurboPattes.Game.UI
             if (p.ItemRoll > 0f)
             {
                 // Roulette : fait défiler les objets.
-                kind = (ItemKind)(1 + (int)(Time.time * 14f) % 4);
+                kind = (ItemKind)(1 + (int)(Time.time * 14f) % ItemRoll.KindCount);
             }
             float ir = r * 0.9f;
             GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(kind), ScaleMode.ScaleToFit);
@@ -316,6 +317,14 @@ namespace TurboPattes.Game.UI
             Label(new Rect(right - 360 * s, top + 98 * s, 360 * s, 40 * s), bestTime > 0f ? FormatTime(bestTime) : "--:--.--", _medium, Color.white, TextAnchor.UpperRight);
             if (Ghost != null && Ghost.GhostVisible)
                 Label(new Rect(right - 360 * s, top + 142 * s, 360 * s, 30 * s), "Fantôme du meilleur tour", _small, new Color(0.75f, 0.9f, 1f), TextAnchor.UpperRight);
+            // Écart avec le meilleur tour aux temps intermédiaires et à la ligne : vert en avance, rouge en retard.
+            if (Ghost != null && Ghost.DeltaAge < 2.5f)
+            {
+                float d = Ghost.Delta;
+                var col = d <= 0f ? new Color(0.45f, 1f, 0.45f) : new Color(1f, 0.4f, 0.35f);
+                Label(new Rect(left, top + 100 * s, 400 * s, 50 * s), $"{(d <= 0f ? "-" : "+")}{Mathf.Abs(d):0.00}", _medium,
+                    new Color(col.r, col.g, col.b, Mathf.Clamp01((2.5f - Ghost.DeltaAge) * 2f)));
+            }
         }
 
         void DrawResults(float w, float h, float s)
@@ -393,7 +402,29 @@ namespace TurboPattes.Game.UI
             float before = Ghost != null ? Ghost.BestTimeBefore : 0f;
             string recordText = before <= 0f ? "Premier temps sur ce circuit" : record ? $"Ancien record {FormatTime(before)}" : $"Record {FormatTime(before)}";
             Label(new Rect(x + 20 * s, ty + row, panelW - 40 * s, row), recordText, _small, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
+            if (Ghost != null) DrawMedals(x, ty + row * 1.8f, panelW, s);
             DrawResultButtons();
+        }
+
+        static readonly Color[] MedalColors = { Color.clear, new(0.85f, 0.5f, 0.25f), new(0.8f, 0.85f, 0.92f), new(1f, 0.8f, 0.2f) };
+
+        /// <summary>Médailles du circuit : temps à battre, celle obtenue en couleur pleine.</summary>
+        void DrawMedals(float x, float y, float w, float s)
+        {
+            var got = Ghost.Medal;
+            float cw = w / 3f;
+            for (int m = 3; m >= 1; m--)
+            {
+                var medal = (Medal)m;
+                float cx = x + (3 - m) * cw + cw * 0.5f;
+                bool earned = got >= medal;
+                var col = MedalColors[m];
+                Disc(new Vector2(cx - 50 * s, y + 18 * s), 13 * s, earned ? col : new Color(col.r, col.g, col.b, 0.25f));
+                Label(new Rect(cx - 32 * s, y + 4 * s, cw, 30 * s), $"{Medals.Name(medal)} {Medals.Target(Ghost.Circuit, medal):0.0}",
+                    _small, earned ? Color.white : new Color(1f, 1f, 1f, 0.5f), TextAnchor.MiddleLeft);
+            }
+            if (got > Ghost.MedalBefore)
+                Label(new Rect(x, y + 34 * s, w, 30 * s), $"Médaille {Medals.Name(got).ToLowerInvariant()} gagnée !", _small, MedalColors[(int)got], TextAnchor.MiddleCenter);
         }
 
         /// <summary>Coupe : place à cette course, points gagnés et classement cumulé.</summary>

@@ -30,11 +30,19 @@ namespace TurboPattes.Game.UI
         Transform[] _confetti;
         Vector3[] _confettiSpin;
         float _time;
+        int _trophy;
+        bool _newTrophy, _unlocked;
+        static readonly string[] TrophyNames = { "", "Trophée de bronze", "Trophée d'argent", "Trophée d'or" };
 
         public void Setup(CupRun cup, TrackPath path, Camera cam)
         {
             _cup = cup;
             _ranking = cup.Standings.Ranking();
+            _trophy = Cups.TrophyFor(System.Array.IndexOf(_ranking, cup.Player));
+            int before = GameSession.CupTrophy(cup.CupIndex);
+            _newTrophy = GameSession.AwardTrophy(cup.CupIndex, _trophy);
+            // Premier podium dans cette coupe : la suivante vient de s'ouvrir.
+            _unlocked = before == 0 && _trophy > 0 && cup.CupIndex + 1 < Cups.All.Length;
             _cam = cam;
             var chase = cam.GetComponent<Race.ChaseCamera>();
             if (chase != null) chase.enabled = false;
@@ -70,7 +78,7 @@ namespace TurboPattes.Game.UI
             _cam.transform.position = _stage.TransformPoint(new Vector3(0f, 4.2f, 13.5f));
             _cam.transform.rotation = Quaternion.LookRotation(_stage.TransformPoint(new Vector3(0f, 1.6f, 0f)) - _cam.transform.position);
             _cam.fieldOfView = 45f;
-            Jukebox.Instance.Play(Songs.Menu, 0.5f);
+            Jukebox.Instance.Play(Songs.Podium, 0.55f);
         }
 
         void BuildConfetti()
@@ -142,6 +150,11 @@ namespace TurboPattes.Game.UI
             int playerPlace = System.Array.IndexOf(_ranking, _cup.Player);
             string verdict = playerPlace == 0 ? "Tu remportes la coupe !" : playerPlace < 3 ? $"Tu montes sur le podium ({Hud.Ordinal(playerPlace + 1)}) !" : $"Tu finis {Hud.Ordinal(playerPlace + 1)} de la coupe";
             _ui.Label(new Rect(0, top + 66 * s, w, 40 * s), verdict, _ui.Medium, Color.white, TextAnchor.MiddleCenter);
+            if (_trophy > 0)
+                _ui.Label(new Rect(0, top + 104 * s, w, 32 * s), TrophyNames[_trophy] + (_newTrophy ? " gagné !" : ""), _ui.Small, gold, TextAnchor.MiddleCenter);
+            if (_unlocked)
+                _ui.Label(new Rect(0, top + 134 * s, w, 32 * s), $"Nouvelle coupe ouverte : {Cups.All[_cup.CupIndex + 1].Name}", _ui.Small,
+                    new Color(0.6f, 1f, 0.6f), TextAnchor.MiddleCenter);
 
             // Nom et points au-dessus de chaque marche.
             for (int i = 0; i < 3; i++)

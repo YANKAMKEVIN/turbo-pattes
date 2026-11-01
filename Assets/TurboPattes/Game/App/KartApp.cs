@@ -33,7 +33,9 @@ namespace TurboPattes.Game.App
         GameMode _mode;
         GameMode? _modeArg;
         int _cupArg;
-        bool _fresh;
+        bool _fresh, _tutorialArg;
+        int _difficultyArg = -1;
+        Tutorial _tutorial;
         string _shotDir;
         GhostRunner _ghost;
         Transform _world, _trackRoot;
@@ -59,12 +61,14 @@ namespace TurboPattes.Game.App
                 if (args[i] == "-tp-autotest") _autotestDir = args[i + 1];
                 if (args[i] == "-tp-menutest") _menuTestDir = args[i + 1];
                 if (args[i] == "-tp-laps" && int.TryParse(args[i + 1], out int l)) _lapsOverride = Mathf.Clamp(l, 1, 9);
-                if (args[i] == "-tp-quality" && int.TryParse(args[i + 1], out int q)) QualityTuner.Level = Mathf.Clamp(q, 0, QualityTuner.MaxLevel);
+                if (args[i] == "-tp-quality" && int.TryParse(args[i + 1], out int q)) { QualityTuner.Level = Mathf.Clamp(q, 0, QualityTuner.MaxLevel); QualityTuner.Forced = true; }
                 if (args[i] == "-tp-circuit" && int.TryParse(args[i + 1], out int c)) _circuitOverride = Mathf.Clamp(c - 1, 0, GameSession.CircuitCount - 1);
                 if (args[i] == "-tp-mode") _modeArg = args[i + 1] == "chrono" ? GameMode.TimeTrial : args[i + 1] == "coupe" ? GameMode.Cup : GameMode.Race;
                 if (args[i] == "-tp-cup" && int.TryParse(args[i + 1], out int cup)) _cupArg = Mathf.Clamp(cup - 1, 0, Cups.All.Length - 1);
+                if (args[i] == "-tp-difficulty" && int.TryParse(args[i + 1], out int d)) _difficultyArg = Mathf.Clamp(d - 1, 0, 2);
             }
             _fresh = Array.IndexOf(args, "-tp-fresh") >= 0;
+            _tutorialArg = Array.IndexOf(args, "-tp-tutorial") >= 0;
 
             _diag = Array.IndexOf(args, "-tp-diag") >= 0;
             // Sur Android, un dossier relatif va dans le stockage de l'application.
@@ -115,6 +119,13 @@ namespace TurboPattes.Game.App
             yield return new WaitForSeconds(2.5f);
             ScreenCapture.CaptureScreenshot(Shot("1_titre"));
             yield return new WaitForSeconds(0.5f);
+            // Réglages ouverts depuis le titre, puis refermés.
+            var settings = SettingsScreen.Open();
+            yield return new WaitForSeconds(0.5f);
+            ScreenCapture.CaptureScreenshot(Shot("1b_reglages"));
+            yield return new WaitForSeconds(0.3f);
+            Destroy(settings.gameObject);
+            yield return null;
             menu.TestGoToPilots();
             yield return new WaitForSeconds(2.5f);
             ScreenCapture.CaptureScreenshot(Shot("2_pilote"));
@@ -168,7 +179,7 @@ namespace TurboPattes.Game.App
             bool solo = _mode == GameMode.TimeTrial;
             int laps = _lapsOverride > 0 ? _lapsOverride : auto ? 3 : GameSession.Laps;
             int pilot = auto ? 0 : cup?.Player ?? GameSession.Pilot;
-            var difficulty = auto ? Difficulty.Normal : GameSession.Difficulty;
+            var difficulty = auto ? (_difficultyArg >= 0 ? (Difficulty)_difficultyArg : Difficulty.Normal) : GameSession.Difficulty;
             int seed = auto ? 1234 + (cup?.Race ?? 0) : Environment.TickCount;
             if (solo && auto && _fresh) GameSession.ClearRecords(_circuitIndex);
 
@@ -178,7 +189,9 @@ namespace TurboPattes.Game.App
             // Une musique par circuit, calculée pendant le compte à rebours.
             _race.Music = Songs.ForCircuit(_circuitIndex);
             Jukebox.Instance.Prepare(_race.Music);
-            _race.Setup(_circuit, _path, _pads, _chase, _sound, PlayerSlot, laps, seed, pilot, GameSession.AiSpeedRange(difficulty));
+            // En coupe, à partir de la 2e course, le dernier du classement part en tête et le leader en fond de grille.
+            int[] grid = cup != null && cup.Race > 0 ? Cups.Grid(cup.Standings.Ranking()) : null;
+            _race.Setup(_circuit, _path, _pads, _chase, _sound, PlayerSlot, laps, seed, pilot, GameSession.AiSpeedRange(difficulty), grid);
             if (solo)
             {
                 _ghost = new GameObject("Ghost").AddComponent<GhostRunner>();
@@ -190,6 +203,12 @@ namespace TurboPattes.Game.App
             hud.Race = _race;
             hud.Ghost = _ghost;
             hud.Cup = cup;
+            // Tutoriel : à la toute première course (pas en contre-la-montre), ou forcé par -tp-tutorial.
+            if (_tutorialArg || !auto && !solo && !GameSession.TutorialDone)
+            {
+                _tutorial = new GameObject("Tutorial").AddComponent<Tutorial>();
+                _tutorial.Race = _race;
+            }
             if (auto) StartCoroutine(Autotest());
             if (_diag) StartCoroutine(Diagnostics());
         }
@@ -412,7 +431,8 @@ namespace TurboPattes.Game.App
             Directory.CreateDirectory(_shotDir);
             var log = new StreamWriter(Path.Combine(_shotDir, "autotest.log")) { AutoFlush = true };
             log.WriteLine($"Turbo Pattes autotest {DateTime.Now:s} {Screen.width}x{Screen.height} circuit={_circuit.Name} " +
-                          $"longueur={_path.Length:0}m relief={_path.HasRelief} mode={_mode} musique={_race.Music.Name} karts={_race.Karts.Length}" +
+                          $"longueur={_path.Length:0}m relief={_path.HasRelief} mode={_mode} musique={_race.Music.Name} karts={_race.Karts.Length} " +
+                          $"difficulte={(_difficultyArg >= 0 ? GameSession.DifficultyNames[_difficultyArg] : "Normal")}" +
                           (cup != null ? $" coupe={cup.Def.Name} course={cup.Race + 1}" : "") +
                           (_ghost != null ? $" fantome={_ghost.GhostSamples} meilleurTour={_ghost.BestLapBefore:0.00}" : ""));
             bool shotGhost = false;
@@ -497,12 +517,17 @@ namespace TurboPattes.Game.App
                 log.WriteLine($"  {r + 1}. {k.Spec.Name}{(k.IsPlayer ? " (joueur)" : "")} {(k.Finished ? k.FinishTime.ToString("0.0") + "s" : "en course, tour " + k.Laps.Lap)}");
             }
             log.WriteLine("Tours joueur : " + string.Join(", ", Array.ConvertAll(_race.LapTimes, x => x.ToString("0.0"))));
+            var used = _race.Items.UseCounts;
+            log.WriteLine($"Objets utilises : carotte {used[1]} coco {used[2]} miel {used[3]} bouclier {used[4]} plume {used[5]} pelote {used[6]} ; " +
+                          $"figures {string.Join(", ", Array.ConvertAll(_race.Karts, k => $"{k.Spec.Name} {k.Tricks}"))}" +
+                          (_tutorial != null ? $" ; tutoriel {_tutorial.Shown} conseils" : ""));
             log.WriteLine($"Relief : hauteur max joueur {maxY:0.0} m ; sauts " +
                           string.Join(", ", Array.ConvertAll(_race.Karts, k => $"{k.Spec.Name} {k.Jumps} (plus long {k.LongestJump:0.00}s)")));
             if (_ghost != null)
                 log.WriteLine($"Chrono : record tour {GameSession.BestLap(_circuitIndex):0.00}s (avant {_ghost.BestLapBefore:0.00}) nouveauTour={_ghost.NewLapRecord} " +
                               $"record total {GameSession.BestTime(_circuitIndex, _race.Laps):0.00}s nouveauTotal={_ghost.NewTimeRecord} " +
-                              $"fantome images={ghostFrames} ecartMoyen={(ghostFrames > 0 ? ghostDistSum / ghostFrames : 0f):0.0}m points={GameSession.LoadGhost(_circuitIndex)?.Count ?? 0}");
+                              $"fantome images={ghostFrames} ecartMoyen={(ghostFrames > 0 ? ghostDistSum / ghostFrames : 0f):0.0}m points={GameSession.LoadGhost(_circuitIndex)?.Count ?? 0} " +
+                              $"ecartsAffiches={_ghost.DeltasShown} medaille={_ghost.Medal} intermediaires={GameSession.LoadGhost(_circuitIndex)?.Splits.Length ?? 0}");
             if (cup != null)
             {
                 var st = cup.Standings;

@@ -16,6 +16,7 @@ namespace TurboPattes.Game.Race
         RaceManager _race;
         int _circuit;
         GhostLap _best, _recording;
+        readonly LapSplits _splits = new();
         Transform _ghost;
         bool _finishHandled;
 
@@ -28,6 +29,15 @@ namespace TurboPattes.Game.Race
         public bool GhostVisible => _ghost != null && _ghost.gameObject.activeSelf;
         public Vector3 GhostPosition => _ghost != null ? _ghost.position : Vector3.zero;
         public int GhostSamples => _best?.Count ?? 0;
+        /// <summary>Dernier écart avec le meilleur tour (négatif = en avance) et temps depuis lequel il est affiché.</summary>
+        public float Delta { get; private set; }
+        public float DeltaAge { get; private set; } = 99f;
+        /// <summary>Écarts affichés pendant la course (journal de l'autotest).</summary>
+        public int DeltasShown { get; private set; }
+        /// <summary>Médaille du meilleur tour avant la course, et maintenant.</summary>
+        public Medal MedalBefore { get; private set; }
+        public Medal Medal => Medals.For(_circuit, BestLap);
+        public int Circuit => _circuit;
 
         public void Setup(RaceManager race, int circuit)
         {
@@ -35,6 +45,7 @@ namespace TurboPattes.Game.Race
             _circuit = circuit;
             BestTimeBefore = GameSession.BestTime(circuit, race.Laps);
             BestLap = BestLapBefore = GameSession.BestLap(circuit);
+            MedalBefore = Medals.For(circuit, BestLapBefore);
             _best = BestLap > 0f ? GameSession.LoadGhost(circuit) : null;
             _recording = new GhostLap();
             BuildGhost(race.Player.Spec);
@@ -64,8 +75,12 @@ namespace TurboPattes.Game.Race
             var p = _race.Player;
             bool racing = _race.State == RaceManager.Phase.Racing && !p.Finished;
             float t = _race.RaceTime - _race.LapStartTime;
+            DeltaAge += Time.deltaTime;
             if (racing)
             {
+                // Temps intermédiaires : écart avec ceux du meilleur tour.
+                int split = _splits.Update(p.Laps.S / _race.Path.Length, t);
+                if (split >= 0 && _best != null && split < _best.Splits.Length) ShowDelta(t - _best.Splits[split]);
                 var root = p.Rig.Root;
                 var e = root.eulerAngles;
                 _recording.Record(t, new GhostPose(root.position.x, root.position.y, root.position.z, e.y, Mathf.DeltaAngle(0f, e.x)));
@@ -87,11 +102,21 @@ namespace TurboPattes.Game.Race
             }
         }
 
+        void ShowDelta(float delta)
+        {
+            Delta = delta;
+            DeltaAge = 0f;
+            DeltasShown++;
+        }
+
         void OnLap(int lap, float time)
         {
             var done = _recording;
             _recording = new GhostLap();
             done.LapTime = time;
+            done.Splits = _splits.Count == LapSplits.Points.Length ? (float[])_splits.Times.Clone() : System.Array.Empty<float>();
+            _splits.Reset();
+            if (BestLap > 0f) ShowDelta(time - BestLap);
             if (!Records.IsBetter(time, BestLap) || done.Count < 10) return;
             BestLap = time;
             _best = done;

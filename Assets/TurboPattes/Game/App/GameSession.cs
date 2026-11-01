@@ -99,6 +99,64 @@ namespace TurboPattes.Game.App
             set => Save("tp.cup", value);
         }
 
+        // ------------------------------------------------------------------ réglages
+
+        /// <summary>Volume de la musique (0 à 1).</summary>
+        public static float MusicVolume
+        {
+            get => Mathf.Clamp01(LoadF("tp.vol.music", 0.8f));
+            set => SaveF("tp.vol.music", Mathf.Clamp01(value));
+        }
+
+        /// <summary>Volume des effets sonores (moteur, chocs, interface), 0 à 1.</summary>
+        public static float SfxVolume
+        {
+            get => Mathf.Clamp01(LoadF("tp.vol.sfx", 1f));
+            set => SaveF("tp.vol.sfx", Mathf.Clamp01(value));
+        }
+
+        /// <summary>Sensibilité du glisser tactile pour tourner (0,5 à 1,5).</summary>
+        public static float TouchSensitivity
+        {
+            get => Mathf.Clamp(LoadF("tp.touch", 1f), 0.5f, 1.5f);
+            set => SaveF("tp.touch", Mathf.Clamp(value, 0.5f, 1.5f));
+        }
+
+        public static bool Vibration
+        {
+            get => Load("tp.vibration", 1) != 0;
+            set => Save("tp.vibration", value ? 1 : 0);
+        }
+
+        /// <summary>Qualité graphique : -1 = automatique, sinon niveau imposé (0 = le plus beau).</summary>
+        public static int QualityMode
+        {
+            get => Mathf.Clamp(Load("tp.quality.mode", -1), -1, App.QualityTuner.MaxLevel);
+            set => Save("tp.quality.mode", value);
+        }
+
+        /// <summary>Le tutoriel de la première course a été vu jusqu'au bout.</summary>
+        public static bool TutorialDone
+        {
+            get => Load("tp.tutorial", 0) != 0;
+            set => Save("tp.tutorial", value ? 1 : 0);
+        }
+
+        // ------------------------------------------------------------------ trophées des coupes
+
+        /// <summary>Meilleur trophée gagné dans cette coupe : 3 = or, 2 = argent, 1 = bronze, 0 = aucun.</summary>
+        public static int CupTrophy(int cup) => Mathf.Clamp(Load($"tp.trophy.{cup}", 0), 0, 3);
+
+        /// <summary>Garde le meilleur des deux trophées ; renvoie vrai s'il est nouveau.</summary>
+        public static bool AwardTrophy(int cup, int trophy)
+        {
+            if (trophy <= CupTrophy(cup)) return false;
+            Save($"tp.trophy.{cup}", trophy);
+            return true;
+        }
+
+        public static bool CupUnlocked(int cup) => Cups.IsUnlocked(cup, CupTrophy);
+
         // ------------------------------------------------------------------ records du contre-la-montre
 
         /// <summary>Meilleur temps total sur ce circuit et ce nombre de tours (0 = aucun).</summary>
@@ -157,10 +215,10 @@ namespace TurboPattes.Game.App
             PlayerPrefs.Save();
         }
 
-        static float LoadF(string key)
+        static float LoadF(string key, float fallback = 0f)
         {
-            try { return PlayerPrefs.GetFloat(key, 0f); }
-            catch { return 0f; }
+            try { return PlayerPrefs.GetFloat(key, fallback); }
+            catch { return fallback; }
         }
 
         static void SaveF(string key, float value)

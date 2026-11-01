@@ -189,4 +189,82 @@ namespace TurboPattes.Tests
             Assert.That(Records.IsBetter(0f, 41f), Is.False, "temps nul ignoré");
         }
     }
+
+    public class ProgressionTests
+    {
+        [Test]
+        public void Medailles_SeuilsOrdonnes()
+        {
+            for (int c = 0; c < 10; c++)
+            {
+                float gold = Medals.Target(c, Medal.Gold), silver = Medals.Target(c, Medal.Silver), bronze = Medals.Target(c, Medal.Bronze);
+                Assert.That(gold, Is.LessThan(silver));
+                Assert.That(silver, Is.LessThan(bronze));
+                Assert.That(Medals.For(c, gold), Is.EqualTo(Medal.Gold));
+                Assert.That(Medals.For(c, silver), Is.EqualTo(Medal.Silver));
+                Assert.That(Medals.For(c, bronze), Is.EqualTo(Medal.Bronze));
+                Assert.That(Medals.For(c, bronze + 0.2f), Is.EqualTo(Medal.None));
+            }
+            Assert.That(Medals.For(0, 0f), Is.EqualTo(Medal.None), "pas de temps");
+            Assert.That(Medals.Reference.Length, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void Intermediaires_UnParQuartDeTour()
+        {
+            var sp = new LapSplits();
+            Assert.That(sp.Update(0.99f, 0.1f), Is.EqualTo(-1), "départ derrière la ligne");
+            Assert.That(sp.Update(0.1f, 2f), Is.EqualTo(-1));
+            Assert.That(sp.Update(0.26f, 10f), Is.EqualTo(0));
+            Assert.That(sp.Update(0.3f, 11f), Is.EqualTo(-1), "déjà compté");
+            Assert.That(sp.Update(0.51f, 20f), Is.EqualTo(1));
+            Assert.That(sp.Update(0.76f, 30f), Is.EqualTo(2));
+            Assert.That(sp.Count, Is.EqualTo(3));
+            Assert.That(sp.Times, Is.EqualTo(new[] { 10f, 20f, 30f }));
+            sp.Reset();
+            Assert.That(sp.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Intermediaires_SauteUnPointRateNePlusCompter()
+        {
+            var sp = new LapSplits();
+            // Un saut de plume au-dessus du quart : on arrive directement à 0,5 ; le quart est perdu pour ce tour.
+            Assert.That(sp.Update(0.5f, 20f), Is.EqualTo(-1));
+            Assert.That(sp.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Fantome_AvecIntermediaires_EtAncienFormat()
+        {
+            var g = new GhostLap { LapTime = 40f, Splits = new[] { 10f, 20.5f, 30.25f } };
+            g.Record(0f, new GhostPose(1, 2, 3, 4, 5));
+            var back = GhostLap.Parse(g.Serialize());
+            Assert.That(back.Splits, Is.EqualTo(new[] { 10f, 20.5f, 30.25f }));
+            var old = GhostLap.Parse("fantome1;41.5;1;1,2,3,4,5");
+            Assert.That(old, Is.Not.Null, "les fantômes déjà sauvegardés restent lisibles");
+            Assert.That(old.Splits.Length, Is.EqualTo(0));
+            Assert.That(old.LapTime, Is.EqualTo(41.5f).Within(1e-3f));
+        }
+
+        [Test]
+        public void Trophees_EtDeblocage()
+        {
+            Assert.That(Cups.TrophyFor(0), Is.EqualTo(3));
+            Assert.That(Cups.TrophyFor(2), Is.EqualTo(1));
+            Assert.That(Cups.TrophyFor(3), Is.EqualTo(0));
+            var trophies = new int[3];
+            Assert.That(Cups.IsUnlocked(0, c => trophies[c]), Is.True);
+            Assert.That(Cups.IsUnlocked(1, c => trophies[c]), Is.False);
+            trophies[0] = 1;
+            Assert.That(Cups.IsUnlocked(1, c => trophies[c]), Is.True);
+            Assert.That(Cups.IsUnlocked(2, c => trophies[c]), Is.False);
+        }
+
+        [Test]
+        public void Grille_OrdreInverseDuClassement()
+        {
+            Assert.That(Cups.Grid(new[] { 4, 0, 7, 1 }), Is.EqualTo(new[] { 1, 7, 0, 4 }));
+        }
+    }
 }

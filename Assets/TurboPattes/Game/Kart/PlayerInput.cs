@@ -95,7 +95,8 @@ namespace TurboPattes.Game.Kart
             Layout = new TouchLayout
             {
                 SteerZoneMaxX = Screen.width * 0.45f,
-                SteerRange = h * 0.09f,
+                // Plus sensible = moins de glisser pour braquer à fond (réglages).
+                SteerRange = h * 0.09f / App.GameSession.TouchSensitivity,
                 Drift = drift,
                 DriftR = driftR,
                 ItemR = h * 0.095f,

@@ -17,7 +17,8 @@ namespace TurboPattes.Game.Audio
         static Jukebox _instance;
         static readonly Dictionary<Song, Task<float[]>> Renders = new();
 
-        AudioSource _music, _ui;
+        AudioSource _music, _ui, _sting;
+        readonly Dictionary<Song, AudioClip> _stingClips = new();
         readonly Dictionary<Song, AudioClip> _clips = new();
         Song _wanted;
         float _level = 0.5f;
@@ -45,12 +46,31 @@ namespace TurboPattes.Game.Audio
             _music.ignoreListenerPause = true;
             _ui = gameObject.AddComponent<AudioSource>();
             _ui.ignoreListenerPause = true;
+            _sting = gameObject.AddComponent<AudioSource>();
+            _sting.ignoreListenerPause = true;
 
             _move = Blip("UiMove", new[] { 1180f }, 0.05f, 0.25f);
             _confirm = Blip("UiConfirm", new[] { 784f, 1175f }, 0.07f, 0.35f);
             _back = Blip("UiBack", new[] { 880f, 587f }, 0.07f, 0.3f);
 
             Prepare(Songs.Menu);
+            Prepare(Songs.Finish);
+        }
+
+        /// <summary>Joue une fois un court morceau par-dessus la musique (jingle d'arrivée), s'il est déjà calculé.</summary>
+        public void Sting(Song song)
+        {
+            if (!_stingClips.TryGetValue(song, out var clip))
+            {
+                if (!Renders.TryGetValue(song, out var task)) { Prepare(song); return; }
+                if (!task.IsCompleted || task.IsFaulted) return;
+                var data = task.Result;
+                Renders.Remove(song);
+                clip = AudioClip.Create(song.Name, data.Length, 1, MusicSynth.Rate, false);
+                clip.SetData(data, 0);
+                _stingClips[song] = clip;
+            }
+            _sting.PlayOneShot(clip, 0.8f * App.GameSession.MusicVolume);
         }
 
         /// <summary>Lance le calcul d'un morceau en arrière-plan (par exemple pendant le compte à rebours).</summary>
@@ -70,9 +90,9 @@ namespace TurboPattes.Game.Audio
         /// <summary>Volume du morceau en cours (baisse pendant la pause, à l'arrivée…).</summary>
         public void SetLevel(float level) => _level = level;
 
-        public void Move() => _ui.PlayOneShot(_move);
-        public void Confirm() => _ui.PlayOneShot(_confirm);
-        public void Back() => _ui.PlayOneShot(_back);
+        public void Move() => _ui.PlayOneShot(_move, App.GameSession.SfxVolume);
+        public void Confirm() => _ui.PlayOneShot(_confirm, App.GameSession.SfxVolume);
+        public void Back() => _ui.PlayOneShot(_back, App.GameSession.SfxVolume);
 
         void Update()
         {
@@ -80,7 +100,7 @@ namespace TurboPattes.Game.Audio
             bool switching = _wanted == null ? _music.clip != null : _music.clip == null || _music.clip.name != _wanted.Name;
             if (!switching)
             {
-                _music.volume = Mathf.MoveTowards(_music.volume, _level, step);
+                _music.volume = Mathf.MoveTowards(_music.volume, _level * App.GameSession.MusicVolume, step);
                 return;
             }
 

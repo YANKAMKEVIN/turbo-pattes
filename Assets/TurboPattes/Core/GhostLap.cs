@@ -28,12 +28,15 @@ namespace TurboPattes.Core
     {
         public const float Interval = 0.1f;
         const int Stride = 5;
-        const string Header = "fantome1";
+        const string Header = "fantome2";
+        const string OldHeader = "fantome1";
 
         readonly List<float> _data = new();
 
         /// <summary>Temps du tour (0 tant qu'il n'est pas fini).</summary>
         public float LapTime { get; set; }
+        /// <summary>Temps intermédiaires (<see cref="LapSplits.Points"/>), vide si inconnus (ancien fichier).</summary>
+        public float[] Splits { get; set; } = Array.Empty<float>();
         public int Count => _data.Count / Stride;
         public float Duration => Math.Max(0, Count - 1) * Interval;
 
@@ -72,7 +75,13 @@ namespace TurboPattes.Core
         public string Serialize()
         {
             var sb = new StringBuilder();
-            sb.Append(Header).Append(';').Append(LapTime.ToString("0.000", CultureInfo.InvariantCulture)).Append(';').Append(Count).Append(';');
+            sb.Append(Header).Append(';').Append(LapTime.ToString("0.000", CultureInfo.InvariantCulture)).Append(';');
+            for (int i = 0; i < Splits.Length; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append(Splits[i].ToString("0.000", CultureInfo.InvariantCulture));
+            }
+            sb.Append(';').Append(Count).Append(';');
             for (int i = 0; i < _data.Count; i++)
             {
                 if (i > 0) sb.Append(',');
@@ -86,12 +95,21 @@ namespace TurboPattes.Core
         {
             if (string.IsNullOrEmpty(text)) return null;
             string[] parts = text.Split(';');
-            if (parts.Length != 4 || parts[0] != Header) return null;
+            // Version 1 : pas de temps intermédiaires.
+            if (parts.Length == 4 && parts[0] == OldHeader) parts = new[] { Header, parts[1], "", parts[2], parts[3] };
+            if (parts.Length != 5 || parts[0] != Header) return null;
             if (!float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float lapTime)) return null;
-            if (!int.TryParse(parts[2], out int count) || count < 0) return null;
-            string[] values = parts[3].Length == 0 ? Array.Empty<string>() : parts[3].Split(',');
+            var splits = new List<float>();
+            if (parts[2].Length > 0)
+                foreach (string v in parts[2].Split(','))
+                {
+                    if (!float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out float sp)) return null;
+                    splits.Add(sp);
+                }
+            if (!int.TryParse(parts[3], out int count) || count < 0) return null;
+            string[] values = parts[4].Length == 0 ? Array.Empty<string>() : parts[4].Split(',');
             if (values.Length != count * Stride) return null;
-            var ghost = new GhostLap { LapTime = lapTime };
+            var ghost = new GhostLap { LapTime = lapTime, Splits = splits.ToArray() };
             foreach (string v in values)
             {
                 if (!float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out float x)) return null;

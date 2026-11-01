@@ -310,10 +310,36 @@ namespace TurboPattes.Core
                 "D5 - F#5 - B5 - D6 - | F#5 - A5 - D6 - F#6 - | E6 - D6 - C#6 - B5 - | G#5 - - - E5 - - - ",
         };
 
+        /// <summary>Podium de fin de coupe : fanfare festive en do majeur, 8 mesures qui bouclent.</summary>
+        public static readonly Song Podium = new()
+        {
+            Name = "Podium",
+            Bpm = 120f,
+            Style = SongStyle.Driving,
+            Lead = LeadVoice.Bell,
+            Key = "C",
+            Chords = new[] { "C", "F", "C", "G", "C", "F", "G", "C" },
+            Melody =
+                "G5 - E5 G5 C6 - - - | A5 - F5 A5 C6 - A5 - | G5 - E5 G5 E6 - D6 C6 | D6 - - - B5 G5 - . |" +
+                "E6 - C6 E6 G6 - E6 C6 | F6 - A5 C6 F6 - E6 D6 | D6 - B5 G5 B5 D6 G6 - | C6 - - E6 C6 - - - ",
+        };
+
+        /// <summary>Jingle d'arrivée : deux mesures qui montent et finissent sur la tonique tenue.</summary>
+        public static readonly Song Finish = new()
+        {
+            Name = "Arrivee",
+            Bpm = 140f,
+            Style = SongStyle.Driving,
+            Lead = LeadVoice.Square,
+            Key = "C",
+            Chords = new[] { "C", "C" },
+            Melody = "C5 E5 G5 C6 E6 G5 C6 E6 | C6 - - - - - - - ",
+        };
+
         /// <summary>Un morceau par circuit, dans l'ordre de <c>Circuit.All()</c>.</summary>
         public static readonly Song[] Circuits = { Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City };
 
-        public static readonly Song[] All = { Menu, Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City };
+        public static readonly Song[] All = { Menu, Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City, Podium, Finish };
 
         /// <summary>Morceau du circuit n (0 = Prairie) ; retombe sur la Prairie hors limites.</summary>
         public static Song ForCircuit(int index) => index >= 0 && index < Circuits.Length ? Circuits[index] : Race;

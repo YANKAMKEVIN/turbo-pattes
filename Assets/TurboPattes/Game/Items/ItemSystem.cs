@@ -19,10 +19,14 @@ namespace TurboPattes.Game.Items
         const float PickupRadius = 2.0f;
         const float CoconutRadius = 1.5f;
         const float HoneyRadius = 1.9f;
+        const float YarnRadius = 1.6f;
+        const float YarnSpeed = 38f;
 
         sealed class Bubble { public Vector3 Pos; public Transform Go; public float Respawn; public float Phase; }
         sealed class Coconut { public Vector3 Pos; public Vector3 Dir; public float Speed; public float Life; public KartMotor Owner; public float OwnerGrace; public int Hint; public Transform Go; }
         sealed class Honey { public Vector3 Pos; public float Life; public KartMotor Owner; public float OwnerGrace; public Transform Go; }
+        /// <summary>Pelote : avance le long de la piste (distance parcourue, comme les karts) vers sa cible.</summary>
+        sealed class Yarn { public float Progress; public float Lateral; public float Life; public KartMotor Owner; public KartMotor Target; public Vector3 Pos; public Transform Go; }
 
         readonly TrackPath _path;
         readonly Transform _root;
@@ -30,10 +34,13 @@ namespace TurboPattes.Game.Items
         readonly List<Bubble> _bubbles = new();
         readonly List<Coconut> _coconuts = new();
         readonly List<Honey> _honeys = new();
-        readonly Material _bubbleMat, _pawMat, _coconutMat, _coconutHair, _honeyMat, _potMat;
+        readonly List<Yarn> _yarns = new();
+        readonly Material _bubbleMat, _pawMat, _coconutMat, _coconutHair, _honeyMat, _potMat, _yarnMat, _yarnThread;
 
         /// <summary>Événements pour le son : ramassage, objet utilisé, kart touché, bouclier éclaté.</summary>
         public event Action<KartMotor> PickedUp, Used, KartHit, ShieldPopped;
+        /// <summary>Objets utilisés par sorte (journal de l'autotest), indexés par <see cref="ItemKind"/>.</summary>
+        public readonly int[] UseCounts = new int[8];
 
         public ItemSystem(Circuit circuit, TrackPath path, Transform parent, int seed, bool bubbles = true)
         {
@@ -47,6 +54,8 @@ namespace TurboPattes.Game.Items
             _coconutHair = Mats.Lit(new Color(0.6f, 0.42f, 0.25f), 0.05f);
             _honeyMat = Mats.Lit(new Color(1f, 0.68f, 0.08f), 0.9f);
             _potMat = Mats.Lit(new Color(0.85f, 0.5f, 0.25f), 0.3f);
+            _yarnMat = Mats.Lit(new Color(0.95f, 0.42f, 0.62f), 0.1f);
+            _yarnThread = Mats.Lit(new Color(1f, 0.75f, 0.85f), 0.1f);
 
             if (bubbles)
             foreach (float row in circuit.ItemRows)
@@ -144,6 +153,35 @@ namespace TurboPattes.Game.Items
                 }
             }
 
+            for (int i = _yarns.Count - 1; i >= 0; i--)
+            {
+                var y = _yarns[i];
+                y.Life -= dt;
+                y.Progress += YarnSpeed * dt;
+                // Se range dans la file de sa cible quand elle approche.
+                if (y.Target != null && y.Target.Progress - y.Progress < 60f)
+                    y.Lateral = Mathf.MoveTowards(y.Lateral, y.Target.Lateral, 10f * dt);
+                y.Pos = _path.PointAt(Mathf.Repeat(y.Progress, _path.Length), y.Lateral);
+                y.Go.position = y.Pos + Vector3.up * 0.6f;
+                y.Go.rotation = Quaternion.LookRotation(_path.Tangents[_path.Nearest(y.Pos, y.Owner.TrackIndex)]) * Quaternion.Euler(Time.time * 600f, 0f, 0f);
+                bool remove = y.Life <= 0f || y.Target != null && y.Target.Finished;
+                foreach (var k in karts)
+                {
+                    if (remove) break;
+                    if (k == y.Owner) continue;
+                    if (Flat(k.Position, y.Pos) > YarnRadius * YarnRadius) continue;
+                    Strike(k, 1.4f);
+                    remove = true;
+                }
+                // Dépassée par sa cible (bond de plume…) : elle s'arrête là.
+                if (y.Target != null && y.Progress > y.Target.Progress + 25f) remove = true;
+                if (remove)
+                {
+                    UnityEngine.Object.Destroy(y.Go.gameObject);
+                    _yarns.RemoveAt(i);
+                }
+            }
+
             for (int i = _honeys.Count - 1; i >= 0; i--)
             {
                 var h = _honeys[i];
@@ -184,7 +222,7 @@ namespace TurboPattes.Game.Items
         }
 
         /// <summary>Utilise l'objet du kart s'il en a un (et que la roulette est finie).</summary>
-        public bool Use(KartMotor k)
+        public bool Use(KartMotor k, KartMotor[] karts = null)
         {
             if (k.Item == ItemKind.None || k.ItemRoll > 0f || k.SpinTime > 0f) return false;
             switch (k.Item)
@@ -201,7 +239,15 @@ namespace TurboPattes.Game.Items
                 case ItemKind.Honey:
                     SpawnHoney(k);
                     break;
+                case ItemKind.Feather:
+                    if (k.Airborne) return false;
+                    k.Leap();
+                    break;
+                case ItemKind.Yarn:
+                    SpawnYarn(k, karts);
+                    break;
             }
+            UseCounts[(int)k.Item]++;
             k.Item = ItemKind.None;
             Used?.Invoke(k);
             return true;
@@ -226,6 +272,49 @@ namespace TurboPattes.Game.Items
             };
             go.position = c.Pos;
             _coconuts.Add(c);
+        }
+
+        void SpawnYarn(KartMotor k, KartMotor[] karts)
+        {
+            // Cible : le kart juste devant au classement (aucune pour le premier : elle file tout droit).
+            KartMotor target = null;
+            if (karts != null)
+                foreach (var o in karts)
+                    if (o != k && !o.Finished && o.Rank == k.Rank - 1) target = o;
+            var go = new GameObject("Yarn").transform;
+            go.SetParent(_root, false);
+            MeshKit.Prim(PrimitiveType.Sphere, go, Vector3.zero, Vector3.one * 1.1f, _yarnMat);
+            for (int i = 0; i < 3; i++)
+            {
+                var band = MeshKit.Prim(PrimitiveType.Cylinder, go, Vector3.zero, new Vector3(1.14f, 0.02f, 1.14f), _yarnThread);
+                band.transform.localRotation = Quaternion.Euler(i * 60f, i * 35f, 90f);
+            }
+            var y = new Yarn
+            {
+                Progress = k.Progress + 3f,
+                Lateral = k.Lateral,
+                Life = 7f,
+                Owner = k,
+                Target = target,
+                Go = go,
+            };
+            y.Pos = _path.PointAt(Mathf.Repeat(y.Progress, _path.Length), y.Lateral);
+            go.position = y.Pos;
+            _yarns.Add(y);
+        }
+
+        /// <summary>Une noix de coco ou une pelote arrive sur ce kart (pour que l'IA lève son bouclier ou saute).</summary>
+        public bool ThreatNear(KartMotor k, float range)
+        {
+            foreach (var y in _yarns)
+                if (y.Owner != k && (y.Target == k || y.Target == null) && Flat(y.Pos, k.Position) < range * range) return true;
+            foreach (var c in _coconuts)
+            {
+                if (c.Owner == k && c.OwnerGrace > 0f) continue;
+                Vector3 to = k.Position - c.Pos;
+                if (Flat(c.Pos, k.Position) < range * range && Vector3.Dot(to, c.Dir) > 0f) return true;
+            }
+            return false;
         }
 
         void SpawnHoney(KartMotor k)
