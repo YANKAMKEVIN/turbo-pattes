@@ -45,7 +45,7 @@ namespace TurboPattes.Core
     }
 
     /// <summary>Accompagnements : chacun a sa basse, ses accords et sa batterie.</summary>
-    public enum SongStyle { Calm, Driving, Gallop, Tropical, Calypso, Aquatic, Airy, Space, Sleigh, Heavy, Disco }
+    public enum SongStyle { Calm, Driving, Gallop, Tropical, Calypso, Aquatic, Airy, Space, Sleigh, Heavy, Disco, Riviera }
 
     /// <summary>Timbres de mélodie.</summary>
     public enum LeadVoice { Square, Twang, Mallet, Steel, Bubble, Flute, Bell, Saw, Fuzz, Sync }
@@ -311,6 +311,22 @@ namespace TurboPattes.Core
         };
 
         /// <summary>Podium de fin de coupe : fanfare festive en do majeur, 8 mesures qui bouclent.</summary>
+        /// <summary>Port des Pattes : air de bord de mer en ré majeur, basse « oum-pa », accordéon et mandoline.</summary>
+        public static readonly Song Port = new()
+        {
+            Name = "Port",
+            Bpm = 132f,
+            Style = SongStyle.Riviera,
+            Lead = LeadVoice.Twang,
+            Key = "D",
+            Chords = new[] { "D", "A", "D", "G", "D", "Bm", "Em", "A", "G", "A", "F#m", "Bm", "G", "A", "D", "D" },
+            Melody =
+                "A4 - D5 - F#5 - A5 . | G5 - E5 . C#5 - E5 . | F#5 - A5 . D6 - A5 F#5 | G5 - - - B5 - . . |" +
+                "A5 . F#5 D5 - . F#5 . | B5 - F#5 . D5 - B4 . | E5 - G5 - B5 - A5 G5 | E5 - - - C#5 - . . |" +
+                "D5 - G5 - B5 - G5 . | C#5 - E5 - A5 - E5 . | F#5 - A5 - C#6 - A5 . | B5 - - - D6 - B5 . |" +
+                "G5 - B5 - D6 - B5 G5 | A5 - C#6 - E6 - C#6 A5 | D6 - A5 . F#5 . D5 . | D5 - - - . . . . ",
+        };
+
         public static readonly Song Podium = new()
         {
             Name = "Podium",
@@ -337,9 +353,9 @@ namespace TurboPattes.Core
         };
 
         /// <summary>Un morceau par circuit, dans l'ordre de <c>Circuit.All()</c>.</summary>
-        public static readonly Song[] Circuits = { Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City };
+        public static readonly Song[] Circuits = { Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City, Port };
 
-        public static readonly Song[] All = { Menu, Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City, Podium, Finish };
+        public static readonly Song[] All = { Menu, Race, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City, Port, Podium, Finish };
 
         /// <summary>Morceau du circuit n (0 = Prairie) ; retombe sur la Prairie hors limites.</summary>
         public static Song ForCircuit(int index) => index >= 0 && index < Circuits.Length ? Circuits[index] : Race;

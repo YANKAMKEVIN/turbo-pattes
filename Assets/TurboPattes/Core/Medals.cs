@@ -11,7 +11,7 @@ namespace TurboPattes.Core
     public static class Medals
     {
         /// <summary>Tour lancé de référence (s), dans l'ordre de <c>Circuit.All()</c>.</summary>
-        public static readonly float[] Reference = { 40.2f, 42.4f, 45.1f, 42.6f, 38.5f, 48.7f, 53.3f, 48.1f, 43.5f, 50.0f };
+        public static readonly float[] Reference = { 40.2f, 42.4f, 45.1f, 42.6f, 38.5f, 48.7f, 53.3f, 48.1f, 43.5f, 50.0f, 39.5f };
 
         public const float GoldFactor = 0.985f;
         public const float SilverFactor = 1.04f;

@@ -6,7 +6,7 @@ laps=${2:-1}
 app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes"
 rm -rf $out && mkdir -p $out
 echec=0
-for n in {1..10}; do
+for n in {1..11}; do
   "$app" -tp-autotest $out/c$n -tp-laps $laps -tp-circuit $n -logFile $out/c$n.player.log >/dev/null 2>&1
   log=$out/c$n/autotest.log
   nom=$(grep -o "circuit=[^=]*longueur" $log | sed 's/circuit=//; s/ longueur//')

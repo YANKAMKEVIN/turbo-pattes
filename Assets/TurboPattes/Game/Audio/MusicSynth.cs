@@ -48,6 +48,7 @@ namespace TurboPattes.Game.Audio
                     case SongStyle.Sleigh: SleighBar(b); break;
                     case SongStyle.Heavy: HeavyBar(b); break;
                     case SongStyle.Disco: DiscoBar(b); break;
+                    case SongStyle.Riviera: RivieraBar(b); break;
                     default: CalmBar(b); break;
                 }
             }
@@ -93,6 +94,23 @@ namespace TurboPattes.Game.Audio
             Snare(b.Buf, b.At(2), 0.3f, b.Rng);
             Snare(b.Buf, b.At(6), 0.3f, b.Rng);
             for (int s = 0; s < 8; s++) Hat(b.Buf, b.At(s), s % 2 == 1 ? 0.09f : 0.05f, s % 2 == 1 ? 0.06f : 0.03f, b.Rng);
+        }
+
+        /// <summary>Port : basse « oum-pa » (fondamentale, quinte), accordéon sur les contretemps, mandoline en trémolo, tambourin.</summary>
+        static void RivieraBar(Bar b)
+        {
+            Note(b.Buf, b.At(0), b.Step * 1.8f, Hz(b.Root), 0.26f, Bass);
+            Note(b.Buf, b.At(4), b.Step * 1.8f, Hz(b.Root + 7), 0.22f, Bass);
+            foreach (int s in new[] { 2, 6 })
+                foreach (int m in b.Chord) Note(b.Buf, b.At(s), b.Step * 1.6f, Hz(m + 12), 0.03f, Pad);
+            // Trémolo de mandoline : tierce puis quinte, en triples croches.
+            for (int s = 0; s < 32; s++)
+                Note(b.Buf, b.At(s * 0.25f), b.Step * 0.22f, Hz(b.Chord[1 + s / 16] + 24), 0.022f, Pluck);
+            Kick(b.Buf, b.At(0), 0.45f);
+            Kick(b.Buf, b.At(4), 0.4f);
+            Snare(b.Buf, b.At(2), 0.12f, b.Rng);
+            Snare(b.Buf, b.At(6), 0.12f, b.Rng);
+            for (int s = 0; s < 8; s++) Hat(b.Buf, b.At(s), s % 2 == 1 ? 0.07f : 0.04f, 0.09f, b.Rng);
         }
 
         static void CalmBar(Bar b)

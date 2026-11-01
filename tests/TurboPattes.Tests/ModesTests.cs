@@ -18,11 +18,11 @@ namespace TurboPattes.Tests
                 Assert.That(names.Add(cup.Name), cup.Name);
                 foreach (int c in cup.Circuits)
                 {
-                    Assert.That(c, Is.InRange(0, 9), cup.Name);
+                    Assert.That(c, Is.InRange(0, 10), cup.Name);
                     covered.Add(c);
                 }
             }
-            Assert.That(covered.Count, Is.EqualTo(10), "chaque circuit est dans au moins une coupe");
+            Assert.That(covered.Count, Is.EqualTo(11), "chaque circuit est dans au moins une coupe");
         }
 
         [Test]
@@ -206,7 +206,7 @@ namespace TurboPattes.Tests
                 Assert.That(Medals.For(c, bronze + 0.2f), Is.EqualTo(Medal.None));
             }
             Assert.That(Medals.For(0, 0f), Is.EqualTo(Medal.None), "pas de temps");
-            Assert.That(Medals.Reference.Length, Is.EqualTo(10));
+            Assert.That(Medals.Reference.Length, Is.EqualTo(11));
         }
 
         [Test]

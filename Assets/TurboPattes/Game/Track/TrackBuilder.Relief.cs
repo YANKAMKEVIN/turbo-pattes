@@ -62,10 +62,9 @@ namespace TurboPattes.Game.Track
             float minD = Mathf.Sqrt(nearSqr);
             trackDistance = minD;
             if (minD <= _flatZone) bank = nearH - UnderRoad;
-            // Dunes douces loin de la piste.
-            // Loin de la piste : niveau du thème (fond du lagon…) et dunes douces.
+            // Loin de la piste : niveau du thème (fond du lagon…), dunes douces et, au port, collines côté terre.
             float dune = (Mathf.Sin(x * 0.021f) * Mathf.Cos(z * 0.017f) + 0.6f * Mathf.Sin((x + z) * 0.035f) + 1.6f) * _style.Dunes;
-            float baseH = (_style.FarLevel + dune) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(_style.FarFrom, _style.FarTo, minD));
+            float baseH = (_style.FarLevel + dune + _style.Land(x, z)) * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(_style.FarFrom, _style.FarTo, minD));
             return Mathf.Max(baseH, bank);
         }
 
@@ -107,7 +106,7 @@ namespace TurboPattes.Game.Track
                 float h = terrain.Height(x, z);
                 // Le bord de la grille rejoint la plaine (y = 0) pour ne pas laisser de falaise.
                 int edge = Mathf.Min(Mathf.Min(i, nx - 1 - i), Mathf.Min(j, nz - 1 - j));
-                h = Mathf.Lerp(style.FarLevel, h, Mathf.Clamp01(edge / 8f));
+                h = Mathf.Lerp(style.FarLevel + style.Land(x, z), h, Mathf.Clamp01(edge / 8f));
                 v[j * nx + i] = new Vector3(x, h, z);
                 uv[j * nx + i] = new Vector2(x / 10f, z / 10f);
             }

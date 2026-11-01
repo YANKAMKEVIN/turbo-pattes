@@ -19,8 +19,8 @@ namespace TurboPattes.Core
 
         public static readonly CupDef[] All =
         {
-            new() { Name = "Coupe Pâquerette", Circuits = new[] { 0, 1, 2, 3 } }, // Prairie, Canyon, Jungle, Lagon
-            new() { Name = "Coupe Coquillage", Circuits = new[] { 4, 7, 5, 6 } }, // Récif, Banquise, Nuages, Espace
+            new() { Name = "Coupe Pâquerette", Circuits = new[] { 10, 0, 1, 2 } }, // Port, Prairie, Canyon, Jungle
+            new() { Name = "Coupe Coquillage", Circuits = new[] { 3, 4, 7, 5 } }, // Lagon, Récif, Banquise, Nuages
             new() { Name = "Coupe Braise", Circuits = new[] { 8, 9, 1, 6 } },     // Volcan, Ville Néon, Canyon, Espace
         };
 

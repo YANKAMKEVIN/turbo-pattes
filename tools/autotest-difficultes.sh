@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Les 10 circuits dans les 3 difficultés (Mac, 1 tour chacun) : échoue si une course ne finit pas, si une anomalie
+# Les 11 circuits dans les 3 difficultés (Mac, 1 tour chacun) : échoue si une course ne finit pas, si une anomalie
 # ou une exception est signalée, ou si la fluidité moyenne passe sous 30 i/s. Usage : tools/autotest-difficultes.sh [dossier]
 out=${1:-/tmp/tp-difficultes}
 app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes"
@@ -7,7 +7,7 @@ rm -rf $out && mkdir -p $out
 noms=(Facile Normal Difficile)
 echec=0
 for d in 1 2 3; do
-  for n in {1..10}; do
+  for n in {1..11}; do
     dir=$out/d$d-c$n
     "$app" -tp-autotest $dir -tp-laps 1 -tp-circuit $n -tp-difficulty $d -logFile $dir.player.log >/dev/null 2>&1
     log=$dir/autotest.log

@@ -20,7 +20,7 @@ namespace TurboPattes.Game.Track
     }
 
     /// <summary>Décor et ambiance d'un circuit.</summary>
-    public enum Theme { Meadow, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City }
+    public enum Theme { Meadow, Canyon, Jungle, Lagoon, Reef, Sky, Space, Ice, Volcano, City, Port }
 
     /// <summary>Données d'un circuit. Points de contrôle en mètres (x, z), dans le sens de la course.</summary>
     public sealed class Circuit
@@ -50,10 +50,10 @@ namespace TurboPattes.Game.Track
         public bool Floating;
 
         /// <summary>Tous les circuits, dans l'ordre du menu.</summary>
-        public static Circuit[] All() => new[] { Meadow(), Canyon(), Jungle(), Lagoon(), Reef(), Sky(), Space(), Ice(), Volcano(), City() };
+        public static Circuit[] All() => new[] { Meadow(), Canyon(), Jungle(), Lagoon(), Reef(), Sky(), Space(), Ice(), Volcano(), City(), Port() };
 
         /// <summary>Nombre de circuits, sans les construire.</summary>
-        public const int Count = 10;
+        public const int Count = 11;
 
         /// <summary>
         /// « Prairie des Pattes » : une longue ligne droite, une boucle serrée, des S en montée vers le nord,
@@ -211,6 +211,35 @@ namespace TurboPattes.Game.Track
             Heights = new[] { 7.5f, 8.5f, 9f, 9f, 9f, 8.5f, 7.5f, 7f, 5.5f, 4.5f, 3.5f, 2.5f, 1.5f, 0.5f, 0f, 0f, 0f, 0.5f, 1.5f, 2f, 3.5f, 4.5f, 5.5f, 7f },
             Kickers = new[] { (10, 10f, 1.5f) },
             Bridges = new[] { (3, 42f) },
+            ItemRows = new[] { 0.1f, 0.33f, 0.58f, 0.84f },
+            Boosts = new[] { (0.04f, 0f), (0.47f, -2.5f), (0.7f, 2.5f) },
+        };
+
+        /// <summary>
+        /// « Port des Pattes », vitrine de la DA « Atelier plein gaz » : départ sur le quai, la mer à droite, montée vers la
+        /// vieille ville par l'est, traversée des ruelles sur les hauteurs (10 m), descente par l'ouest avec un tremplin,
+        /// puis une estacade au-dessus du port avant de retrouver le quai. ~1,08 km, rayon mini ~19 m, tronçons voisins
+        /// séparés d'au moins 95 m. La mer occupe le sud (z &lt; 0), la ville et les collines le nord.
+        /// </summary>
+        public static Circuit Port() => new()
+        {
+            Name = "Port des Pattes",
+            ShortName = "Port",
+            Theme = Theme.Port,
+            Control = new[]
+            {
+                new Vector2(-80, 0), new Vector2(-20, 0), new Vector2(40, 0), new Vector2(100, 0), new Vector2(145, 4), new Vector2(180, 25),
+                new Vector2(198, 60), new Vector2(192, 100), new Vector2(165, 127), new Vector2(125, 132), new Vector2(90, 115), new Vector2(58, 100),
+                new Vector2(25, 115), new Vector2(0, 142), new Vector2(-38, 152), new Vector2(-75, 137), new Vector2(-108, 127), new Vector2(-142, 140),
+                new Vector2(-180, 128), new Vector2(-203, 95), new Vector2(-212, 55), new Vector2(-210, 15), new Vector2(-198, -22), new Vector2(-172, -46),
+                new Vector2(-140, -52), new Vector2(-112, -40),
+            },
+            Heights = new[]
+            {
+                1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 2.5f, 4f, 6f, 7.5f, 8.5f, 9f, 9f, 9.5f, 10f, 10f, 9.5f, 9f, 8.5f, 7.5f, 6f, 4.5f, 3f, 2.5f, 2.5f, 2.5f, 2f,
+            },
+            Kickers = new[] { (20, 10f, 1.4f) },
+            Bridges = new[] { (23, 45f) },
             ItemRows = new[] { 0.1f, 0.33f, 0.58f, 0.84f },
             Boosts = new[] { (0.04f, 0f), (0.47f, -2.5f), (0.7f, 2.5f) },
         };

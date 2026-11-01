@@ -5,9 +5,13 @@ using UnityEngine.Rendering;
 
 namespace TurboPattes.Game.Track
 {
-    /// <summary>Décors des thèmes jungle, lagon, récif, ciel, espace, banquise, volcan et ville (tout en primitives).</summary>
+    /// <summary>Décors des thèmes jungle, lagon, récif, ciel, espace, banquise, volcan, ville et port (tout en primitives).</summary>
     public static partial class TrackBuilder
     {
+        // Palette « Atelier plein gaz », pour les accents des décors.
+        static readonly Color Ink = new(0.141f, 0.188f, 0.176f), Vermilion = new(0.851f, 0.302f, 0.247f),
+            Ochre = new(0.914f, 0.725f, 0.286f), Teal = new(0.235f, 0.561f, 0.569f), Cream = new(0.949f, 0.906f, 0.808f);
+
         static void BuildThemeDecor(Theme theme, TrackPath path, Terrain terrain, ThemeStyle style, Transform root, System.Random rng)
         {
             var decor = new GameObject("Decor").transform;
@@ -23,6 +27,7 @@ namespace TurboPattes.Game.Track
                 case Theme.Ice: Ice(ctx); break;
                 case Theme.Volcano: Volcano(ctx); break;
                 case Theme.City: City(ctx); break;
+                case Theme.Port: Port(ctx, style); break;
             }
             if (!path.Floating) BuildGrandstand(path, decor, rng);
         }
@@ -113,12 +118,13 @@ namespace TurboPattes.Game.Track
 
         static void Jungle(DecorContext c)
         {
-            var bark = Mats.Lit(new Color(0.42f, 0.3f, 0.2f), 0.1f);
-            Material[] leaves = { Mats.Lit(new Color(0.16f, 0.5f, 0.2f), 0.2f), Mats.Lit(new Color(0.28f, 0.62f, 0.18f), 0.2f), Mats.Lit(new Color(0.1f, 0.4f, 0.25f), 0.2f) };
-            var papaya = Mats.Lit(new Color(1f, 0.55f, 0.15f), 0.4f);
-            var stone = Mats.Lit(new Color(0.5f, 0.55f, 0.45f), 0.1f);
-            var moss = Mats.Lit(new Color(0.3f, 0.5f, 0.25f), 0.1f);
-            Material[] flowers = { Mats.Lit(new Color(1f, 0.3f, 0.5f)), Mats.Lit(new Color(1f, 0.85f, 0.2f)), Mats.Lit(new Color(0.9f, 0.4f, 1f)) };
+            // Verts profonds et sourds, fruits et fleurs aux couleurs de la palette, ruines en grès chaud.
+            var bark = Mats.Lit(new Color(0.36f, 0.27f, 0.2f), 0.1f);
+            Material[] leaves = { Mats.Lit(new Color(0.16f, 0.36f, 0.24f), 0.15f), Mats.Lit(new Color(0.3f, 0.45f, 0.22f), 0.15f), Mats.Lit(new Color(0.12f, 0.3f, 0.26f), 0.15f) };
+            var papaya = Mats.Lit(new Color(0.9f, 0.52f, 0.2f), 0.3f);
+            var stone = Mats.Lit(new Color(0.72f, 0.6f, 0.45f), 0.1f);
+            var moss = Mats.Lit(new Color(0.32f, 0.44f, 0.26f), 0.1f);
+            Material[] flowers = { Mats.Lit(Vermilion), Mats.Lit(Ochre), Mats.Lit(Cream) };
 
             c.Scatter(130, 17f, 170f, (p, d) =>
             {
@@ -153,7 +159,7 @@ namespace TurboPattes.Game.Track
                 }
                 c.P(PrimitiveType.Cube, p + rot * new Vector3(0f, 7f, 0f), new Vector3(9f, 1f, 1.6f), stone, rot * Quaternion.Euler(0, 0, c.R(-6f, 6f)));
             });
-            var far = Mats.Lit(new Color(0.18f, 0.42f, 0.22f), 0.05f);
+            var far = Mats.Lit(new Color(0.24f, 0.38f, 0.3f), 0.05f);
             c.Ring(18, 360f, 480f, p => c.S(MeshKit.Hemisphere, p, new Vector3(c.R(120, 200), c.R(90, 160), c.R(100, 160)), far, null, false));
         }
 
@@ -162,13 +168,13 @@ namespace TurboPattes.Game.Track
         static void Lagoon(DecorContext c, ThemeStyle style)
         {
             var trunk = Mats.Lit(new Color(0.6f, 0.45f, 0.3f), 0.1f);
-            var frond = Mats.Lit(new Color(0.2f, 0.65f, 0.25f), 0.25f);
-            var coco = Mats.Lit(new Color(0.4f, 0.25f, 0.12f), 0.2f);
-            Material[] parasol = { Mats.Lit(new Color(1f, 0.35f, 0.35f)), Mats.Lit(new Color(1f, 0.85f, 0.2f)), Mats.Lit(new Color(0.3f, 0.6f, 1f)) };
-            var hull = Mats.Lit(new Color(0.95f, 0.95f, 0.95f), 0.5f);
-            var hullStripe = Mats.Lit(new Color(0.15f, 0.45f, 0.8f), 0.4f);
-            var sail = Mats.Lit(new Color(1f, 0.97f, 0.9f), 0.1f);
-            var rock = Mats.Lit(new Color(0.55f, 0.5f, 0.45f), 0.1f);
+            var frond = Mats.Lit(new Color(0.26f, 0.48f, 0.28f), 0.2f);
+            var coco = Mats.Lit(new Color(0.4f, 0.27f, 0.16f), 0.2f);
+            Material[] parasol = { Mats.Lit(Vermilion), Mats.Lit(Ochre), Mats.Lit(Teal), Mats.Lit(Cream) };
+            var hull = Mats.Lit(Cream, 0.4f);
+            Material[] hullStripe = { Mats.Lit(Vermilion, 0.3f), Mats.Lit(Teal, 0.3f), Mats.Lit(Ink, 0.3f) };
+            var sail = Mats.Lit(Cream, 0.1f);
+            var rock = Mats.Lit(new Color(0.62f, 0.55f, 0.46f), 0.1f);
             var sand = Mats.Lit(new Color(0.95f, 0.85f, 0.6f), 0.05f);
             float water = style.WaterLevel;
 
@@ -190,7 +196,7 @@ namespace TurboPattes.Game.Track
                 var rot = c.Yaw();
                 var b = new Vector3(p.x, water, p.z);
                 c.P(PrimitiveType.Cube, b + Vector3.up * 0.3f, new Vector3(2.4f, 1f, 7f), hull, rot);
-                c.P(PrimitiveType.Cube, b + Vector3.up * 0.15f, new Vector3(2.45f, 0.3f, 7.05f), hullStripe, rot, false);
+                c.P(PrimitiveType.Cube, b + Vector3.up * 0.15f, new Vector3(2.45f, 0.3f, 7.05f), c.Pick(hullStripe), rot, false);
                 c.P(PrimitiveType.Cylinder, b + Vector3.up * 4.5f, new Vector3(0.15f, 4f, 0.15f), trunk, rot, false);
                 c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 4.5f, -1.5f), new Vector3(0.05f, 6f, 3f), sail, rot, false);
             });
@@ -236,13 +242,13 @@ namespace TurboPattes.Game.Track
         {
             Material[] coral =
             {
-                Mats.Lit(new Color(1f, 0.4f, 0.55f), 0.3f), Mats.Lit(new Color(1f, 0.6f, 0.25f), 0.3f),
-                Mats.Lit(new Color(0.65f, 0.35f, 1f), 0.3f), Mats.Lit(new Color(1f, 0.9f, 0.35f), 0.3f),
+                Mats.Lit(Vermilion, 0.25f), Mats.Lit(Ochre, 0.25f),
+                Mats.Lit(new Color(0.88f, 0.62f, 0.58f), 0.25f), Mats.Lit(new Color(0.48f, 0.3f, 0.4f), 0.25f),
             };
-            Material[] weed = { Mats.Lit(new Color(0.2f, 0.6f, 0.3f), 0.2f), Mats.Lit(new Color(0.35f, 0.7f, 0.25f), 0.2f) };
-            var rock = Mats.Lit(new Color(0.35f, 0.4f, 0.45f), 0.1f);
-            var bubble = Mats.Transparent(new Color(0.8f, 0.95f, 1f, 0.45f));
-            Material[] fish = { Mats.Lit(new Color(1f, 0.55f, 0.1f), 0.5f), Mats.Lit(new Color(0.2f, 0.8f, 1f), 0.5f), Mats.Lit(new Color(1f, 0.95f, 0.3f), 0.5f) };
+            Material[] weed = { Mats.Lit(new Color(0.22f, 0.45f, 0.32f), 0.2f), Mats.Lit(new Color(0.4f, 0.52f, 0.28f), 0.2f) };
+            var rock = Mats.Lit(new Color(0.32f, 0.38f, 0.38f), 0.1f);
+            var bubble = Mats.Transparent(new Color(0.85f, 0.95f, 0.92f, 0.4f));
+            Material[] fish = { Mats.Lit(Ochre, 0.4f), Mats.Lit(Cream, 0.4f), Mats.Lit(Vermilion, 0.4f) };
 
             c.Scatter(130, 14.5f, 130f, (p, d) =>
             {
@@ -306,13 +312,14 @@ namespace TurboPattes.Game.Track
 
         static void SkyIslands(DecorContext c)
         {
-            var cloud = Mats.Lit(new Color(1f, 1f, 1f), 0f);
-            var cloudShade = Mats.Lit(new Color(0.9f, 0.92f, 1f), 0f);
-            var earth = Mats.Lit(new Color(0.55f, 0.4f, 0.3f), 0.05f);
-            var grass = Mats.Lit(new Color(0.4f, 0.75f, 0.35f), 0.1f);
-            var leaf = Mats.Lit(new Color(0.25f, 0.6f, 0.3f), 0.15f);
-            Material[] balloon = { Mats.Lit(new Color(1f, 0.35f, 0.35f), 0.4f), Mats.Lit(new Color(1f, 0.8f, 0.2f), 0.4f), Mats.Lit(new Color(0.45f, 0.5f, 1f), 0.4f), Mats.Lit(new Color(0.5f, 0.9f, 0.5f), 0.4f) };
-            var basket = Mats.Lit(new Color(0.6f, 0.4f, 0.2f), 0.1f);
+            var cloud = Mats.Lit(new Color(1f, 0.98f, 0.94f), 0f);
+            var cloudShade = Mats.Lit(new Color(0.84f, 0.84f, 0.88f), 0f);
+            var earth = Mats.Lit(new Color(0.6f, 0.42f, 0.3f), 0.05f);
+            var grass = Mats.Lit(new Color(0.48f, 0.58f, 0.36f), 0.1f);
+            var leaf = Mats.Lit(new Color(0.24f, 0.4f, 0.3f), 0.15f);
+            Material[] balloon = { Mats.Lit(Vermilion, 0.3f), Mats.Lit(Ochre, 0.3f), Mats.Lit(Teal, 0.3f), Mats.Lit(Ink, 0.3f) };
+            var band = Mats.Lit(Cream, 0.3f);
+            var basket = Mats.Lit(new Color(0.55f, 0.38f, 0.22f), 0.1f);
 
             // Mer de nuages sous la piste.
             float seaY = c.LowY - 22f;
@@ -348,6 +355,8 @@ namespace TurboPattes.Game.Track
                 p.y = c.R(c.HighY + 5f, c.HighY + 45f);
                 float s = c.R(6f, 10f);
                 c.P(PrimitiveType.Sphere, p, new Vector3(s, s * 1.2f, s), c.Pick(balloon));
+                // Bande crème à l'équateur de l'enveloppe, comme une montgolfière d'affiche.
+                c.P(PrimitiveType.Cylinder, p, new Vector3(s * 1.01f, s * 0.12f, s * 1.01f), band, null, false);
                 c.P(PrimitiveType.Cube, p - Vector3.up * s * 1.1f, Vector3.one * s * 0.22f, basket);
             });
         }
@@ -356,12 +365,12 @@ namespace TurboPattes.Game.Track
 
         static void Space(DecorContext c, ThemeStyle style)
         {
-            Material[] stars = { Mats.Emissive(Color.white, Color.white * 3f), Mats.Emissive(Color.white, new Color(0.6f, 0.75f, 1f) * 3f), Mats.Emissive(Color.white, new Color(1f, 0.9f, 0.6f) * 3f) };
-            var rock = Mats.Lit(new Color(0.45f, 0.42f, 0.4f), 0.1f);
-            var rockDark = Mats.Lit(new Color(0.3f, 0.28f, 0.3f), 0.1f);
-            Material[] planets = { Mats.Lit(new Color(0.9f, 0.5f, 0.3f), 0.2f), Mats.Lit(new Color(0.35f, 0.55f, 1f), 0.3f), Mats.Lit(new Color(0.6f, 0.9f, 0.7f), 0.2f), Mats.Lit(new Color(0.85f, 0.75f, 0.95f), 0.2f) };
-            var ring = Mats.Transparent(new Color(0.95f, 0.85f, 0.6f, 0.5f));
-            var sun = Mats.Emissive(Color.white, new Color(1f, 0.85f, 0.5f) * 4f);
+            Material[] stars = { Mats.Emissive(Cream, Cream * 3f), Mats.Emissive(Cream, new Color(0.7f, 0.85f, 0.85f) * 3f), Mats.Emissive(Cream, Ochre * 3f) };
+            var rock = Mats.Lit(new Color(0.45f, 0.42f, 0.38f), 0.1f);
+            var rockDark = Mats.Lit(new Color(0.28f, 0.3f, 0.3f), 0.1f);
+            Material[] planets = { Mats.Lit(Vermilion, 0.2f), Mats.Lit(Teal, 0.2f), Mats.Lit(Ochre, 0.2f), Mats.Lit(Cream, 0.2f) };
+            var ring = Mats.Transparent(new Color(0.95f, 0.88f, 0.7f, 0.5f));
+            var sun = Mats.Emissive(Cream, new Color(1f, 0.82f, 0.45f) * 4f);
 
             float midY = (c.LowY + c.HighY) * 0.5f;
             var centre = c.Center + Vector3.up * midY;
@@ -392,12 +401,12 @@ namespace TurboPattes.Game.Track
 
         static void Ice(DecorContext c)
         {
-            var bark = Mats.Lit(new Color(0.4f, 0.3f, 0.22f), 0.1f);
-            var pine = Mats.Lit(new Color(0.15f, 0.42f, 0.32f), 0.15f);
-            var snow = Mats.Lit(new Color(0.96f, 0.98f, 1f), 0.4f);
-            var ice = Mats.Lit(new Color(0.65f, 0.88f, 1f), 0.9f, 0.1f);
-            var carrot = Mats.Lit(new Color(1f, 0.5f, 0.1f), 0.3f);
-            var coal = Mats.Lit(new Color(0.1f, 0.1f, 0.1f), 0.2f);
+            var bark = Mats.Lit(new Color(0.36f, 0.27f, 0.2f), 0.1f);
+            var pine = Mats.Lit(new Color(0.14f, 0.3f, 0.27f), 0.12f);
+            var snow = Mats.Lit(new Color(0.97f, 0.97f, 0.98f), 0.35f);
+            var ice = Mats.Lit(new Color(0.62f, 0.82f, 0.84f), 0.85f, 0.1f);
+            Material[] flags = { Mats.Lit(Vermilion, 0.2f), Mats.Lit(Teal, 0.2f) };
+            var pole = Mats.Lit(Ink, 0.3f);
 
             c.Scatter(120, 16f, 160f, (p, d) =>
             {
@@ -425,16 +434,14 @@ namespace TurboPattes.Game.Track
                         ice, Quaternion.Euler(c.R(-20f, 20f), c.R(0f, 360f), c.R(-20f, 20f)));
                 }
             });
-            c.Scatter(8, 15f, 40f, (p, d) =>
+            c.Scatter(14, 15f, 45f, (p, d) =>
             {
-                // Bonhomme de neige.
-                c.P(PrimitiveType.Sphere, p + Vector3.up * 0.9f, Vector3.one * 1.8f, snow);
-                c.P(PrimitiveType.Sphere, p + Vector3.up * 2.3f, Vector3.one * 1.3f, snow);
-                c.P(PrimitiveType.Sphere, p + Vector3.up * 3.3f, Vector3.one * 0.9f, snow);
-                var face = c.Yaw();
-                c.S(MeshKit.Cone, p + Vector3.up * 3.3f + face * Vector3.forward * 0.45f, new Vector3(0.18f, 0.6f, 0.18f), carrot, face * Quaternion.Euler(90f, 0f, 0f), false);
-                foreach (float x in new[] { -0.15f, 0.15f })
-                    c.P(PrimitiveType.Sphere, p + Vector3.up * 3.45f + face * new Vector3(x, 0f, 0.4f), Vector3.one * 0.1f, coal, null, false);
+                // Portes de slalom : deux piquets et un fanion tendu, vermillon ou sarcelle.
+                var rot = c.Yaw();
+                var flag = c.Pick(flags);
+                foreach (float x in new[] { -0.8f, 0.8f })
+                    c.P(PrimitiveType.Cylinder, p + rot * new Vector3(x, 1.1f, 0f), new Vector3(0.08f, 1.1f, 0.08f), pole, null, false);
+                c.P(PrimitiveType.Cube, p + rot * new Vector3(0f, 1.6f, 0f), new Vector3(1.6f, 0.8f, 0.04f), flag, rot, false);
             });
             c.Ring(16, 380f, 520f, p =>
             {
@@ -447,11 +454,11 @@ namespace TurboPattes.Game.Track
 
         static void Volcano(DecorContext c)
         {
-            var rock = Mats.Lit(new Color(0.22f, 0.18f, 0.18f), 0.1f);
-            var rockRed = Mats.Lit(new Color(0.4f, 0.2f, 0.15f), 0.1f);
-            var lava = Mats.Emissive(new Color(1f, 0.45f, 0.1f), new Color(1f, 0.35f, 0.05f) * 2.5f);
-            var smoke = Mats.Lit(new Color(0.3f, 0.27f, 0.27f), 0f);
-            var dead = Mats.Lit(new Color(0.18f, 0.14f, 0.12f), 0.05f);
+            var rock = Mats.Lit(new Color(0.2f, 0.19f, 0.19f), 0.1f);
+            var rockRed = Mats.Lit(new Color(0.42f, 0.22f, 0.17f), 0.1f);
+            var lava = Mats.Emissive(new Color(0.95f, 0.5f, 0.2f), new Color(0.95f, 0.42f, 0.12f) * 2.5f);
+            var smoke = Mats.Lit(new Color(0.24f, 0.25f, 0.25f), 0f);
+            var dead = Mats.Lit(new Color(0.17f, 0.14f, 0.12f), 0.05f);
 
             // Le grand volcan, au milieu de la boucle s'il y a la place, sinon au loin.
             float inside = c.Path.FlatDistance(c.Center, out _);
@@ -499,20 +506,21 @@ namespace TurboPattes.Game.Track
         {
             var facades = new Material[4];
             Vector2[] tiling = { new(2f, 4f), new(3f, 6f), new(2f, 8f), new(4f, 5f) };
-            Color[] tints = { new(0.8f, 0.85f, 1f), new(1f, 0.85f, 0.9f), new(0.85f, 1f, 0.9f), new(1f, 1f, 1f) };
+            Color[] tints = { new(0.55f, 0.62f, 0.62f), new(0.72f, 0.6f, 0.52f), new(0.6f, 0.56f, 0.5f), new(0.45f, 0.5f, 0.52f) };
+            Color[] lights = { new(1f, 0.88f, 0.66f), new(1f, 0.8f, 0.55f), new(0.95f, 0.9f, 0.78f), new(1f, 0.84f, 0.6f) };
             for (int i = 0; i < facades.Length; i++)
             {
-                var m = Mats.NewEmissive(tints[i], Color.white * 1.1f);
+                var m = Mats.NewEmissive(tints[i], lights[i] * 1.1f);
                 m.SetTexture("_BaseMap", ProceduralTextures.Windows);
                 m.SetTexture("_EmissionMap", ProceduralTextures.Windows);
                 m.SetTextureScale("_BaseMap", tiling[i]);
                 facades[i] = m;
             }
-            var roof = Mats.Lit(new Color(0.12f, 0.12f, 0.16f), 0.3f);
-            var pole = Mats.Lit(new Color(0.25f, 0.25f, 0.3f), 0.5f, 0.4f);
-            var lamp = Mats.Emissive(Color.white, new Color(1f, 0.85f, 0.55f) * 3f);
-            var red = Mats.Emissive(Color.white, new Color(1f, 0.1f, 0.1f) * 3f);
-            Material[] neon = { Mats.Emissive(Color.white, new Color(1f, 0.2f, 0.7f) * 3f), Mats.Emissive(Color.white, new Color(0.2f, 0.9f, 1f) * 3f), Mats.Emissive(Color.white, new Color(0.9f, 1f, 0.2f) * 3f) };
+            var roof = Mats.Lit(Ink, 0.3f);
+            var pole = Mats.Lit(Ink, 0.5f, 0.4f);
+            var lamp = Mats.Emissive(Cream, new Color(1f, 0.82f, 0.5f) * 3f);
+            var red = Mats.Emissive(Vermilion, Vermilion * 3f);
+            Material[] neon = { Mats.Emissive(Vermilion, Vermilion * 3f), Mats.Emissive(Ochre, Ochre * 3f), Mats.Emissive(Teal, new Color(0.3f, 0.75f, 0.75f) * 3f) };
 
             c.Scatter(170, 22f, 170f, (p, d) =>
             {
@@ -540,6 +548,206 @@ namespace TurboPattes.Game.Track
                 float h = c.R(60f, 160f), w = c.R(25f, 45f);
                 c.P(PrimitiveType.Cube, p + Vector3.up * h * 0.5f, new Vector3(w, h, w), c.Pick(facades), c.Yaw(), false);
             });
+        }
+
+        // ------------------------------------------------------------------ port
+
+        /// <summary>
+        /// Port méditerranéen : quai de pierre et bittes d'amarrage, barques et voiliers, jetée avec phare et grue,
+        /// maisons crème et ocre à volets sarcelle et toits de tuiles sur la colline, cyprès et pins parasols.
+        /// </summary>
+        static void Port(DecorContext c, ThemeStyle style)
+        {
+            var stone = Mats.Lit(new Color(0.78f, 0.7f, 0.56f), 0.08f);
+            var stoneDark = Mats.Lit(new Color(0.6f, 0.54f, 0.44f), 0.08f);
+            var bollard = Mats.Lit(Ink, 0.3f);
+            Material[] walls =
+            {
+                Mats.Lit(Cream, 0.05f), Mats.Lit(new Color(0.93f, 0.8f, 0.58f), 0.05f), Mats.Lit(new Color(0.9f, 0.68f, 0.52f), 0.05f),
+                Mats.Lit(new Color(0.95f, 0.86f, 0.7f), 0.05f), Mats.Lit(new Color(0.84f, 0.6f, 0.44f), 0.05f),
+            };
+            var tiles = Mats.Lit(new Color(0.72f, 0.36f, 0.24f), 0.1f);
+            Material[] shutters = { Mats.Lit(Teal, 0.15f), Mats.Lit(new Color(0.3f, 0.48f, 0.42f), 0.15f), Mats.Lit(Ink, 0.15f) };
+            var door = Mats.Lit(new Color(0.36f, 0.26f, 0.2f), 0.1f);
+            Material[] hulls = { Mats.Lit(Vermilion, 0.3f), Mats.Lit(Teal, 0.3f), Mats.Lit(Ochre, 0.3f), Mats.Lit(Cream, 0.3f) };
+            var waterline = Mats.Lit(Ink, 0.3f);
+            var deck = Mats.Lit(new Color(0.62f, 0.46f, 0.3f), 0.1f);
+            var cabin = Mats.Lit(Cream, 0.2f);
+            var mast = Mats.Lit(new Color(0.5f, 0.38f, 0.26f), 0.1f);
+            var sail = Mats.Lit(Cream, 0.1f);
+            var trunk = Mats.Lit(new Color(0.42f, 0.3f, 0.22f), 0.1f);
+            var cypress = Mats.Lit(new Color(0.2f, 0.33f, 0.24f), 0.1f);
+            var pine = Mats.Lit(new Color(0.3f, 0.43f, 0.27f), 0.1f);
+            var olive = Mats.Lit(new Color(0.52f, 0.58f, 0.42f), 0.1f);
+            var net = Mats.Lit(new Color(0.42f, 0.36f, 0.3f), 0.05f);
+            var crate = Mats.Lit(new Color(0.62f, 0.46f, 0.3f), 0.08f);
+            var hill = Mats.Lit(new Color(0.55f, 0.58f, 0.42f), 0.05f);
+            var rock = Mats.Lit(new Color(0.58f, 0.52f, 0.44f), 0.08f);
+            float water = style.WaterLevel;
+
+            // Quai : mur de pierre du côté de la mer, bittes d'amarrage, et le long de l'estacade de simples piles.
+            for (float s = 0f; s < c.Path.Length; s += 5f)
+            {
+                c.Path.Sample(s, out var p, out var t, out var r);
+                int i = c.Path.IndexAt(s);
+                if (c.Path.Elevated[i]) continue;
+                float h = c.Path.BaseHeights[i];
+                foreach (int side in new[] { -1, 1 })
+                {
+                    var probe = p + r * side * (c.Path.BarrierOffset + 14f);
+                    if (c.Ground(probe.x, probe.z) > water - 0.5f) continue;
+                    var q = p + r * side * (c.Path.BarrierOffset + 3.5f);
+                    float bottom = style.FarLevel - 0.5f;
+                    var rot = Quaternion.LookRotation(t);
+                    c.P(PrimitiveType.Cube, new Vector3(q.x, (h + bottom) * 0.5f, q.z), new Vector3(7f, h - bottom, 5.6f), stone, rot);
+                    c.P(PrimitiveType.Cube, new Vector3(q.x, h + 0.15f, q.z) + r * side * 3.3f, new Vector3(0.8f, 0.3f, 5.6f), stoneDark, rot, false);
+                    if (Mathf.Repeat(s, 15f) < 5f)
+                        c.P(PrimitiveType.Cylinder, new Vector3(q.x, h + 0.5f, q.z) + r * side * 2.7f, new Vector3(0.45f, 0.35f, 0.45f), bollard, null, false);
+                }
+            }
+
+            // Barques de pêche amarrées près du quai, voiliers plus au large.
+            c.Scatter(26, 20f, 55f, (p, d) =>
+            {
+                if (c.Ground(p.x, p.z) > water - 1f) return;
+                var rot = c.Yaw();
+                var b = new Vector3(p.x, water, p.z);
+                // Barque : coque colorée haute sur l'eau, liseré encre, pont en bois, étrave relevée, parfois un abri.
+                var hull = c.Pick(hulls);
+                c.P(PrimitiveType.Cube, b + Vector3.up * 0.45f, new Vector3(2.2f, 1.1f, 5.4f), hull, rot);
+                c.P(PrimitiveType.Cube, b + Vector3.up * 0.02f, new Vector3(2.25f, 0.18f, 5.45f), waterline, rot, false);
+                c.P(PrimitiveType.Cube, b + Vector3.up * 0.96f, new Vector3(1.8f, 0.06f, 5f), deck, rot, false);
+                c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 0.75f, 2.9f), new Vector3(1.3f, 1.2f, 0.9f), hull, rot * Quaternion.Euler(-20f, 0f, 0f));
+                if (c.Chance(0.55)) c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 1.6f, -0.9f), new Vector3(1.4f, 1.2f, 1.5f), cabin, rot);
+                else c.P(PrimitiveType.Cylinder, b + rot * new Vector3(0f, 2.6f, 0.8f), new Vector3(0.12f, 1.8f, 0.12f), mast, rot, false);
+            });
+            c.Scatter(12, 60f, 230f, (p, d) =>
+            {
+                if (c.Ground(p.x, p.z) > water - 1f) return;
+                var rot = c.Yaw();
+                var b = new Vector3(p.x, water, p.z);
+                c.P(PrimitiveType.Cube, b + Vector3.up * 0.3f, new Vector3(2.4f, 1f, 7f), c.Pick(hulls), rot);
+                c.P(PrimitiveType.Cylinder, b + Vector3.up * 4.5f, new Vector3(0.15f, 4f, 0.15f), mast, rot, false);
+                c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 4.5f, -1.5f), new Vector3(0.05f, 6f, 3f), sail, rot, false);
+            });
+
+            // Jetée au sud-est, en mer : phare rayé au bout, grue de port au milieu.
+            var moleFrom = new Vector3(c.Center.x + 40f, 0f, c.Min.z - 50f);
+            var moleDir = new Vector3(1f, 0f, -0.45f).normalized;
+            const float moleLen = 150f;
+            var moleRot = Quaternion.LookRotation(moleDir);
+            var moleMid = moleFrom + moleDir * moleLen * 0.5f;
+            c.P(PrimitiveType.Cube, new Vector3(moleMid.x, (1.2f + style.FarLevel) * 0.5f, moleMid.z), new Vector3(9f, 1.2f - style.FarLevel, moleLen), stone, moleRot);
+            for (int k = 0; k < 14; k++)
+            {
+                var rp = moleFrom + moleDir * c.R(0f, moleLen) + moleRot * Vector3.right * (c.Chance(0.5) ? 5f : -5f);
+                float rs = c.R(2f, 3.5f);
+                c.P(PrimitiveType.Sphere, new Vector3(rp.x, water, rp.z), new Vector3(rs * 1.3f, rs, rs), rock, c.Yaw(), false);
+            }
+            var tip = moleFrom + moleDir * (moleLen - 6f);
+            Lighthouse(c, new Vector3(tip.x, 1.2f, tip.z));
+            Crane(c, moleFrom + moleDir * moleLen * 0.4f + Vector3.up * 1.2f, moleRot * Quaternion.Euler(0f, -70f, 0f));
+
+            // Maisons sur la colline, tournées vers la piste.
+            c.Scatter(170, 18f, 125f, (p, d) =>
+            {
+                if (p.y < 2f) return;
+                c.Path.FlatDistance(p, out int near);
+                var toward = c.Path.Points[near] - p;
+                toward.y = 0f;
+                var rot = Quaternion.LookRotation(toward.sqrMagnitude > 1f ? toward : Vector3.forward);
+                float w = c.R(6f, 10f), dd = c.R(6f, 9f), h = c.R(5.5f, 11f);
+                House(c, p - Vector3.up * 1.5f, rot, w, dd, h + 1.5f, c.Pick(walls), tiles, c.Pick(shutters), door);
+            });
+
+            // Cyprès, pins parasols et oliviers entre les maisons.
+            c.Scatter(160, 16f, 170f, (p, d) =>
+            {
+                if (p.y < 1.5f) return;
+                float s = c.R(0.8f, 1.4f);
+                double kind = c.Rng.NextDouble();
+                if (kind < 0.45)
+                {
+                    c.P(PrimitiveType.Capsule, p + Vector3.up * 4.2f * s, new Vector3(1.7f, 3.8f, 1.7f) * s, cypress);
+                    c.S(MeshKit.Cone, p + Vector3.up * 7.2f * s, new Vector3(1.5f, 2.4f, 1.5f) * s, cypress, null, false);
+                }
+                else if (kind < 0.75)
+                {
+                    c.P(PrimitiveType.Cylinder, p + Vector3.up * 2.6f * s, new Vector3(0.45f, 2.6f, 0.45f) * s, trunk);
+                    c.P(PrimitiveType.Sphere, p + Vector3.up * 5.6f * s, new Vector3(6.4f, 2.4f, 5.8f) * s, pine);
+                    c.P(PrimitiveType.Sphere, p + new Vector3(1.2f, 6.3f, 0.6f) * s, new Vector3(4f, 1.8f, 3.6f) * s, pine);
+                }
+                else
+                {
+                    c.P(PrimitiveType.Cylinder, p + Vector3.up * 0.9f * s, new Vector3(0.6f, 0.9f, 0.6f) * s, trunk);
+                    c.P(PrimitiveType.Sphere, p + Vector3.up * 2.6f * s, new Vector3(3.2f, 2.2f, 3f) * s, olive);
+                }
+            });
+
+            // Filets et caisses sur la terre, au bord du quai.
+            c.Scatter(22, 15f, 28f, (p, d) =>
+            {
+                if (p.y < 0.5f || p.y > 4f) return; // terre basse : le quai et le bas de l'estacade
+                if (c.Chance(0.5))
+                {
+                    c.S(MeshKit.Hemisphere, p, new Vector3(2.4f, 0.9f, 2f), net, c.Yaw(), false);
+                    c.P(PrimitiveType.Sphere, p + Vector3.up * 0.5f, Vector3.one * 0.35f, hulls[2], null, false);
+                }
+                else
+                    for (int k = 0; k < 3; k++)
+                        c.P(PrimitiveType.Cube, p + new Vector3(c.R(-0.8f, 0.8f), 0.35f + k * 0.7f, c.R(-0.8f, 0.8f)), Vector3.one * 0.7f, crate, c.Yaw(), false);
+            });
+
+            // Collines au nord derrière la ville, îlots rocheux au sud.
+            c.Ring(22, 330f, 470f, p =>
+            {
+                if (p.z > c.Center.z - 40f)
+                    c.S(MeshKit.Hemisphere, new Vector3(p.x, style.FarLevel, p.z), new Vector3(c.R(140f, 220f), c.R(70f, 120f), c.R(110f, 170f)), hill, null, false);
+                else if (c.Chance(0.4))
+                    c.S(MeshKit.Hemisphere, new Vector3(p.x, style.FarLevel, p.z), new Vector3(c.R(30f, 60f), c.R(16f, 26f), c.R(24f, 44f)), rock, null, false);
+            });
+        }
+
+        /// <summary>Maison de port : murs, toit de tuiles à deux pans, porte et deux paires de volets en façade.</summary>
+        static void House(DecorContext c, Vector3 p, Quaternion rot, float w, float d, float h, Material wall, Material roof, Material shutter, Material door)
+        {
+            c.P(PrimitiveType.Cube, p + Vector3.up * h * 0.5f, new Vector3(w, h, d), wall, rot);
+            c.S(MeshKit.Wedge, p + Vector3.up * h, new Vector3(w * 1.06f, d * 0.3f, d * 1.08f), roof, rot);
+            var front = rot * Vector3.forward * (d * 0.5f + 0.05f);
+            c.P(PrimitiveType.Cube, p + front + Vector3.up * 1.1f, new Vector3(1.1f, 2.2f, 0.1f), door, rot, false);
+            for (float y = 3.4f; y < h - 1f; y += 2.8f)
+                foreach (float x in new[] { -w * 0.28f, w * 0.28f })
+                    c.P(PrimitiveType.Cube, p + front + rot * new Vector3(x, y, 0f), new Vector3(1.3f, 1.5f, 0.12f), shutter, rot, false);
+        }
+
+        /// <summary>Phare : tour crème à bandes vermillon, galerie, lanterne ocre allumée, coiffe encre.</summary>
+        static void Lighthouse(DecorContext c, Vector3 b)
+        {
+            var white = Mats.Lit(Cream, 0.1f);
+            var band = Mats.Lit(Vermilion, 0.1f);
+            var ink = Mats.Lit(Ink, 0.3f);
+            var light = Mats.Emissive(Ochre, Ochre * 2.5f);
+            c.P(PrimitiveType.Cylinder, b + Vector3.up * 1f, new Vector3(6f, 1f, 6f), Mats.Lit(new Color(0.78f, 0.7f, 0.56f), 0.08f));
+            for (int k = 0; k < 5; k++)
+                c.P(PrimitiveType.Cylinder, b + Vector3.up * (3.6f + k * 3.6f), new Vector3(3.6f - k * 0.2f, 1.8f, 3.6f - k * 0.2f), k % 2 == 0 ? white : band);
+            c.P(PrimitiveType.Cylinder, b + Vector3.up * 21.2f, new Vector3(4f, 0.2f, 4f), ink, null, false);
+            c.P(PrimitiveType.Cylinder, b + Vector3.up * 22.6f, new Vector3(2f, 1.2f, 2f), light, null, false);
+            c.S(MeshKit.Cone, b + Vector3.up * 23.8f, new Vector3(2.8f, 1.8f, 2.8f), ink, null, false);
+        }
+
+        /// <summary>Grue de port : portique sur quatre pieds, cabine, flèche en treillis simplifié.</summary>
+        static void Crane(DecorContext c, Vector3 b, Quaternion rot)
+        {
+            var body = Mats.Lit(Ochre, 0.25f);
+            var ink = Mats.Lit(Ink, 0.3f);
+            foreach (float x in new[] { -2.5f, 2.5f })
+            foreach (float z in new[] { -2.5f, 2.5f })
+                c.P(PrimitiveType.Cube, b + rot * new Vector3(x, 5f, z), new Vector3(0.6f, 10f, 0.6f), body, rot);
+            c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 10.5f, 0f), new Vector3(6f, 1f, 6f), body, rot);
+            c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 12.5f, 0f), new Vector3(3f, 3f, 3.5f), ink, rot);
+            var boom = rot * Quaternion.Euler(-28f, 0f, 0f);
+            c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 12f, 0f) + boom * new Vector3(0f, 0f, 9f), new Vector3(0.9f, 0.9f, 18f), body, boom);
+            c.P(PrimitiveType.Cube, b + rot * new Vector3(0f, 14f, -3f), new Vector3(2f, 1.5f, 2f), ink, rot, false);
         }
     }
 }

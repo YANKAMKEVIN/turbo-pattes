@@ -7,7 +7,7 @@ namespace TurboPattes.Game.Visuals
     /// <summary>Formes simples construites par code, et raccourcis pour poser des primitives.</summary>
     public static class MeshKit
     {
-        static Mesh _cone, _hemisphere;
+        static Mesh _cone, _hemisphere, _wedge;
 
         /// <summary>Primitive Unity sans collider, enfant de <paramref name="parent"/>.</summary>
         public static GameObject Prim(PrimitiveType type, Transform parent, Vector3 localPos, Vector3 scale, Material mat,
@@ -88,6 +88,26 @@ namespace TurboPattes.Game.Visuals
                 _cone.RecalculateNormals();
                 _cone.RecalculateBounds();
                 return _cone;
+            }
+        }
+
+        /// <summary>Prisme triangulaire (toit à deux pans) : base 1 × 1 en y = 0, faîte de hauteur 1 le long de x.</summary>
+        public static Mesh Wedge
+        {
+            get
+            {
+                if (_wedge != null) return _wedge;
+                Vector3 a = new(-0.5f, 0, -0.5f), b = new(0.5f, 0, -0.5f), c = new(0.5f, 0, 0.5f), d = new(-0.5f, 0, 0.5f);
+                Vector3 e = new(-0.5f, 1, 0), f = new(0.5f, 1, 0);
+                // Sommets non partagés entre faces : arêtes franches.
+                var v = new List<Vector3> { a, e, f, b, d, c, f, e, a, d, e, b, f, c, a, b, c, d };
+                var t = new List<int> { 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 14, 16, 17 };
+                _wedge = new Mesh { name = "Wedge" };
+                _wedge.SetVertices(v);
+                _wedge.SetTriangles(t, 0);
+                _wedge.RecalculateNormals();
+                _wedge.RecalculateBounds();
+                return _wedge;
             }
         }
 

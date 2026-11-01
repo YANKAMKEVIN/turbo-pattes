@@ -264,7 +264,7 @@ namespace TurboPattes.Tests
         [Test]
         public void Circuits_UnMorceauDifferentChacun()
         {
-            Assert.That(Songs.Circuits.Length, Is.EqualTo(10));
+            Assert.That(Songs.Circuits.Length, Is.EqualTo(11));
             var names = new System.Collections.Generic.HashSet<string>();
             var melodies = new System.Collections.Generic.HashSet<string>();
             var styles = new System.Collections.Generic.HashSet<SongStyle>();
@@ -276,7 +276,7 @@ namespace TurboPattes.Tests
                 Assert.That(song.Bpm, Is.InRange(115f, 170f), song.Name);
                 Assert.That(song.Style, Is.Not.EqualTo(SongStyle.Calm), song.Name + " : accompagnement de menu");
             }
-            Assert.That(styles.Count, Is.EqualTo(10), "un accompagnement propre à chaque circuit");
+            Assert.That(styles.Count, Is.EqualTo(11), "un accompagnement propre à chaque circuit");
             Assert.That(Songs.ForCircuit(0), Is.SameAs(Songs.Race));
             Assert.That(Songs.ForCircuit(9), Is.SameAs(Songs.City));
             Assert.That(Songs.ForCircuit(42), Is.SameAs(Songs.Race));
