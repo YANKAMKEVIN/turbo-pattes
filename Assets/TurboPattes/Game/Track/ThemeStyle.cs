@@ -9,14 +9,15 @@ namespace TurboPattes.Game.Track
         public float SunIntensity = 1.35f;
         public Vector3 SunAngles = new(48f, -35f, 0f);
         public Color AmbientSky = new(0.62f, 0.75f, 0.95f), AmbientEquator = new(0.62f, 0.7f, 0.62f), AmbientGround = new(0.35f, 0.42f, 0.3f);
-        public Color Fog = new(0.72f, 0.84f, 0.97f);
+        public Color Fog = new(0.82f, 0.86f, 0.86f);
         public float FogStart = 160f, FogEnd = 520f;
         /// <summary>Ciel procédural : teinte, sol, exposition, épaisseur d'atmosphère.</summary>
-        public Color SkyTint = new(0.5f, 0.5f, 0.5f), SkyGround = new(0.37f, 0.35f, 0.34f);
+        public Color SkyTint = new(0.52f, 0.52f, 0.5f), SkyGround = new(0.42f, 0.4f, 0.36f);
         public float SkyExposure = 1.3f, SkyAtmosphere = 1f;
         /// <summary>Teinte appliquée à la texture neutre du sol (terrain en relief).</summary>
         public Color GroundTint = Color.white;
-        public Color BarrierA = new(0.18f, 0.45f, 0.95f), BarrierB = new(0.97f, 0.97f, 0.97f), BarrierTop = new(1f, 0.82f, 0.2f);
+        // Murets aux couleurs de l'atelier par défaut : sarcelle et crème, lisse ocre.
+        public Color BarrierA = new(0.235f, 0.561f, 0.569f), BarrierB = new(0.949f, 0.906f, 0.808f), BarrierTop = new(0.914f, 0.725f, 0.286f);
         public Color RoadTint = Color.white;
         /// <summary>Sol loin de la piste (sous l'eau pour le lagon), distances du fondu, amplitude des dunes.</summary>
         public float FarLevel, FarFrom = 50f, FarTo = 140f, Dunes = 2.6f;

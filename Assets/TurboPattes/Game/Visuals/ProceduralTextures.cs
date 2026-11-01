@@ -98,9 +98,9 @@ namespace TurboPattes.Game.Visuals
                 {
                     float n = Hash(x, y) * 0.08f + Hash(x / 4, y / 4) * 0.06f;
                     float g = 0.36f + n;
-                    var c = new Color(g, g, g * 1.04f, 1);
+                    var c = new Color(g * 0.92f, g, g * 0.97f, 1); // gris d'encre légèrement vert, comme la palette
                     float u = (x + 0.5f) / w;
-                    if ((u > 0.035f && u < 0.06f) || (u > 0.94f && u < 0.965f)) c = new Color(0.95f, 0.95f, 0.92f);
+                    if ((u > 0.035f && u < 0.06f) || (u > 0.94f && u < 0.965f)) c = new Color(0.93f, 0.89f, 0.79f);
                     if (u > 0.49f && u < 0.51f && (y % 128) < 64) c = new Color(0.93f, 0.9f, 0.75f);
                     _asphalt.SetPixel(x, y, c);
                 }
@@ -119,7 +119,7 @@ namespace TurboPattes.Game.Visuals
                 _curb = New("Curb", w, h);
                 for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
-                    _curb.SetPixel(x, y, y < h / 2 ? new Color(0.92f, 0.16f, 0.18f) : new Color(0.97f, 0.97f, 0.97f));
+                    _curb.SetPixel(x, y, y < h / 2 ? new Color(0.851f, 0.302f, 0.247f) : new Color(0.949f, 0.906f, 0.808f));
                 _curb.Apply();
                 return _curb;
             }
@@ -135,7 +135,7 @@ namespace TurboPattes.Game.Visuals
                 _checker.filterMode = FilterMode.Point;
                 for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
-                    _checker.SetPixel(x, y, ((x / 16 + y / 16) & 1) == 0 ? Color.white : new Color(0.08f, 0.08f, 0.1f));
+                    _checker.SetPixel(x, y, ((x / 16 + y / 16) & 1) == 0 ? new Color(0.949f, 0.906f, 0.808f) : new Color(0.141f, 0.188f, 0.176f));
                 _checker.Apply();
                 return _checker;
             }
@@ -154,7 +154,7 @@ namespace TurboPattes.Game.Visuals
                     float v = Hash(x, y) * 0.07f + Hash(x / 8, y / 8) * 0.08f;
                     bool stripe = ((x + y) / 32 & 1) == 0;
                     float s = stripe ? 0.03f : 0f;
-                    _grass.SetPixel(x, y, new Color(0.30f + v + s, 0.66f + v + s, 0.22f + v * 0.5f, 1));
+                    _grass.SetPixel(x, y, new Color(0.5f + v + s, 0.55f + v + s, 0.32f + v * 0.5f, 1));
                 }
                 _grass.Apply();
                 return _grass;
@@ -176,7 +176,7 @@ namespace TurboPattes.Game.Visuals
                     float v = (y + 0.5f) / h;
                     float band = Mathf.Repeat(v - u * 0.9f, 0.5f);
                     bool on = band < 0.22f;
-                    _chevrons.SetPixel(x, y, on ? new Color(1f, 0.95f, 0.35f) : new Color(1f, 0.45f, 0.1f));
+                    _chevrons.SetPixel(x, y, on ? new Color(0.949f, 0.906f, 0.808f) : new Color(0.851f, 0.302f, 0.247f));
                 }
                 _chevrons.Apply();
                 return _chevrons;
@@ -259,9 +259,11 @@ namespace TurboPattes.Game.Visuals
             if (Barriers.TryGetValue((a, b, top), out var t)) return t;
             const int w = 64, h = 16;
             t = New("Barrier", w, h);
+            // Le texturé ne passe que la teinte à l'étalonnage : on étalonne ici les couleurs du muret.
+            Color ga = Mats.Grade(a), gb = Mats.Grade(b), gt = Mats.Grade(top);
             for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
-                t.SetPixel(x, y, y >= h - 3 ? top : (x / 16 & 1) == 0 ? a : b);
+                t.SetPixel(x, y, y >= h - 3 ? gt : (x / 16 & 1) == 0 ? ga : gb);
             t.Apply();
             Barriers[(a, b, top)] = t;
             return t;

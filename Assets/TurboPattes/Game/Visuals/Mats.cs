@@ -45,12 +45,29 @@ namespace TurboPattes.Game.Visuals
             return m;
         }
 
+        /// <summary>
+        /// Étalonnage « Atelier plein gaz » appliqué à toutes les matières : saturation plafonnée, blancs ramenés vers le
+        /// crème, léger voile papier. Les couleurs vives des décors d'origine passent ainsi dans la gamme d'une affiche peinte.
+        /// </summary>
+        public static Color Grade(Color c)
+        {
+            Color.RGBToHSV(c, out float h, out float s, out float v);
+            s = Mathf.Min(s * 0.88f, 0.8f);
+            v = Mathf.Min(v, 0.95f);
+            var g = Color.HSVToRGB(h, s, v);
+            g = Color.Lerp(g, Paper, 0.07f);
+            g.a = c.a;
+            return g;
+        }
+
+        static readonly Color Paper = new(0.949f, 0.906f, 0.808f);
+
         public static Material Lit(Color color, float smoothness = 0.1f, float metallic = 0f)
         {
             var key = (color, smoothness, metallic);
             if (LitCache.TryGetValue(key, out var m)) return m;
             m = new Material(Template(LitTemplate, "Universal Render Pipeline/Lit")) { name = "Lit" };
-            m.SetColor(BaseColorId, color);
+            m.SetColor(BaseColorId, Grade(color));
             m.SetFloat(SmoothnessId, smoothness);
             m.SetFloat(MetallicId, metallic);
             m.enableInstancing = true;
@@ -65,7 +82,7 @@ namespace TurboPattes.Game.Visuals
             m.SetTexture(BaseMapId, texture);
             m.SetTextureScale(BaseMapId, tiling);
             m.mainTextureScale = tiling;
-            m.SetColor(BaseColorId, tint);
+            m.SetColor(BaseColorId, Grade(tint));
             m.SetFloat(SmoothnessId, smoothness);
             m.SetFloat(MetallicId, 0f);
             return m;

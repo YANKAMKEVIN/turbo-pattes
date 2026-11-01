@@ -180,12 +180,12 @@ namespace TurboPattes.Game.Track
             arch.SetParent(root, false);
             arch.SetPositionAndRotation(p, rot);
             float x = path.HalfWidth + 2.2f;
-            var pillar = Mats.Lit(new Color(0.95f, 0.45f, 0.15f), 0.4f);
+            var pillar = Mats.Lit(new Color(0.851f, 0.302f, 0.247f), 0.3f);
             MeshKit.Prim(PrimitiveType.Cylinder, arch, new Vector3(-x, 3.5f, 0), new Vector3(1f, 3.5f, 1f), pillar);
             MeshKit.Prim(PrimitiveType.Cylinder, arch, new Vector3(x, 3.5f, 0), new Vector3(1f, 3.5f, 1f), pillar);
             MeshKit.Prim(PrimitiveType.Cube, arch, new Vector3(0, 7.3f, 0), new Vector3(x * 2f + 1.5f, 1.8f, 0.5f),
                 Mats.Textured(ProceduralTextures.Checker, Color.white, new Vector2(10f, 1f), 0.3f));
-            var gold = Mats.Lit(new Color(1f, 0.8f, 0.25f), 0.7f, 0.6f);
+            var gold = Mats.Lit(new Color(0.914f, 0.725f, 0.286f), 0.5f, 0.4f);
             foreach (float px in new[] { -x * 0.5f, x * 0.5f })
                 PawSign(arch, new Vector3(px, 7.3f, -0.4f), 1.1f, gold);
         }
@@ -208,7 +208,7 @@ namespace TurboPattes.Game.Track
         static List<BoostPad> BuildBoostPads(Circuit circuit, TrackPath path, Transform root)
         {
             var pads = new List<BoostPad>();
-            var mat = Mats.NewEmissive(Color.white, new Color(1f, 0.55f, 0.1f) * 1.2f);
+            var mat = Mats.NewEmissive(Color.white, new Color(0.914f, 0.6f, 0.22f) * 1.2f);
             mat.SetTexture("_BaseMap", ProceduralTextures.Chevrons);
             mat.SetTexture("_EmissionMap", ProceduralTextures.Chevrons);
             mat.SetTextureScale("_BaseMap", new Vector2(1f, 2f));
@@ -232,16 +232,14 @@ namespace TurboPattes.Game.Track
             decor.SetParent(root, false);
             var c = Center(path);
 
-            var trunk = Mats.Lit(new Color(0.48f, 0.3f, 0.18f), 0.1f);
-            Material[] leaves =
-            {
-                Mats.Lit(new Color(0.22f, 0.62f, 0.25f), 0.15f),
-                Mats.Lit(new Color(0.35f, 0.72f, 0.2f), 0.15f),
-                Mats.Lit(new Color(0.15f, 0.5f, 0.3f), 0.15f),
-            };
+            // Végétation méditerranéenne : cyprès, pins parasols et oliviers, verts sourds.
+            var trunk = Mats.Lit(new Color(0.42f, 0.3f, 0.22f), 0.1f);
+            var cypress = Mats.Lit(new Color(0.2f, 0.33f, 0.24f), 0.1f);
+            var pine = Mats.Lit(new Color(0.3f, 0.43f, 0.27f), 0.1f);
+            var olive = Mats.Lit(new Color(0.52f, 0.58f, 0.42f), 0.1f);
             Material[] flowers =
             {
-                Mats.Lit(new Color(1f, 0.4f, 0.55f)), Mats.Lit(new Color(1f, 0.85f, 0.2f)), Mats.Lit(new Color(0.7f, 0.5f, 1f)),
+                Mats.Lit(new Color(0.851f, 0.302f, 0.247f)), Mats.Lit(new Color(0.914f, 0.725f, 0.286f)), Mats.Lit(new Color(0.55f, 0.48f, 0.72f)),
             };
 
             int placed = 0;
@@ -255,24 +253,32 @@ namespace TurboPattes.Game.Track
                 var tree = new GameObject("Tree").transform;
                 tree.SetParent(decor, false);
                 tree.localPosition = pos;
-                float s = Rand(rng, 0.8f, 1.5f);
+                float s = Rand(rng, 0.8f, 1.4f);
                 tree.localScale = Vector3.one * s;
-                if (rng.NextDouble() < 0.5)
+                double kind = rng.NextDouble();
+                if (kind < 0.42)
                 {
-                    // Arbre rond
-                    MeshKit.Prim(PrimitiveType.Cylinder, tree, new Vector3(0, 1.2f, 0), new Vector3(0.6f, 1.2f, 0.6f), trunk);
-                    var leaf = leaves[rng.Next(leaves.Length)];
-                    MeshKit.Prim(PrimitiveType.Sphere, tree, new Vector3(0, 3.6f, 0), new Vector3(3.6f, 3.2f, 3.6f), leaf);
-                    MeshKit.Prim(PrimitiveType.Sphere, tree, new Vector3(0.8f, 4.6f, 0.3f), new Vector3(2.2f, 2f, 2.2f), leaf);
+                    // Cyprès : fuseau sombre et élancé.
+                    MeshKit.Prim(PrimitiveType.Cylinder, tree, new Vector3(0, 0.5f, 0), new Vector3(0.45f, 0.5f, 0.45f), trunk);
+                    MeshKit.Prim(PrimitiveType.Capsule, tree, new Vector3(0, 4.2f, 0), new Vector3(1.7f, 3.8f, 1.7f), cypress);
+                    MeshKit.Shape(MeshKit.Cone, tree, new Vector3(0, 7.2f, 0), new Vector3(1.5f, 2.4f, 1.5f), cypress);
+                }
+                else if (kind < 0.72)
+                {
+                    // Pin parasol : tronc haut et penché, couronne plate.
+                    float lean = Rand(rng, -0.5f, 0.5f);
+                    var t = MeshKit.Prim(PrimitiveType.Cylinder, tree, new Vector3(lean * 0.5f, 2.6f, 0), new Vector3(0.45f, 2.6f, 0.45f), trunk);
+                    t.transform.localRotation = Quaternion.Euler(0, 0, -lean * 12f);
+                    MeshKit.Prim(PrimitiveType.Sphere, tree, new Vector3(lean, 5.6f, 0), new Vector3(6f, 1.7f, 5.4f), pine);
+                    MeshKit.Prim(PrimitiveType.Sphere, tree, new Vector3(lean + 1.2f, 6.2f, 0.6f), new Vector3(3.6f, 1.2f, 3.4f), pine);
                 }
                 else
                 {
-                    // Sapin
-                    MeshKit.Prim(PrimitiveType.Cylinder, tree, new Vector3(0, 0.6f, 0), new Vector3(0.5f, 0.6f, 0.5f), trunk);
-                    var leaf = leaves[2];
-                    MeshKit.Shape(MeshKit.Cone, tree, new Vector3(0, 1f, 0), new Vector3(3.6f, 3.2f, 3.6f), leaf);
-                    MeshKit.Shape(MeshKit.Cone, tree, new Vector3(0, 2.8f, 0), new Vector3(2.8f, 2.8f, 2.8f), leaf);
-                    MeshKit.Shape(MeshKit.Cone, tree, new Vector3(0, 4.4f, 0), new Vector3(1.9f, 2.4f, 1.9f), leaf);
+                    // Olivier : tronc court, feuillage gris-vert en touffes.
+                    MeshKit.Prim(PrimitiveType.Cylinder, tree, new Vector3(0, 0.9f, 0), new Vector3(0.6f, 0.9f, 0.6f), trunk);
+                    MeshKit.Prim(PrimitiveType.Sphere, tree, new Vector3(0, 2.6f, 0), new Vector3(3.2f, 2.2f, 3f), olive);
+                    MeshKit.Prim(PrimitiveType.Sphere, tree, new Vector3(1.1f, 2.9f, 0.5f), new Vector3(2f, 1.6f, 2f), olive);
+                    MeshKit.Prim(PrimitiveType.Sphere, tree, new Vector3(-1f, 2.8f, -0.4f), new Vector3(1.8f, 1.5f, 1.8f), olive);
                 }
             }
 
@@ -289,8 +295,8 @@ namespace TurboPattes.Game.Track
             }
 
             // Collines au loin.
-            var hill = Mats.Lit(new Color(0.36f, 0.68f, 0.32f), 0.05f);
-            var hill2 = Mats.Lit(new Color(0.28f, 0.58f, 0.36f), 0.05f);
+            var hill = Mats.Lit(new Color(0.5f, 0.6f, 0.42f), 0.05f);
+            var hill2 = Mats.Lit(new Color(0.62f, 0.62f, 0.5f), 0.05f);
             for (int k = 0; k < 18; k++)
             {
                 float a = k / 18f * Mathf.PI * 2f + Rand(rng, -0.1f, 0.1f);
@@ -328,12 +334,12 @@ namespace TurboPattes.Game.Track
             var stand = new GameObject("Grandstand").transform;
             stand.SetParent(parent, false);
             stand.SetPositionAndRotation(p - r * (path.BarrierOffset + 3f), Quaternion.LookRotation(t));
-            var concrete = Mats.Lit(new Color(0.85f, 0.85f, 0.9f), 0.2f);
-            var roof = Mats.Lit(new Color(0.95f, 0.3f, 0.3f), 0.4f);
+            var concrete = Mats.Lit(new Color(0.88f, 0.84f, 0.75f), 0.15f);
+            var roof = Mats.Lit(new Color(0.235f, 0.561f, 0.569f), 0.3f);
             Material[] crowd =
             {
-                Mats.Lit(new Color(1f, 0.5f, 0.2f)), Mats.Lit(new Color(0.3f, 0.6f, 1f)), Mats.Lit(new Color(1f, 0.85f, 0.3f)),
-                Mats.Lit(new Color(0.5f, 0.85f, 0.4f)), Mats.Lit(new Color(0.9f, 0.4f, 0.8f)), Mats.Lit(new Color(1f, 1f, 1f)),
+                Mats.Lit(new Color(0.851f, 0.302f, 0.247f)), Mats.Lit(new Color(0.235f, 0.561f, 0.569f)), Mats.Lit(new Color(0.914f, 0.725f, 0.286f)),
+                Mats.Lit(new Color(0.141f, 0.188f, 0.176f)), Mats.Lit(new Color(0.42f, 0.31f, 0.44f)), Mats.Lit(new Color(0.949f, 0.906f, 0.808f)),
             };
             const float len = 40f;
             for (int step = 0; step < 5; step++)
