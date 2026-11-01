@@ -24,9 +24,6 @@ namespace TurboPattes.Game.UI
         /// <summary>Le joueur a choisi un autre circuit : l'application reconstruit la piste puis appelle <see cref="SetTrack"/>.</summary>
         public Action<int> CircuitChanged;
 
-        static readonly string[] Species =
-            { "la renarde", "le panda", "la grenouille", "la lapine", "l'ours", "la chatte", "le pingouin", "la cochonne" };
-
         readonly UiKit _ui = new();
         Screen _screen;
         Row _row = Row.Start;
@@ -77,8 +74,8 @@ namespace TurboPattes.Game.UI
         {
             _stage = new GameObject("MenuStage").transform;
             _stage.SetParent(transform, false);
-            MeshKit.Prim(PrimitiveType.Cylinder, _stage, new Vector3(0f, 0.05f, 0f), new Vector3(5.2f, 0.05f, 5.2f), Mats.Lit(new Color(1f, 0.85f, 0.3f)));
-            MeshKit.Prim(PrimitiveType.Cylinder, _stage, new Vector3(0f, 0.08f, 0f), new Vector3(4.6f, 0.05f, 4.6f), Mats.Lit(new Color(0.2f, 0.25f, 0.4f)));
+            MeshKit.Prim(PrimitiveType.Cylinder, _stage, new Vector3(0f, 0.05f, 0f), new Vector3(5.2f, 0.05f, 5.2f), Mats.Lit(UiKit.Vermilion));
+            MeshKit.Prim(PrimitiveType.Cylinder, _stage, new Vector3(0f, 0.08f, 0f), new Vector3(4.6f, 0.05f, 4.6f), Mats.Lit(UiKit.Charcoal));
             _turntable = new GameObject("Turntable").transform;
             _turntable.SetParent(_stage, false);
             _turntable.localPosition = new Vector3(0f, 0.13f, 0f);
@@ -113,41 +110,41 @@ namespace TurboPattes.Game.UI
             var safe = new Rect(sa.xMin + 24 * s, h - sa.yMax + 16 * s, sa.width - 48 * s, sa.height - 32 * s);
             var l = new Layout { S = s, Safe = safe };
             float cx = safe.center.x;
-            l.PlayButton = new Rect(cx - 170 * s, safe.y + safe.height * 0.66f, 340 * s, 86 * s);
-            l.Back = new Rect(safe.x, safe.y, 150 * s, 54 * s);
+            l.PlayButton = new Rect(cx - 180 * s, safe.y + safe.height * 0.68f, 360 * s, 84 * s);
+            l.Back = new Rect(safe.x, safe.y, 160 * s, 52 * s);
 
-            // Cartes des pilotes, en bas.
+            // Plaques des pilotes (numéro + nom), en bas à gauche.
             int n = AnimalSpec.Roster.Length;
-            float cardW = Mathf.Min(118 * s, (safe.width - 360 * s) / n - 10 * s), gap = 10 * s;
+            float panelW = 330 * s;
+            float gap = 10 * s, cardW = Mathf.Min(122 * s, (safe.width - panelW - 40 * s) / n - gap);
             float rowW = n * cardW + (n - 1) * gap;
-            float x0 = safe.x + (safe.width - 330 * s - rowW) * 0.5f;
+            float x0 = safe.x;
             l.Cards = new Rect[n];
-            for (int i = 0; i < n; i++) l.Cards[i] = new Rect(x0 + i * (cardW + gap), safe.yMax - 104 * s, cardW, 104 * s);
+            for (int i = 0; i < n; i++) l.Cards[i] = new Rect(x0 + i * (cardW + gap), safe.yMax - 78 * s, cardW, 78 * s);
 
             // Flèches de part et d'autre du kart (centre de la zone libre).
-            float midX = x0 + rowW * 0.5f, midY = safe.y + safe.height * 0.45f;
-            l.Prev = new Rect(midX - 290 * s, midY - 40 * s, 80 * s, 80 * s);
-            l.Next = new Rect(midX + 210 * s, midY - 40 * s, 80 * s, 80 * s);
+            float midX = x0 + rowW * 0.5f, midY = safe.y + safe.height * 0.47f;
+            l.Prev = new Rect(midX - 300 * s, midY - 36 * s, 76 * s, 72 * s);
+            l.Next = new Rect(midX + 224 * s, midY - 36 * s, 76 * s, 72 * s);
 
-            // Panneau de réglages à droite.
-            float px = safe.xMax - 310 * s, pw = 310 * s;
-            // Sélecteur de circuit : flèche précédente, nom (touche = suivant), flèche suivante.
-            float aw = 56 * s;
+            // Fiche « Ta course » à droite.
+            float px = safe.xMax - panelW, pw = panelW;
+            float aw = 54 * s;
             l.CircuitButtons = new[]
             {
-                new Rect(px, safe.y + 130 * s, aw, 56 * s),
-                new Rect(px + aw + 8 * s, safe.y + 130 * s, pw - 2 * (aw + 8 * s), 56 * s),
-                new Rect(px + pw - aw, safe.y + 130 * s, aw, 56 * s),
+                new Rect(px + 16 * s, safe.y + 156 * s, aw, 52 * s),
+                new Rect(px + 16 * s + aw + 8 * s, safe.y + 156 * s, pw - 32 * s - 2 * (aw + 8 * s), 52 * s),
+                new Rect(px + pw - 16 * s - aw, safe.y + 156 * s, aw, 52 * s),
             };
             l.LapButtons = new Rect[3];
             l.DifficultyButtons = new Rect[3];
-            float bw = (pw - 2 * 8 * s) / 3f;
+            float bw = (pw - 32 * s - 2 * 8 * s) / 3f;
             for (int i = 0; i < 3; i++)
             {
-                l.LapButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 236 * s, bw, 56 * s);
-                l.DifficultyButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 342 * s, bw, 56 * s);
+                l.LapButtons[i] = new Rect(px + 16 * s + i * (bw + 8 * s), safe.y + 252 * s, bw, 52 * s);
+                l.DifficultyButtons[i] = new Rect(px + 16 * s + i * (bw + 8 * s), safe.y + 348 * s, bw, 52 * s);
             }
-            l.Go = new Rect(px, safe.yMax - 104 * s, pw, 104 * s);
+            l.Go = new Rect(px, safe.yMax - 90 * s, pw, 90 * s);
             return l;
         }
 
@@ -315,84 +312,93 @@ namespace TurboPattes.Game.UI
         {
             float s = l.S, w = UnityEngine.Screen.width, h = UnityEngine.Screen.height;
             float a = 1f - _camBlend * 2f;
-            UiKit.Box(new Rect(0, 0, w, h), new Color(0.05f, 0.1f, 0.25f, 0.25f * a));
+            UiKit.Box(new Rect(0, 0, w, h), new Color(0.06f, 0.08f, 0.07f, 0.3f * a));
 
-            // Logo qui se balance doucement.
-            var pivot = new Vector2(w * 0.5f, l.Safe.y + l.Safe.height * 0.3f);
-            var m = GUI.matrix;
-            GUIUtility.RotateAroundPivot(Mathf.Sin(Time.time * 1.3f) * 2.5f, pivot);
-            var logo = new GUIStyle(_ui.Huge) { fontSize = Mathf.RoundToInt(120 * s) };
-            _ui.Label(new Rect(0, pivot.y - 130 * s, w, 140 * s), "TURBO", logo, new Color(1f, 0.55f, 0.15f, a), TextAnchor.MiddleCenter, 6f);
-            _ui.Label(new Rect(0, pivot.y - 10 * s, w, 140 * s), "PATTES", logo, new Color(1f, 0.85f, 0.2f, a), TextAnchor.MiddleCenter, 6f);
-            GUI.matrix = m;
-            _ui.Label(new Rect(0, pivot.y + 120 * s, w, 40 * s), "Courses de karts à poils et à plumes", _ui.Medium,
-                new Color(1f, 1f, 1f, 0.95f * a), TextAnchor.MiddleCenter);
+            // Logo : capitales noires italiques, ombre franche, filets d'accent.
+            float cy = l.Safe.y + l.Safe.height * 0.3f;
+            var logo = new GUIStyle(_ui.Title) { fontSize = Mathf.RoundToInt(132 * s) };
+            var cream = UiKit.Cream; cream.a = a;
+            var ochre = UiKit.Ochre; ochre.a = a;
+            _ui.Label(new Rect(0, cy - 150 * s, w, 150 * s), "TURBO", logo, cream, TextAnchor.MiddleCenter, 9f);
+            _ui.Label(new Rect(0, cy - 26 * s, w, 150 * s), "PATTES", logo, ochre, TextAnchor.MiddleCenter, 9f);
+            float bar = 300 * s;
+            UiKit.Plate(new Rect(w * 0.5f - bar - 40 * s, cy - 18 * s, bar, 9 * s), new Color(UiKit.Vermilion.r, UiKit.Vermilion.g, UiKit.Vermilion.b, a), 6 * s);
+            UiKit.Plate(new Rect(w * 0.5f + 40 * s, cy - 18 * s, bar, 9 * s), new Color(UiKit.Vermilion.r, UiKit.Vermilion.g, UiKit.Vermilion.b, a), 6 * s);
+            var tag = new Rect(w * 0.5f - 230 * s, cy + 126 * s, 460 * s, 40 * s);
+            UiKit.Plate(tag, new Color(UiKit.Charcoal.r, UiKit.Charcoal.g, UiKit.Charcoal.b, 0.9f * a), 14 * s);
+            _ui.Label(tag, "CHAMPIONNAT DE KART · 8 PILOTES · 10 CIRCUITS", _ui.Tiny, cream, TextAnchor.MiddleCenter);
 
-            float pulse = 1f + Mathf.Sin(Time.time * 4f) * 0.03f;
-            var b = l.PlayButton;
-            var pb = new Rect(b.center.x - b.width * pulse * 0.5f, b.center.y - b.height * pulse * 0.5f, b.width * pulse, b.height * pulse);
-            _ui.Button(pb, "Jouer", new Color(1f, 0.5f, 0.15f, a), true, _ui.Big);
-            _ui.Label(new Rect(0, b.yMax + 18 * s, w, 30 * s), "Touche l'écran, Entrée ou A", _ui.Small,
-                new Color(1f, 1f, 1f, 0.75f * a), TextAnchor.MiddleCenter);
+            _ui.Button(l.PlayButton, "JOUER", UiKit.Kind.Primary, true, false, _ui.Big);
+            bool touch = Touchscreen.current != null;
+            _ui.Label(new Rect(0, l.PlayButton.yMax + 20 * s, w, 30 * s), touch ? "Touche l'écran pour commencer" : "Entrée ou bouton A pour commencer",
+                _ui.Small, cream, TextAnchor.MiddleCenter, 2f);
         }
 
         void DrawPilot(Layout l)
         {
             float s = l.S;
             var spec = AnimalSpec.Roster[_pilot];
-            var gold = new Color(1f, 0.85f, 0.25f);
 
-            _ui.Button(l.Back, "< Retour", new Color(0.2f, 0.25f, 0.4f, 0.85f), false, _ui.Small);
-            _ui.Label(new Rect(l.Back.xMax + 20 * s, l.Safe.y, 600 * s, 54 * s), "Choisis ton pilote", _ui.Medium, Color.white, TextAnchor.MiddleLeft);
+            _ui.Button(l.Back, "‹ RETOUR", UiKit.Kind.Dark, false, false, _ui.Small);
+            _ui.Stripes(new Vector2(l.Back.xMax + 26 * s, l.Safe.y + 8 * s), 36 * s, UiKit.Vermilion, UiKit.Ochre);
+            var head = new GUIStyle(_ui.Title) { fontSize = Mathf.RoundToInt(40 * s) };
+            _ui.Label(new Rect(l.Back.xMax + 70 * s, l.Safe.y - 4 * s, 600 * s, 60 * s), "CHOIX DU PILOTE", head, UiKit.Cream, TextAnchor.MiddleLeft, 4f);
 
-            // Nom du pilote au-dessus du kart.
+            // Nom, numéro et devise au-dessus du kart.
             float midX = (l.Prev.center.x + l.Next.center.x) * 0.5f;
-            var nameStyle = new GUIStyle(_ui.Big) { fontSize = Mathf.RoundToInt(58 * s) };
-            _ui.Label(new Rect(midX - 300 * s, l.Safe.y + 66 * s, 600 * s, 70 * s), spec.Name, nameStyle, Color.white, TextAnchor.MiddleCenter, 4f);
-            _ui.Label(new Rect(midX - 300 * s, l.Safe.y + 130 * s, 600 * s, 34 * s), Species[_pilot], _ui.Medium, gold, TextAnchor.MiddleCenter);
+            var nameStyle = new GUIStyle(_ui.Title) { fontSize = Mathf.RoundToInt(74 * s) };
+            _ui.Label(new Rect(midX - 320 * s, l.Safe.y + 62 * s, 640 * s, 84 * s), spec.Name.ToUpperInvariant(), nameStyle, UiKit.Cream,
+                TextAnchor.MiddleCenter, 6f);
+            var motto = new Rect(midX - 190 * s, l.Safe.y + 150 * s, 380 * s, 38 * s);
+            _ui.Badge(new Rect(motto.x - 74 * s, motto.y + 2 * s, 64 * s, 34 * s), spec);
+            _ui.Card(motto, UiKit.Ochre, 12 * s, 4f, 0f);
+            _ui.Label(motto, spec.Motto, _ui.Small, UiKit.Charcoal, TextAnchor.MiddleCenter);
 
             bool pilotRow = _row == Row.Pilot;
-            _ui.Button(l.Prev, "<", new Color(0.2f, 0.25f, 0.4f, 0.75f), pilotRow, _ui.Big);
-            _ui.Button(l.Next, ">", new Color(0.2f, 0.25f, 0.4f, 0.75f), pilotRow, _ui.Big);
+            _ui.Button(l.Prev, "‹", UiKit.Kind.Dark, pilotRow, false, _ui.Big);
+            _ui.Button(l.Next, "›", UiKit.Kind.Dark, pilotRow, false, _ui.Big);
 
             for (int i = 0; i < l.Cards.Length; i++)
             {
                 var r = l.Cards[i];
                 var a = AnimalSpec.Roster[i];
                 bool sel = i == _pilot;
-                if (sel) UiKit.Box(new Rect(r.x - 5 * s, r.y - 5 * s, r.width + 10 * s, r.height + 10 * s), pilotRow ? Color.white : gold, 18 * s);
-                UiKit.Box(r, sel ? new Color(0.16f, 0.2f, 0.36f, 0.95f) : new Color(0.1f, 0.12f, 0.22f, 0.7f), 14 * s);
-                float rad = Mathf.Min(r.width * 0.3f, 30 * s);
-                var c = new Vector2(r.center.x, r.y + 12 * s + rad);
-                UiKit.Portrait(c, rad, a, 3 * s);
-                _ui.Label(new Rect(r.x, r.yMax - 32 * s, r.width, 26 * s), a.Name, _ui.Small, sel ? gold : Color.white, TextAnchor.MiddleCenter);
+                var rr = sel ? new Rect(r.x, r.y - 10 * s, r.width, r.height) : r;
+                if (sel && pilotRow) UiKit.Plate(new Rect(rr.x - 5 * s, rr.y - 5 * s, rr.width + 10 * s, rr.height + 10 * s), UiKit.Cream, 14 * s);
+                _ui.Card(rr, sel ? UiKit.Ochre : new Color(UiKit.Charcoal.r, UiKit.Charcoal.g, UiKit.Charcoal.b, 0.92f), 12 * s, 4f, 0f);
+                _ui.Badge(new Rect(rr.center.x - 30 * s, rr.y + 10 * s, 60 * s, 30 * s), a);
+                _ui.Label(new Rect(rr.x, rr.yMax - 34 * s, rr.width, 28 * s), a.Name, _ui.Small, sel ? UiKit.Charcoal : UiKit.Cream, TextAnchor.MiddleCenter);
             }
 
-            // Réglages.
-            var panel = new Rect(l.LapButtons[0].x - 16 * s, l.Safe.y + 76 * s, l.Go.width + 32 * s, 340 * s);
-            UiKit.Box(panel, new Color(0.08f, 0.1f, 0.2f, 0.6f), 18 * s);
-            _ui.Label(new Rect(l.CircuitButtons[0].x, l.CircuitButtons[0].y - 42 * s, 300 * s, 36 * s), "Circuit", _ui.Medium, Color.white);
+            // Fiche « Ta course ».
+            var panel = new Rect(l.Go.x, l.Safe.y + 62 * s, l.Go.width, 360 * s);
+            _ui.Card(panel, UiKit.Cream, 0f, 6f, 3f);
+            UiKit.Box(new Rect(panel.x, panel.y, panel.width, 8 * s), UiKit.Vermilion);
+            _ui.Label(new Rect(panel.x + 16 * s, panel.y + 14 * s, panel.width, 34 * s), "TA COURSE", _ui.Medium, UiKit.Charcoal, TextAnchor.MiddleLeft);
+            Caption(l.CircuitButtons[0], "Circuit");
             bool circuitRow = _row == Row.Circuit;
-            Segment(l.CircuitButtons[0], "<", false, circuitRow);
+            Segment(l.CircuitButtons[0], "‹", false, circuitRow);
             Segment(l.CircuitButtons[1], $"{_circuitNames[_circuit]}  {_circuit + 1}/{_circuitNames.Length}", true, circuitRow);
-            Segment(l.CircuitButtons[2], ">", false, circuitRow);
-            _ui.Label(new Rect(l.LapButtons[0].x, l.LapButtons[0].y - 42 * s, 300 * s, 36 * s), "Tours", _ui.Medium, Color.white);
-            _ui.Label(new Rect(l.DifficultyButtons[0].x, l.DifficultyButtons[0].y - 42 * s, 300 * s, 36 * s), "Difficulté", _ui.Medium, Color.white);
+            Segment(l.CircuitButtons[2], "›", false, circuitRow);
+            Caption(l.LapButtons[0], "Tours");
+            Caption(l.DifficultyButtons[0], "Difficulté");
             for (int i = 0; i < 3; i++)
             {
                 Segment(l.LapButtons[i], GameSession.LapChoices[i].ToString(), i == _laps, _row == Row.Laps && i == _laps);
                 Segment(l.DifficultyButtons[i], GameSession.DifficultyNames[i], i == (int)_difficulty, _row == Row.Difficulty && i == (int)_difficulty);
             }
 
-            float pulse = Mathf.Sin(Time.time * 4f) * 0.04f;
-            var go = l.Go;
-            _ui.Button(new Rect(go.x - go.width * pulse * 0.5f, go.y - go.height * pulse * 0.5f, go.width * (1f + pulse), go.height * (1f + pulse)),
-                "C'est parti !", new Color(1f, 0.5f, 0.15f), _row == Row.Start, _ui.Medium);
+            var goStyle = new GUIStyle(_ui.Big) { fontSize = Mathf.RoundToInt(40 * s) };
+            _ui.Button(l.Go, "C'EST PARTI", UiKit.Kind.Primary, _row == Row.Start, false, goStyle);
         }
+
+        void Caption(Rect firstButton, string text) =>
+            _ui.Label(new Rect(firstButton.x, firstButton.y - 34 * _ui.Scale, 300 * _ui.Scale, 30 * _ui.Scale), text.ToUpperInvariant(), _ui.Small,
+                UiKit.Teal, TextAnchor.MiddleLeft);
 
         void Segment(Rect r, string text, bool selected, bool focused)
         {
-            _ui.Button(r, text, selected ? new Color(0.25f, 0.65f, 1f) : new Color(0.25f, 0.3f, 0.45f, 0.8f), focused, _ui.Small);
+            _ui.Button(r, text, UiKit.Kind.Dark, focused, selected, _ui.Small);
         }
     }
 }
