@@ -303,6 +303,8 @@ namespace TurboPattes.Game.UI
         /// <summary>Contre-la-montre : tour en cours, meilleur tour et record à droite.</summary>
         void DrawChrono(float left, float right, float top, float s)
         {
+            // En tactile, le bouton pause occupe le coin : le panneau se range à sa gauche.
+            if (Race.Input.TouchMode) right = Mathf.Min(right, PauseButton().xMin - 16 * s);
             var gold = new Color(1f, 0.85f, 0.25f);
             float lapTime = Race.State == RaceManager.Phase.Racing && !Race.Player.Finished ? Race.RaceTime - Race.LapStartTime : 0f;
             Label(new Rect(left, top + 66 * s, 400 * s, 34 * s), $"Tour  {FormatTime(lapTime)}", _small, Color.white);
