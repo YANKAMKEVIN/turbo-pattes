@@ -138,8 +138,8 @@ Avancement (branche `da-atelier`, worktree `~/dev/turbo-pattes-da`, pas encore m
 - **Fait — pilotes** : livrées d'atelier, numéro de course et devise dans `AnimalSpec`.
 - **Fait — rendu** : tonemapping Neutral, split toning bleu atelier / ocre, contraste +18, vignette encre, ombres dures, matières mates (lissé 0,1 par défaut). Pas encore de shader toon dédié.
 - **Fait — karts** : châssis en tubes soudés (`KartFactory.Tube`), pontons, nez avec numéro en 7 segments, baquet, moteur latéral à ailettes, pneus avec flancs et jantes. Autotest Mac Prairie 1 tour : course finie, ~60 i/s.
-- **Jalon Roxy soumis à Kevin** : `tools/blender/pilote.py` (Skin + subdivision, matériaux TP_* remplacés par la livrée en jeu), FBX dans `Resources/Pilots/Fox.fbx`, chargé par `KartFactory.SculptedDriver` (échelle 1,35). Les autres espèces gardent l'ancien pilote en primitives tant que Kevin n'a pas validé. Aperçu `docs/da/atelier/roxy-blender.png`.
-- À faire : retours de Kevin sur Roxy, puis les 7 autres pilotes (paramètres d'espèce dans `ANIMALS`), décors, icônes d'objets, test A17, merge dans main (avec l'accord de Kevin).
+- **Fait — les 8 pilotes sculptés** (Roxy validée par Kevin le 2026-11-01) : `tools/blender/pilote.py --animal fox|panda|frog|rabbit|bear|cat|penguin|pig` (Skin + subdivision ; paramètres d'espèce dans `ANIMALS` : museau effilé/arrondi/plat/bec/groin, oreilles pointues/rondes/longues/tombantes, queue, zones d'accent, carrure). FBX dans `Resources/Pilots/{Kind}.fbx` (nom = `AnimalKind`), chargés par `KartFactory.SculptedDriver` (échelle 1,35) ; matières TP_* remplacées par la livrée (TP_Glint → crème, TP_Beak → orange). 15 à 20 k sommets par pilote : à surveiller sur l'A17. Planches `docs/da/atelier/pilotes-*.png`.
+- À faire : merger `main` (réglages, tutoriel, podium, jauges, plume/pelote, icône d'appli — à passer dans la DA), décors des 10 circuits, icônes d'objets, test A17, merge dans main (avec l'accord de Kevin). Pas de squelette ni d'animation sur les pilotes pour l'instant.
 - `-tp-pilot N` choisit le pilote du `-tp-menutest` (capture `3_choix`).
 
 

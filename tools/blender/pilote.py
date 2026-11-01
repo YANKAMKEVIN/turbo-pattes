@@ -19,14 +19,32 @@ from mathutils import Vector
 # ------------------------------------------------------------------ paramètres par espèce
 
 ANIMALS = {
-    # snout : longueur du museau ; ears : (hauteur, largeur, écart, inclinaison) ; tail : rayon max (0 = pas de queue)
-    "fox": dict(snout=0.15, snout_r=0.05, ears=(0.17, 0.075, 0.09, 14), ear_kind="pointed", tail=0.12, head_r=0.15,
-                fur=(1.0, 0.5, 0.16), accent=(0.97, 0.94, 0.9), tail_tip=True),
+    # head_r : rayon du crâne ; snout : (forme, longueur, rayon) — taper (museau effilé), flat (grenouille), beak, disc (groin) ;
+    # (muzzle : museau court et arrondi) ; ears : (forme, hauteur, largeur, écart, inclinaison) — pointed, round, long, floppy, ou None ;
+    # tail : (forme, rayon) — bushy, puff, thin, curl, ou None ; accent : zones claires/sombres du visage ;
+    # bulk : carrure du buste.
+    "fox": dict(head_r=0.15, snout=("taper", 0.15, 0.05), ears=("pointed", 0.17, 0.075, 0.09, 14), ear_tips=True,
+                tail=("bushy", 0.12), accent="muzzle", fur=(1.0, 0.5, 0.16), accent_c=(0.97, 0.94, 0.9)),
+    "panda": dict(head_r=0.16, snout=("muzzle", 0.06, 0.065), ears=("round", 0.07, 0.07, 0.1, 0), ear_mat="TP_Accent",
+                  tail=("puff", 0.05), accent="patches", fur=(0.96, 0.95, 0.92), accent_c=(0.12, 0.12, 0.14), bulk=1.06),
+    "frog": dict(head_r=0.15, snout=("flat", 0, 0), ears=None, tail=None, accent="belly", eyes="bulge",
+                 fur=(0.4, 0.85, 0.25), accent_c=(0.95, 0.95, 0.6)),
+    "rabbit": dict(head_r=0.14, snout=("muzzle", 0.07, 0.055), ears=("long", 0.25, 0.05, 0.055, 7), ear_inner=True,
+                   tail=("puff", 0.065), accent=None, fur=(0.98, 0.92, 0.95), accent_c=(1.0, 0.6, 0.75)),
+    "bear": dict(head_r=0.16, snout=("muzzle", 0.09, 0.075), ears=("round", 0.06, 0.06, 0.115, 0), tail=("puff", 0.04),
+                 accent="muzzle", fur=(0.55, 0.35, 0.2), accent_c=(0.85, 0.7, 0.5), bulk=1.14),
+    "cat": dict(head_r=0.145, snout=("muzzle", 0.06, 0.05), ears=("pointed", 0.12, 0.07, 0.085, 10), ear_inner=True,
+                tail=("thin", 0.035), accent="muzzle", fur=(0.6, 0.58, 0.68), accent_c=(0.97, 0.95, 0.93)),
+    "penguin": dict(head_r=0.15, snout=("beak", 0.1, 0.04), ears=None, tail=None, accent="face",
+                    fur=(0.12, 0.14, 0.2), accent_c=(0.97, 0.97, 0.97), bulk=1.08),
+    "pig": dict(head_r=0.155, snout=("disc", 0.06, 0.06), ears=("floppy", 0.11, 0.07, 0.095, 0), tail=("curl", 0.022),
+                accent=None, fur=(1.0, 0.68, 0.72), accent_c=(0.95, 0.5, 0.55), bulk=1.1),
 }
 
 PALETTE = dict(
     TP_Suit=(0.235, 0.561, 0.569), TP_Trim=(0.851, 0.302, 0.247), TP_Dark=(0.11, 0.13, 0.12), TP_Helmet=(0.235, 0.561, 0.569),
-    TP_Visor=(0.05, 0.06, 0.07), TP_Eye=(0.06, 0.05, 0.04), TP_Nose=(0.04, 0.04, 0.04),
+    TP_Visor=(0.05, 0.06, 0.07), TP_Eye=(0.06, 0.05, 0.04), TP_Nose=(0.04, 0.04, 0.04), TP_Glint=(0.97, 0.95, 0.9),
+    TP_Beak=(0.95, 0.6, 0.15),
 )
 
 
@@ -138,7 +156,7 @@ def build(animal):
     a = ANIMALS[animal]
     M = {k: material(k, v) for k, v in PALETTE.items()}
     M["TP_Fur"] = material("TP_Fur", a["fur"])
-    M["TP_Accent"] = material("TP_Accent", a["accent"])
+    M["TP_Accent"] = material("TP_Accent", a["accent_c"])
     parts = []
 
     # Combinaison : bassin, buste en V (épaules larges), bras tendus vers le volant, jambes vers les pédales.
@@ -148,7 +166,8 @@ def build(animal):
         (0, -0.03, 0.50),    # 2 poitrine
         (0, -0.02, 0.70),    # 3 col
     ]
-    r = [(0.19, 0.15), (0.155, 0.12), (0.235, 0.15), (0.1, 0.09)]
+    k = a.get("bulk", 1.0)
+    r = [(0.19 * k, 0.15 * k), (0.155 * k, 0.12 * k), (0.235 * k, 0.15 * k), (0.1, 0.09)]
     e = [(0, 1), (1, 2), (2, 3)]
 
     def chain(points, radii, start):
@@ -171,10 +190,13 @@ def build(animal):
     suit = skin_object("Suit", v, e, r, M["TP_Suit"], levels=3)
     # Bandes de livrée : bande verticale sur le buste, bandes sur les flancs des bras et des jambes.
     paint_faces(suit, M["TP_Trim"], lambda x, y, z: abs(x) < 0.05 and 0.18 < z < 0.62 and y < 0)
-    paint_faces(suit, M["TP_Trim"], lambda x, y, z: abs(abs(x) - 0.235) < 0.035 and z > 0.5 and y > -0.12)
-    # Col montant sombre.
-    paint_faces(suit, M["TP_Dark"], lambda x, y, z: z > 0.64)
     parts.append(suit)
+    # Col montant sombre.
+    parts.append(skin_object("Collar", [(0, -0.02, 0.64), (0, -0.015, 0.71)], [(0, 1)], [(0.115, 0.1), (0.1, 0.09)], M["TP_Dark"]))
+    # Passepoils de livrée sur l'extérieur des bras.
+    for sx in (-1, 1):
+        parts.append(skin_object(f"ArmPiping{sx}", [(0.3 * k * sx, -0.02, 0.6), (0.355 * sx, -0.25, 0.43), (0.235 * sx, -0.45, 0.43)], [(0, 1), (1, 2)],
+                                 [(0.016, 0.03), (0.016, 0.028), (0.014, 0.024)], M["TP_Trim"]))
 
     # Passepoils de livrée sur l'extérieur des jambes (relief net plutôt que faces peintes crénelées).
     for sx in (-1, 1):
@@ -188,47 +210,126 @@ def build(animal):
         parts.append(skin_object(f"Boot{sx}", [(0.13 * sx, -0.76, 0.11), (0.135 * sx, -0.9, 0.07)], [(0, 1)],
                                  [(0.064, 0.064), (0.055, 0.04)], M["TP_Dark"]))
 
-    # Tête : crâne + museau effilé (Skin), cou en fourrure.
+    # Tête : crâne (+ museau effilé selon l'espèce, Skin), cou en fourrure.
     hr = a["head_r"]
     head_c = (0, -0.05, 0.85)
-    snout_tip = (0, head_c[1] - hr - a["snout"], head_c[2] - 0.05)
-    head = skin_object("Head", [(0, -0.01, 0.66), head_c, (0, head_c[1] - hr * 0.7, head_c[2] - 0.03), snout_tip],
-                       [(0, 1), (1, 2), (2, 3)], [(0.075, 0.07), (hr, hr * 1.02), (hr * 0.62, hr * 0.5), (a["snout_r"] * 0.55, a["snout_r"] * 0.45)],
-                       M["TP_Fur"], levels=3)
-    # Dessous du museau et joues clairs.
-    paint_faces(head, M["TP_Accent"], lambda x, y, z: z < head_c[2] - 0.045 and y < head_c[1] - 0.04)
-    paint_faces(head, M["TP_Accent"], lambda x, y, z: abs(x) > hr * 0.55 and z < head_c[2] - 0.02 and y < head_c[1])
+    sk, sl, sr = a["snout"]
+    front = head_c[1] - hr  # avant du crâne
+    if sk in ("taper", "muzzle"):
+        snout_tip = (0, front - sl, head_c[2] - (0.05 if sk == "taper" else 0.04))
+        tip_r = (sr * 0.55, sr * 0.45) if sk == "taper" else (sr, sr * 0.8)
+        head = skin_object("Head", [(0, -0.01, 0.66), head_c, (0, head_c[1] - hr * 0.7, head_c[2] - 0.03), snout_tip],
+                           [(0, 1), (1, 2), (2, 3)], [(0.075, 0.07), (hr, hr * 1.02), (hr * 0.62, hr * 0.5), tip_r],
+                           M["TP_Fur"], levels=4)
+    elif sk == "flat":
+        # Grenouille : tête large et aplatie, bouche fendue.
+        head = skin_object("Head", [(0, -0.01, 0.66), (0, head_c[1], head_c[2] - 0.02), (0, front + 0.03, head_c[2] - 0.05)],
+                           [(0, 1), (1, 2)], [(0.085, 0.08), (hr * 1.18, hr * 0.85), (hr * 0.95, hr * 0.55)], M["TP_Fur"], levels=3)
+    else:
+        head = skin_object("Head", [(0, -0.01, 0.66), head_c, (0, front + hr * 0.3, head_c[2] - 0.03)],
+                           [(0, 1), (1, 2)], [(0.075, 0.07), (hr, hr * 1.02), (hr * 0.78, hr * 0.72)], M["TP_Fur"], levels=3)
+
+    acc = a.get("accent")
+    if acc == "muzzle":  # dessous du museau et joues clairs
+        paint_faces(head, M["TP_Accent"], lambda x, y, z: z < head_c[2] - 0.045 and y < head_c[1] - 0.04)
+        paint_faces(head, M["TP_Accent"], lambda x, y, z: abs(x) > hr * 0.55 and z < head_c[2] - 0.02 and y < head_c[1])
+    elif acc == "belly":  # gorge claire
+        paint_faces(head, M["TP_Accent"], lambda x, y, z: z < head_c[2] - 0.06)
+    elif acc == "face":  # masque facial clair (manchot)
+        paint_faces(head, M["TP_Accent"], lambda x, y, z: y < head_c[1] - hr * 0.35 and z < head_c[2] + 0.07)
     parts.append(head)
-    parts.append(ellipsoid("Nose", (snout_tip[0], snout_tip[1] - 0.005, snout_tip[2] + 0.012), (0.026, 0.02, 0.018), M["TP_Nose"]))
 
-    # Yeux en amande, légèrement obliques (regard concentré), et arcades sombres.
+    if sk in ("taper", "muzzle"):
+        nz = snout_tip[2] + (0.012 if sk == "taper" else sr * 0.55)
+        parts.append(ellipsoid("Nose", (snout_tip[0], snout_tip[1] - (0.005 if sk == "taper" else sr * 0.6), nz), (0.026, 0.02, 0.018), M["TP_Nose"]))
+    elif sk == "flat":
+        parts.append(ellipsoid("Mouth", (0, front + 0.035, head_c[2] - 0.06), (hr * 0.55, 0.01, 0.005), M["TP_Dark"]))
+    elif sk == "beak":
+        base = (0, front + 0.02, head_c[2] - 0.02)
+        parts.append(cone("Beak", base, (0, front - sl, head_c[2] - 0.045), sr, M["TP_Beak"]))
+    elif sk == "disc":
+        # Groin : disque saillant + narines.
+        bpy.ops.mesh.primitive_cylinder_add(vertices=28, radius=sr, depth=sl, location=(0, front + 0.01 - sl * 0.5, head_c[2] - 0.035),
+                                            rotation=(math.radians(90), 0, 0))
+        g = bpy.context.active_object
+        g.name = "Snout"
+        bev = g.modifiers.new("Bev", "BEVEL")
+        bev.width = 0.012
+        bev.segments = 3
+        apply_all(g)
+        g.data.materials.append(M["TP_Accent"])
+        smooth(g)
+        g.select_set(False)
+        parts.append(g)
+        for sx in (-1, 1):
+            parts.append(ellipsoid(f"Nostril{sx}", (0.02 * sx, front + 0.01 - sl, head_c[2] - 0.035), (0.01, 0.006, 0.016), M["TP_Nose"]))
+
+    # Yeux en amande, légèrement obliques (regard concentré), reflet clair, arcades sombres.
     for sx in (-1, 1):
-        ex, ey, ez = 0.058 * sx, head_c[1] - hr * 0.86, head_c[2] + 0.025
-        parts.append(ellipsoid(f"Eye{sx}", (ex, ey, ez), (0.026, 0.012, 0.016), M["TP_Eye"], rot=(0, 18 * sx, 0)))
-        parts.append(ellipsoid(f"Brow{sx}", (ex * 1.05, ey + 0.004, ez + 0.026), (0.034, 0.01, 0.008), M["TP_Dark"], rot=(0, -20 * sx, 0)))
+        if a.get("eyes") == "bulge":
+            # Grenouille : yeux globuleux sur le dessus, devant le casque.
+            bc = (0.075 * sx, front + hr * 0.42, head_c[2] + hr * 0.42)
+            parts.append(ellipsoid(f"EyeBall{sx}", bc, (0.052, 0.05, 0.05), M["TP_Fur"]))
+            ex, ey, ez = bc[0] * 1.08, bc[1] - 0.046, bc[2] + 0.006
+            parts.append(ellipsoid(f"Eye{sx}", (ex, ey, ez), (0.03, 0.01, 0.018), M["TP_Eye"]))
+        else:
+            ex, ey, ez = 0.058 * sx, head_c[1] - hr * 0.86, head_c[2] + 0.025
+            if acc == "patches":  # taches du panda
+                parts.append(ellipsoid(f"Patch{sx}", (ex * 1.05, ey + 0.012, ez - 0.006), (0.044, 0.02, 0.034), M["TP_Accent"], rot=(0, 28 * sx, 0)))
+                ey -= 0.006
+            parts.append(ellipsoid(f"Eye{sx}", (ex, ey, ez), (0.026, 0.012, 0.016), M["TP_Eye"], rot=(0, 18 * sx, 0)))
+            parts.append(ellipsoid(f"Brow{sx}", (ex * 1.05, ey + 0.004, ez + 0.026), (0.034, 0.01, 0.008), M["TP_Dark"], rot=(0, -20 * sx, 0)))
+        parts.append(ellipsoid(f"Glint{sx}", (ex + 0.008 * sx, ey - 0.009, ez + 0.006), (0.006, 0.004, 0.006), M["TP_Glint"], segments=10))
 
-    # Casque ouvert à la livrée : calotte + mentonnière, visière relevée sombre, manchons d'oreilles.
-    helmet = ellipsoid("Helmet", (head_c[0], head_c[1] + 0.025, head_c[2] + 0.035), (hr * 1.1, hr * 1.12, hr * 1.04), M["TP_Helmet"], segments=40)
-    cut = ellipsoid("HelmetCut", (0, head_c[1] - hr * 1.0, head_c[2] - 0.035), (hr * 0.95, hr * 0.95, hr * 0.8), M["TP_Helmet"])
+    # Casque ouvert à la livrée : calotte + mentonnière découpée, bande centrale, manchons d'oreilles.
+    hz = 0.035 if a.get("eyes") != "bulge" else 0.06
+    helmet = ellipsoid("Helmet", (head_c[0], head_c[1] + 0.025, head_c[2] + hz), (hr * 1.1, hr * 1.12, hr * 1.04), M["TP_Helmet"], segments=40)
+    cut = ellipsoid("HelmetCut", (0, head_c[1] - hr * 1.0, head_c[2] - 0.035), (hr * 0.95, hr * 0.95, hr * (0.8 if hz < 0.05 else 0.95)), M["TP_Helmet"])
     boolean(helmet, cut, "DIFFERENCE")
     paint_faces(helmet, M["TP_Trim"], lambda x, y, z: abs(x) < 0.03 and z > head_c[2] + 0.05)
     parts.append(helmet)
 
-    eh, ew, egap, etilt = a["ears"]
-    for sx in (-1, 1):
-        base = (egap * sx * 1.2, head_c[1] + 0.03, head_c[2] + hr * 0.95)
-        tip = (egap * sx * 1.2 + math.sin(math.radians(etilt)) * eh * sx, head_c[1] + 0.06, head_c[2] + hr * 0.95 + eh)
-        ear = cone(f"Ear{sx}", base, tip, ew, M["TP_Fur"])
-        paint_faces(ear, M["TP_Dark"], lambda x, y, z: z > base[2] + eh * 0.62)  # pointes sombres
-        parts.append(ear)
-        parts.append(cone(f"EarSleeve{sx}", base, (base[0] + (tip[0] - base[0]) * 0.35, base[1] + 0.01, base[2] + eh * 0.35), ew * 1.12, M["TP_Helmet"]))
+    if a["ears"]:
+        ek, eh, ew, egap, etilt = a["ears"]
+        ear_mat = M[a.get("ear_mat", "TP_Fur")]
+        for sx in (-1, 1):
+            base = (egap * sx * 1.2, head_c[1] + 0.03, head_c[2] + hr * 0.95)
+            if ek == "pointed":
+                tip = (base[0] + math.sin(math.radians(etilt)) * eh * sx, head_c[1] + 0.06, base[2] + eh)
+                ear = cone(f"Ear{sx}", base, tip, ew, ear_mat)
+                if a.get("ear_tips"):
+                    paint_faces(ear, M["TP_Dark"], lambda x, y, z, b=base: z > b[2] + eh * 0.62)
+                if a.get("ear_inner"):
+                    parts.append(cone(f"EarIn{sx}", (base[0], base[1] - 0.03, base[2] + 0.01), (tip[0] * 0.97, tip[1] - 0.025, tip[2] - eh * 0.15), ew * 0.55, M["TP_Accent"]))
+            elif ek == "round":
+                c = (egap * sx * 1.25, head_c[1] + 0.02, head_c[2] + hr * 0.92)
+                ear = ellipsoid(f"Ear{sx}", c, (eh, eh * 0.45, eh), ear_mat, rot=(0, -25 * sx, 0))
+            elif ek == "long":
+                c = (base[0] + math.sin(math.radians(etilt)) * eh * 0.5 * sx, head_c[1] + 0.05, base[2] + eh * 0.5)
+                ear = ellipsoid(f"Ear{sx}", c, (ew, ew * 0.5, eh * 0.55), ear_mat, rot=(-8, -etilt * sx, 0))
+                parts.append(ellipsoid(f"EarIn{sx}", (c[0], c[1] - ew * 0.3, c[2] + 0.01), (ew * 0.6, ew * 0.3, eh * 0.45), M["TP_Accent"], rot=(-8, -etilt * sx, 0)))
+            else:  # floppy : oreilles tombant vers l'avant
+                tip = (base[0] + 0.05 * sx, base[1] - 0.13, base[2] - 0.01)
+                ear = cone(f"Ear{sx}", base, tip, ew, ear_mat)
+            parts.append(ear)
+            sleeve_tip = (base[0], base[1] + 0.005, base[2] + 0.05)
+            parts.append(cone(f"EarSleeve{sx}", base, sleeve_tip, ew * 1.02 if ek != "round" else eh * 0.75, M["TP_Helmet"]))
 
-    # Queue touffue qui dépasse derrière le baquet.
-    if a["tail"] > 0:
-        t = skin_object("Tail", [(0, 0.12, 0.12), (0.08, 0.32, 0.18), (0.22, 0.5, 0.32), (0.34, 0.6, 0.5)], [(0, 1), (1, 2), (2, 3)],
-                        [0.05, a["tail"], a["tail"] * 0.95, a["tail"] * 0.3], M["TP_Fur"], levels=3)
-        if a.get("tail_tip"):
+    # Queue qui dépasse derrière le baquet.
+    if a["tail"]:
+        tk, tr = a["tail"]
+        if tk == "bushy":
+            t = skin_object("Tail", [(0, 0.12, 0.12), (0.08, 0.32, 0.18), (0.22, 0.5, 0.32), (0.34, 0.6, 0.5)], [(0, 1), (1, 2), (2, 3)],
+                            [0.05, tr, tr * 0.95, tr * 0.3], M["TP_Fur"], levels=3)
             paint_faces(t, M["TP_Accent"], lambda x, y, z: z > 0.4)
+        elif tk == "puff":
+            t = ellipsoid("Tail", (0, 0.16 + tr * 0.5, 0.16), (tr, tr, tr), M["TP_Fur"])
+        elif tk == "thin":
+            t = skin_object("Tail", [(0, 0.12, 0.12), (0.06, 0.3, 0.16), (0.16, 0.42, 0.34), (0.14, 0.44, 0.52)], [(0, 1), (1, 2), (2, 3)],
+                            [tr, tr, tr * 0.9, tr * 0.7], M["TP_Fur"], levels=2)
+        else:  # curl : tire-bouchon
+            pts = [(0.05 * math.sin(i * 1.2), 0.15 + 0.04 * i * 0.3 + 0.04 * math.cos(i * 1.2), 0.18 + 0.012 * i) for i in range(9)]
+            t = skin_object("Tail", pts, [(i, i + 1) for i in range(8)], [tr] * 9, M["TP_Fur"], levels=2)
         parts.append(t)
 
     bpy.data.objects.remove(bpy.data.objects["HelmetCut"], do_unlink=True)

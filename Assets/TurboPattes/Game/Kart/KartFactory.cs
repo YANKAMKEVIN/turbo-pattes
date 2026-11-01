@@ -299,6 +299,8 @@ namespace TurboPattes.Game.Kart
             if (name.StartsWith("TP_Trim")) return Mats.Lit(spec.KartTrim, 0.3f);
             if (name.StartsWith("TP_Fur")) return Mats.Lit(spec.Fur, 0.12f);
             if (name.StartsWith("TP_Accent")) return Mats.Lit(spec.Accent, 0.12f);
+            if (name.StartsWith("TP_Glint")) return Mats.Lit(UI.UiKit.Cream, 0.9f);
+            if (name.StartsWith("TP_Beak")) return Mats.Lit(new Color(0.95f, 0.6f, 0.15f), 0.3f);
             if (name.StartsWith("TP_Eye") || name.StartsWith("TP_Nose") || name.StartsWith("TP_Visor"))
                 return Mats.Lit(new Color(0.04f, 0.04f, 0.05f), 0.7f);
             return Mats.Lit(new Color(0.11f, 0.13f, 0.12f), 0.2f); // TP_Dark : gants, bottines, col
