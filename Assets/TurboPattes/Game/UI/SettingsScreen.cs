@@ -126,26 +126,31 @@ namespace TurboPattes.Game.UI
             GUI.depth = -10;
             _ui.EnsureStyles();
             float s = S, w = Screen.width, h = Screen.height;
-            UiKit.Box(new Rect(0, 0, w, h), new Color(0.05f, 0.08f, 0.18f, 0.85f));
-            _ui.Label(new Rect(0, h * 0.06f, w, 80 * s), "Réglages", _ui.Big, new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+            UiKit.Box(new Rect(0, 0, w, h), UiKit.Alpha(UiKit.Ink, 0.94f));
+            _ui.Label(new Rect(0, h * 0.06f, w, 80 * s), "Réglages", _ui.Big, UiKit.Cream, TextAnchor.MiddleCenter);
+            UiKit.Slash(new Rect(w * 0.5f - 70 * s, h * 0.06f + 76 * s, 140 * s, 8 * s), UiKit.Vermilion, 1.2f);
             for (int i = 0; i < Rows.Length; i++)
             {
                 var r = RowRect(i);
                 bool focus = i == _row;
                 if (i == Rows.Length - 1)
                 {
-                    _ui.Button(new Rect(r.center.x - 150 * s, r.y + 10 * s, 300 * s, r.height), "Retour", new Color(1f, 0.5f, 0.15f), focus);
+                    _ui.Button(new Rect(r.center.x - 150 * s, r.y + 10 * s, 300 * s, r.height), "Retour", true, focus);
                     continue;
                 }
-                UiKit.Box(r, focus ? new Color(0.2f, 0.28f, 0.5f, 0.95f) : new Color(0.12f, 0.15f, 0.28f, 0.8f), 14 * s);
-                if (focus) UiKit.Box(new Rect(r.x, r.y, 6 * s, r.height), Color.white, 3 * s);
-                _ui.Label(new Rect(r.x + 24 * s, r.y, 300 * s, r.height), Rows[i], _ui.Medium, Color.white, TextAnchor.MiddleLeft);
+                // Ligne en fiche crème ; la ligne active est surlignée en vermillon.
+                UiKit.Card(r, focus ? UiKit.Vermilion : UiKit.Cream, 16 * s, 4 * s);
+                var ink = focus ? UiKit.Cream : UiKit.Ink;
+                if (focus) UiKit.Slash(new Rect(r.x + 10 * s, r.y + r.height * 0.22f, 7 * s, r.height * 0.56f), UiKit.Ochre);
+                _ui.Label(new Rect(r.x + 28 * s, r.y, 300 * s, r.height), Rows[i], _ui.Medium, ink, TextAnchor.MiddleLeft);
                 var valueRect = new Rect(Minus(i).xMax, r.y, Plus(i).x - Minus(i).xMax, r.height);
-                _ui.Label(valueRect, Value(i), _ui.Medium, new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+                _ui.Label(valueRect, Value(i), _ui.Medium, focus ? UiKit.Ochre : UiKit.Vermilion, TextAnchor.MiddleCenter);
                 if (i != 3)
                 {
-                    _ui.Button(Minus(i), "-", new Color(0.25f, 0.45f, 0.8f), false);
-                    _ui.Button(Plus(i), "+", new Color(0.25f, 0.45f, 0.8f), false);
+                    var minus = Minus(i); var plus = Plus(i);
+                    float m = 7 * s;
+                    _ui.Button(new Rect(minus.x + m, minus.y + m, minus.width - 2 * m, minus.height - 2 * m), "-", false);
+                    _ui.Button(new Rect(plus.x + m, plus.y + m, plus.width - 2 * m, plus.height - 2 * m), "+", false);
                 }
             }
         }

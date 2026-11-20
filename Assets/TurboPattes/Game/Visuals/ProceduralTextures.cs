@@ -82,6 +82,31 @@ namespace TurboPattes.Game.Visuals
             }
         }
 
+        static Texture2D _wedge;
+
+        /// <summary>
+        /// Triangle blanc (moitié en bas à gauche, bord en diagonale adouci) : coin oblique des fiches de l'interface,
+        /// posé dans le coin haut droit d'une fiche.
+        /// </summary>
+        public static Texture2D Wedge
+        {
+            get
+            {
+                if (_wedge != null) return _wedge;
+                const int n = 64;
+                _wedge = New("Wedge", n, n, TextureWrapMode.Clamp, false);
+                for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    // Distance signée à la diagonale x + y = n, en pixels.
+                    float d = (n - (x + 0.5f) - (y + 0.5f)) * 0.7071f;
+                    _wedge.SetPixel(x, y, new Color(1, 1, 1, Mathf.Clamp01(d + 0.5f)));
+                }
+                _wedge.Apply();
+                return _wedge;
+            }
+        }
+
         /// <summary>
         /// Bitume : u = travers de la piste (0..1), v = 1 texture tous les 16 m.
         /// Lignes blanches de bord et pointillés au centre.

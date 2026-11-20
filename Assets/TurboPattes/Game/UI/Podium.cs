@@ -144,17 +144,18 @@ namespace TurboPattes.Game.UI
             float s = _ui.Scale, w = Screen.width;
             var safe = Screen.safeArea;
             float top = Screen.height - safe.yMax + 16 * s;
-            var gold = new Color(1f, 0.85f, 0.25f);
-
-            _ui.Label(new Rect(0, top, w, 70 * s), _cup.Def.Name, _ui.Big, gold, TextAnchor.MiddleCenter, 4f);
+            // Titre et verdict sur une fiche crème ; noms au-dessus des marches sur des plaques.
+            var head = new Rect(w * 0.5f - 330 * s, top - 6 * s, 660 * s, (_unlocked ? 172 : _trophy > 0 ? 142 : 112) * s);
+            UiKit.Card(head, UiKit.Cream, 26 * s, 5 * s);
+            _ui.Label(new Rect(0, top, w, 70 * s), _cup.Def.Name, _ui.Big, UiKit.Ink, TextAnchor.MiddleCenter);
             int playerPlace = System.Array.IndexOf(_ranking, _cup.Player);
             string verdict = playerPlace == 0 ? "Tu remportes la coupe !" : playerPlace < 3 ? $"Tu montes sur le podium ({Hud.Ordinal(playerPlace + 1)}) !" : $"Tu finis {Hud.Ordinal(playerPlace + 1)} de la coupe";
-            _ui.Label(new Rect(0, top + 66 * s, w, 40 * s), verdict, _ui.Medium, Color.white, TextAnchor.MiddleCenter);
+            _ui.Label(new Rect(0, top + 66 * s, w, 40 * s), verdict, _ui.Medium, UiKit.Vermilion, TextAnchor.MiddleCenter);
             if (_trophy > 0)
-                _ui.Label(new Rect(0, top + 104 * s, w, 32 * s), TrophyNames[_trophy] + (_newTrophy ? " gagné !" : ""), _ui.Small, gold, TextAnchor.MiddleCenter);
+                _ui.Label(new Rect(0, top + 104 * s, w, 32 * s), TrophyNames[_trophy] + (_newTrophy ? " gagné !" : ""), _ui.Small, UiKit.Ink, TextAnchor.MiddleCenter);
             if (_unlocked)
                 _ui.Label(new Rect(0, top + 134 * s, w, 32 * s), $"Nouvelle coupe ouverte : {Cups.All[_cup.CupIndex + 1].Name}", _ui.Small,
-                    new Color(0.6f, 1f, 0.6f), TextAnchor.MiddleCenter);
+                    UiKit.Blue, TextAnchor.MiddleCenter);
 
             // Nom et points au-dessus de chaque marche.
             for (int i = 0; i < 3; i++)
@@ -162,27 +163,29 @@ namespace TurboPattes.Game.UI
                 var sp = _cam.WorldToScreenPoint(_karts[i].position + Vector3.up * 2.6f);
                 if (sp.z <= 0f) continue;
                 var spec = AnimalSpec.Roster[_ranking[i]];
-                var r = new Rect(sp.x - 120 * s, Screen.height - sp.y - 50 * s, 240 * s, 30 * s);
-                _ui.Label(r, $"{Hud.Ordinal(i + 1)}  {spec.Name}", _ui.Medium, i == 0 ? gold : Color.white, TextAnchor.MiddleCenter);
-                _ui.Label(new Rect(r.x, r.yMax, r.width, 26 * s), $"{_cup.Standings.Total(_ranking[i])} pts", _ui.Small, Color.white, TextAnchor.MiddleCenter);
+                var r = new Rect(sp.x - 110 * s, Screen.height - sp.y - 54 * s, 220 * s, 60 * s);
+                UiKit.Card(r, i == 0 ? UiKit.Vermilion : UiKit.Alpha(UiKit.Ink, 0.88f), 14 * s);
+                _ui.Label(new Rect(r.x, r.y + 2 * s, r.width, 32 * s), $"{Hud.Ordinal(i + 1)}  {spec.Name}", _ui.Medium, UiKit.Cream, TextAnchor.MiddleCenter);
+                _ui.Label(new Rect(r.x, r.y + 32 * s, r.width, 26 * s), $"{_cup.Standings.Total(_ranking[i])} pts", _ui.Small, UiKit.Ochre, TextAnchor.MiddleCenter);
             }
 
             // Classement complet, à droite.
-            float row = 30 * s, pw = 250 * s, px = safe.xMax - 24 * s - pw, py = top + 130 * s;
-            UiKit.Box(new Rect(px - 10 * s, py - 10 * s, pw + 20 * s, row * _ranking.Length + 20 * s), new Color(0.05f, 0.08f, 0.18f, 0.6f), 14 * s);
+            float row = 30 * s, pw = 250 * s, px = safe.xMax - 24 * s - pw, py = top + 180 * s;
+            UiKit.Card(new Rect(px - 10 * s, py - 10 * s, pw + 20 * s, row * _ranking.Length + 20 * s), UiKit.Cream, 18 * s, 4 * s);
             for (int r = 0; r < _ranking.Length; r++)
             {
                 var spec = AnimalSpec.Roster[_ranking[r]];
                 float y = py + r * row;
                 bool me = _ranking[r] == _cup.Player;
-                if (me) UiKit.Box(new Rect(px - 4 * s, y, pw + 8 * s, row), new Color(1f, 0.85f, 0.2f, 0.3f), 8 * s);
-                _ui.Label(new Rect(px, y, 40 * s, row), (r + 1).ToString(), _ui.Small, Color.white, TextAnchor.MiddleLeft);
+                var ink = me ? UiKit.Cream : UiKit.Ink;
+                if (me) UiKit.Box(new Rect(px - 10 * s, y, pw + 20 * s, row), UiKit.Vermilion);
+                _ui.Label(new Rect(px, y, 40 * s, row), (r + 1).ToString(), _ui.Small, ink, TextAnchor.MiddleLeft);
                 UiKit.Portrait(new Vector2(px + 52 * s, y + row * 0.5f), 12 * s, spec);
-                _ui.Label(new Rect(px + 72 * s, y, 110 * s, row), spec.Name, _ui.Small, me ? gold : Color.white, TextAnchor.MiddleLeft);
-                _ui.Label(new Rect(px + pw - 80 * s, y, 80 * s, row), $"{_cup.Standings.Total(_ranking[r])} pts", _ui.Small, Color.white, TextAnchor.MiddleRight);
+                _ui.Label(new Rect(px + 72 * s, y, 110 * s, row), spec.Name, _ui.Small, ink, TextAnchor.MiddleLeft);
+                _ui.Label(new Rect(px + pw - 80 * s, y, 80 * s, row), $"{_cup.Standings.Total(_ranking[r])} pts", _ui.Small, ink, TextAnchor.MiddleRight);
             }
 
-            _ui.Button(MenuButton(), "Menu", new Color(1f, 0.5f, 0.15f), true);
+            _ui.Button(MenuButton(), "Menu", true, true);
         }
     }
 }

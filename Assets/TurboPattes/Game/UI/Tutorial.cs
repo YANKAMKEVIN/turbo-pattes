@@ -47,11 +47,11 @@ namespace TurboPattes.Game.UI
             if (Race.RaceTime > 1.5f)
                 Show(1, touch ? "Glisse le doigt à gauche de l'écran pour tourner" : "Flèches ou stick gauche pour tourner");
             if (Race.RaceTime > 6f && Race.Path.TurnBetween(p.Laps.S, p.Laps.S + 45f) > 45f && p.Speed > 12f)
-                Show(2, $"Maintiens {(touch ? "DRIFT" : "Espace")} en tournant : les étincelles chargent un turbo");
+                Show(2, $"Maintiens {(touch ? "DÉRAPAGE" : "Espace")} en tournant : les étincelles chargent un turbo");
             if (p.Item != ItemKind.None && p.ItemRoll <= 0f)
                 Show(3, $"{(touch ? "OBJET" : "E")} pour utiliser ton objet");
             if (p.Airborne && p.Vertical.AirTime > 0.1f)
-                Show(4, $"{(touch ? "DRIFT" : "Espace")} en l'air : figure et turbo à l'atterrissage");
+                Show(4, $"{(touch ? "DÉRAPAGE" : "Espace")} en l'air : figure et turbo à l'atterrissage");
         }
 
         void Show(int index, string text)
@@ -71,9 +71,9 @@ namespace TurboPattes.Game.UI
             float s = _ui.Scale, w = Screen.width, h = Screen.height;
             float a = Mathf.Clamp01(_left * 3f) * Mathf.Clamp01((ShowTime - _left) * 4f);
             var r = new Rect(w * 0.5f - 420 * s, h * 0.7f, 840 * s, 58 * s);
-            UiKit.Box(r, new Color(0.05f, 0.08f, 0.18f, 0.75f * a), 16 * s);
-            UiKit.Box(new Rect(r.x, r.y, 8 * s, r.height), new Color(1f, 0.6f, 0.15f, a), 4 * s);
-            _ui.Label(r, _text, _ui.Medium, new Color(1f, 1f, 1f, a), TextAnchor.MiddleCenter);
+            _ui.Plate(r, a);
+            UiKit.Slash(new Rect(r.x + 14 * s, r.y + r.height * 0.2f, 8 * s, r.height * 0.6f), UiKit.Alpha(UiKit.Ochre, a));
+            _ui.Label(r, _text, _ui.Medium, UiKit.Alpha(UiKit.Cream, a), TextAnchor.MiddleCenter);
         }
     }
 }
