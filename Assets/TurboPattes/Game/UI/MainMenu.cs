@@ -43,6 +43,10 @@ namespace TurboPattes.Game.UI
         GameObject _kart;
         Vector3 _trackCenter;
         float _trackRadius, _titleAngle, _camBlend, _spin, _pilotChangedAt = -10f;
+        // Grille des circuits : la piste n'est reconstruite qu'au choix validé.
+        bool _gridOpen;
+        int _gridIndex;
+        float[][] _silX, _silZ;
 
         public void Setup(TrackPath path, Camera cam, SoundBank sound, int circuit)
         {
@@ -108,7 +112,8 @@ namespace TurboPattes.Game.UI
             public float S;
             public Rect Safe;
             public Rect PlayButton, Back, Go, Prev, Next, Settings;
-            public Rect[] Cards, ModeButtons, CircuitButtons, LapButtons, DifficultyButtons;
+            public Rect[] Cards, ModeButtons, CircuitButtons, LapButtons, DifficultyButtons, GridCells;
+            public Rect GridClose;
         }
 
         Layout ComputeLayout()
@@ -157,6 +162,15 @@ namespace TurboPattes.Game.UI
                 l.DifficultyButtons[i] = new Rect(px + i * (bw + 8 * s), safe.y + 408 * s, bw, bh);
             }
             l.Go = new Rect(px, safe.yMax - 104 * s, pw, 104 * s);
+
+            // Grille des dix circuits (cinq colonnes), au centre.
+            int count = GameSession.CircuitCount;
+            float gap2 = 16 * s, cellW = Mathf.Min(220 * s, (safe.width - (CircuitGrid.Columns - 1) * gap2) / CircuitGrid.Columns), cellH = 232 * s;
+            float gx = safe.center.x - (CircuitGrid.Columns * cellW + (CircuitGrid.Columns - 1) * gap2) * 0.5f, gy = safe.y + 84 * s;
+            l.GridCells = new Rect[count];
+            for (int i = 0; i < count; i++)
+                l.GridCells[i] = new Rect(gx + i % CircuitGrid.Columns * (cellW + gap2), gy + i / CircuitGrid.Columns * (cellH + gap2), cellW, cellH);
+            l.GridClose = new Rect(safe.x, safe.y, 150 * s, 54 * s);
             return l;
         }
 
@@ -241,6 +255,19 @@ namespace TurboPattes.Game.UI
                 return;
             }
 
+            if (_gridOpen)
+            {
+                HandleGrid(l, confirm, back, dx, dy, tap);
+                return;
+            }
+
+            // Circuit (hors coupe) : Entrée sur la ligne ou toucher le nom ouvre la grille des vignettes.
+            if (_mode != GameMode.Cup && (confirm && _row == Row.Circuit || tap.HasValue && l.CircuitButtons[1].Contains(tap.Value)))
+            {
+                OpenGrid();
+                return;
+            }
+
             if (back || tap.HasValue && l.Back.Contains(tap.Value))
             {
                 _screen = Screen.Title;
@@ -293,6 +320,38 @@ namespace TurboPattes.Game.UI
                 if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; Jukebox.Instance.Move(); }
                 if (l.DifficultyButtons[i].Contains(p) && _mode != GameMode.TimeTrial) { _difficulty = (Difficulty)i; _row = Row.Difficulty; Jukebox.Instance.Move(); }
             }
+        }
+
+        void OpenGrid()
+        {
+            _gridOpen = true;
+            _gridIndex = _circuit;
+            _row = Row.Circuit;
+            Jukebox.Instance.Confirm();
+        }
+
+        void HandleGrid(Layout l, bool confirm, bool back, int dx, int dy, Vector2? tap)
+        {
+            if (back || tap.HasValue && l.GridClose.Contains(tap.Value))
+            {
+                _gridOpen = false;
+                Jukebox.Instance.Back();
+                return;
+            }
+            if (dx != 0 || dy != 0)
+            {
+                int before = _gridIndex;
+                _gridIndex = CircuitGrid.Move(_gridIndex, dx, dy, GameSession.CircuitCount);
+                if (_gridIndex != before) Jukebox.Instance.Move();
+            }
+            int chosen = confirm ? _gridIndex : -1;
+            if (tap.HasValue)
+                for (int i = 0; i < l.GridCells.Length; i++)
+                    if (l.GridCells[i].Contains(tap.Value)) chosen = i;
+            if (chosen < 0) return;
+            _gridOpen = false;
+            Jukebox.Instance.Confirm();
+            ChangeCircuit(chosen);
         }
 
         /// <summary>Pour le mode -tp-menutest.</summary>
@@ -372,7 +431,59 @@ namespace TurboPattes.Game.UI
             if (SettingsScreen.IsOpen) return;
             var l = ComputeLayout();
             if (_screen == Screen.Title && _camBlend < 0.5f) DrawTitle(l);
-            else if (_screen == Screen.Pilot && _camBlend > 0.5f) DrawPilot(l);
+            else if (_screen == Screen.Pilot && _camBlend > 0.5f)
+            {
+                if (_gridOpen) DrawGrid(l);
+                else DrawPilot(l);
+            }
+        }
+
+        static readonly Color[] MedalColors = { Color.clear, new(0.85f, 0.5f, 0.25f), new(0.8f, 0.85f, 0.92f), new(1f, 0.8f, 0.2f) };
+
+        /// <summary>Grille des circuits : silhouette du tracé, nom, médaille et meilleur tour de chacun.</summary>
+        void DrawGrid(Layout l)
+        {
+            float s = l.S, w = UnityEngine.Screen.width, h = UnityEngine.Screen.height;
+            UiKit.Box(new Rect(0, 0, w, h), UiKit.Alpha(UiKit.Ink, 0.8f));
+            _ui.Button(l.GridClose, "< Retour", false, false, _ui.Small);
+            _ui.Label(new Rect(0, l.Safe.y, w, 54 * s), "Choisis ton circuit", _ui.Big, UiKit.Cream, TextAnchor.MiddleCenter);
+            if (_silX == null)
+            {
+                // Tracés à basse résolution (8 points par segment), calculés une fois, sans construire la piste.
+                var all = Circuit.All();
+                _silX = new float[all.Length][];
+                _silZ = new float[all.Length][];
+                for (int i = 0; i < all.Length; i++)
+                {
+                    var pts = new TrackPath(all[i].Control, 8, all[i].HalfWidth, all[i].CurbWidth, all[i].BarrierOffset).Points;
+                    _silX[i] = System.Array.ConvertAll(pts, p => p.x);
+                    _silZ[i] = System.Array.ConvertAll(pts, p => p.z);
+                }
+            }
+            for (int i = 0; i < l.GridCells.Length; i++)
+            {
+                var r = l.GridCells[i];
+                bool current = i == _circuit, focus = i == _gridIndex;
+                if (focus) UiKit.Card(new Rect(r.x - 5 * s, r.y - 5 * s, r.width + 10 * s, r.height + 10 * s), UiKit.Cream, 25 * s);
+                UiKit.Card(r, current ? UiKit.Vermilion : UiKit.Ink, 20 * s, focus ? 0f : 4f * s);
+                var ink = UiKit.Cream;
+                // Silhouette du tracé.
+                float[] xs = _silX[i], zs = _silZ[i];
+                var fit = MiniMap.Fit(xs, zs, r.x, r.y + 8 * s, r.width, r.height - 90 * s, 18 * s);
+                foreach (int k in MiniMap.Spread(xs.Length, 70))
+                {
+                    fit.Project(xs[k], zs[k], out float x, out float y);
+                    UiKit.Disc(new Vector2(x, y), 2.6f * s, UiKit.Alpha(ink, 0.9f));
+                }
+                _ui.Label(new Rect(r.x + 8 * s, r.yMax - 82 * s, r.width - 16 * s, 30 * s), $"{i + 1}. {_circuitNames[i]}", _ui.Small, ink, TextAnchor.MiddleCenter);
+                float lap = GameSession.BestLap(i);
+                var medal = Medals.For(i, lap);
+                var mc = new Vector2(r.x + 26 * s, r.yMax - 32 * s);
+                UiKit.Disc(mc, 12 * s, UiKit.Alpha(ink, medal == Medal.None ? 0.2f : 1f));
+                if (medal != Medal.None) UiKit.Disc(mc, 9 * s, MedalColors[(int)medal]);
+                _ui.Label(new Rect(r.x + 44 * s, r.yMax - 48 * s, r.width - 52 * s, 32 * s), lap > 0f ? $"Tour {RaceText.Time(lap)}" : "Pas de record",
+                    _ui.Small, UiKit.Alpha(ink, lap > 0f ? 1f : 0.6f), TextAnchor.MiddleLeft);
+            }
         }
 
         void DrawTitle(Layout l)

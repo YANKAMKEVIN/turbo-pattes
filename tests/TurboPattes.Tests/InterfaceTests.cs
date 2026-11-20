@@ -221,4 +221,20 @@ namespace TurboPattes.Tests
             Assert.That(DriftCharge.SegmentFill(99f, 3), Is.EqualTo(0f));
         }
     }
+
+    public class CircuitGridTests
+    {
+        [Test]
+        public void Grille_DeplacementSansSortir()
+        {
+            Assert.That(CircuitGrid.Rows(10), Is.EqualTo(2));
+            Assert.That(CircuitGrid.Move(0, -1, 0, 10), Is.EqualTo(0));
+            Assert.That(CircuitGrid.Move(0, 1, 0, 10), Is.EqualTo(1));
+            Assert.That(CircuitGrid.Move(2, 0, 1, 10), Is.EqualTo(7));
+            Assert.That(CircuitGrid.Move(7, 0, 1, 10), Is.EqualTo(7));
+            Assert.That(CircuitGrid.Move(4, 1, 0, 10), Is.EqualTo(4), "pas de retour à la ligne");
+            // Grille incomplète : on reste sur la dernière vignette existante.
+            Assert.That(CircuitGrid.Move(3, 0, 1, 7), Is.EqualTo(6));
+        }
+    }
 }
