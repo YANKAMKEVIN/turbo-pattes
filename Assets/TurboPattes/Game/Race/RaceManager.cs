@@ -53,6 +53,7 @@ namespace TurboPattes.Game.Race
         public Song Music { get; set; } = Songs.Race;
 
         AiDriver[] _ai;
+        ProgressClock[] _clocks;
         float[] _baseScale;
         List<BoostPad> _pads;
         SoundBank _sound;
@@ -115,6 +116,7 @@ namespace TurboPattes.Game.Race
                 kart.Landed += k => { if (k.IsPlayer && k.Vertical.LandingSpeed > 4f) { _sound.Bump(); App.Haptics.Pulse(45); _cam.Shake(Mathf.Clamp(k.Vertical.LandingSpeed / 20f, 0.15f, 0.5f)); } };
             }
             Karts = karts.ToArray();
+            _clocks = Array.ConvertAll(Karts, _ => new ProgressClock());
             _ai = ai.ToArray();
             _baseScale = baseScale.ToArray();
             Items.PickedUp += k => { if (k.IsPlayer) _sound.Pop(); };
@@ -169,6 +171,8 @@ namespace TurboPattes.Game.Race
             CheckBoostPads();
             Items.Tick(dt, Karts, RankOf);
             ComputeOrder();
+            if (State != Phase.Countdown)
+                for (int i = 0; i < Karts.Length; i++) _clocks[i].Record(Karts[i].Progress, RaceTime);
             CheckFinish();
             ApplyRubberBand();
             UpdateWrongWay(dt);
@@ -237,6 +241,23 @@ namespace TurboPattes.Game.Race
         }
 
         int RankOf(KartMotor k) => k.Rank;
+
+        /// <summary>
+        /// Écart en secondes avec le pilote juste devant (<paramref name="offset"/> = -1) ou juste derrière (+1) le joueur,
+        /// mesuré aux repères de passage. Faux s'il n'y a personne à cette place ou pas encore de mesure.
+        /// </summary>
+        public bool GapToNeighbour(int offset, out KartMotor other, out float seconds)
+        {
+            other = null;
+            seconds = 0f;
+            int r = Player.Rank + offset;
+            if (_clocks == null || Order == null || r < 0 || r >= Order.Length || offset == 0) return false;
+            int index = Order[r];
+            other = Karts[index];
+            return offset < 0
+                ? RaceGaps.Ahead(_clocks[index], Player.Progress, RaceTime, out seconds)
+                : RaceGaps.Behind(_clocks[Array.IndexOf(Karts, Player)], other.Progress, RaceTime, out seconds);
+        }
 
         void ComputeOrder()
         {

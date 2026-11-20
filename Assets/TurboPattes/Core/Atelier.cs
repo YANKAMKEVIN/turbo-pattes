@@ -94,6 +94,13 @@ namespace TurboPattes.Core
             return $"{m}:{s:00},{c:00}";
         }
 
+        /// <summary>Durée positive en secondes et centièmes : « 1,24 ».</summary>
+        public static string Seconds(float seconds)
+        {
+            long cs = (long)Math.Round(Math.Max(0f, seconds) * 100.0, MidpointRounding.AwayFromZero);
+            return $"{cs / 100},{cs % 100:00}";
+        }
+
         /// <summary>« 1er », « 2e »…</summary>
         public static string Ordinal(int rank) => rank == 1 ? "1er" : rank + "e";
 

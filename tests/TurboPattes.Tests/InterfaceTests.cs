@@ -60,4 +60,51 @@ namespace TurboPattes.Tests
             Assert.That(RaceText.Gap(-0.001f), Is.EqualTo("+0,00"));
         }
     }
+
+    public class GapTests
+    {
+        [Test]
+        public void Horloge_PremierPassageEtInterpolation()
+        {
+            var c = new ProgressClock(step: 10f, origin: 0f);
+            c.Record(0f, 1f);
+            c.Record(10f, 2f);
+            c.Record(5f, 9f); // recul : n'efface rien
+            c.Record(20f, 4f);
+            Assert.That(c.TimeAt(15f, out float t), Is.True);
+            Assert.That(t, Is.EqualTo(3f).Within(1e-4f));
+            Assert.That(c.TimeAt(20f, out t), Is.True);
+            Assert.That(t, Is.EqualTo(4f));
+            Assert.That(c.TimeAt(25f, out _), Is.False, "pas encore atteint");
+            Assert.That(c.TimeAt(-1f, out _), Is.False);
+        }
+
+        [Test]
+        public void Ecarts_DevantEtDerriere()
+        {
+            // Celui de devant passe chaque repère de 10 m 1,5 s plus tôt que le joueur.
+            var ahead = new ProgressClock(10f, 0f);
+            var me = new ProgressClock(10f, 0f);
+            for (int i = 0; i <= 10; i++)
+            {
+                ahead.Record(i * 10f, i * 1f);
+                me.Record(i * 10f, i * 1f + 1.5f);
+            }
+            Assert.That(RaceGaps.Ahead(ahead, 50f, 6.5f, out float gap), Is.True);
+            Assert.That(gap, Is.EqualTo(1.5f).Within(1e-4f));
+            // Le joueur est passé à 40 m à 5,5 s : celui qui y est maintenant (8 s) a 2,5 s de retard.
+            Assert.That(RaceGaps.Behind(me, 40f, 8f, out gap), Is.True);
+            Assert.That(gap, Is.EqualTo(2.5f).Within(1e-4f));
+        }
+
+        [Test]
+        public void Tendance_EtSecondes()
+        {
+            Assert.That(RaceGaps.Trend(2f, 1.8f), Is.EqualTo(-1));
+            Assert.That(RaceGaps.Trend(2f, 2.02f), Is.EqualTo(0));
+            Assert.That(RaceGaps.Trend(2f, 2.3f), Is.EqualTo(1));
+            Assert.That(RaceText.Seconds(1.244f), Is.EqualTo("1,24"));
+            Assert.That(RaceText.Seconds(-3f), Is.EqualTo("0,00"));
+        }
+    }
 }

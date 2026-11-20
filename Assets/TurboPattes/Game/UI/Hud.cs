@@ -25,6 +25,14 @@ namespace TurboPattes.Game.UI
         GUIStyle _big, _medium, _small, _center;
         float _scale;
         int _focus;
+        // Classement complet affiché deux secondes à chaque passage de ligne ; sinon les deux écarts utiles.
+        int _seenLap = int.MinValue;
+        float _fullStandingsUntil;
+        // Tendance des écarts, mesurée chaque seconde : le joueur rattrape-t-il, est-il rattrapé ?
+        float _trendAt;
+        readonly float[] _gapBefore = new float[2];
+        readonly int[] _gapTrend = new int[2];
+        readonly KartMotor[] _gapKart = new KartMotor[2];
         static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier", "Plume planante", "Pelote de laine" };
         static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Réglages", "Menu" };
         static readonly string[] ResultChoices = { "Rejouer", "Menu" };
@@ -94,7 +102,27 @@ namespace TurboPattes.Game.UI
             else
             {
                 _focus = 0;
+                TrackStandings();
                 if (tap.HasValue && Race.Input.TouchMode && PauseButton().Contains(tap.Value)) { Jukebox.Instance.Confirm(); Race.SetPaused(true); }
+            }
+        }
+
+        void TrackStandings()
+        {
+            int lap = Race.Player.Laps.Lap;
+            if (lap != _seenLap)
+            {
+                if (lap > _seenLap && _seenLap != int.MinValue && Race.State == RaceManager.Phase.Racing) _fullStandingsUntil = Time.time + 2f;
+                _seenLap = lap;
+            }
+            if (Time.time < _trendAt) return;
+            _trendAt = Time.time + 1f;
+            for (int side = 0; side < 2; side++)
+            {
+                bool has = Race.GapToNeighbour(side == 0 ? -1 : 1, out var kart, out float gap);
+                _gapTrend[side] = has && kart == _gapKart[side] ? RaceGaps.Trend(_gapBefore[side], gap) : 0;
+                _gapKart[side] = has ? kart : null;
+                _gapBefore[side] = gap;
             }
         }
 
@@ -187,7 +215,8 @@ namespace TurboPattes.Game.UI
                 Label(new Rect(place.x, place.y + 64 * s, place.width, 30 * s), $"sur {Race.Karts.Length}", _small, ink, TextAnchor.MiddleCenter);
 
                 DrawItemSlot(new Vector2(w * 0.5f, top + 42 * s), 40 * s, p);
-                DrawStandings(left, top + 96 * s, s);
+                if (Time.time < _fullStandingsUntil || Race.State == RaceManager.Phase.Countdown) DrawStandings(left, top + 96 * s, s);
+                else DrawGaps(left, top + 96 * s, s);
             }
 
             // Vitesse (chiffres fixes) et charge de drift
@@ -285,6 +314,34 @@ namespace TurboPattes.Game.UI
                 _ui.Digits(new Rect(x, yy, 24 * s, row), (r + 1).ToString(), _small, k.IsPlayer ? UiKit.Cream : UiKit.Ochre, TextAnchor.MiddleCenter);
                 UiKit.Portrait(new Vector2(x + 38 * s, yy + row * 0.5f), 10 * s, k.Spec);
                 Label(new Rect(x + 54 * s, yy, 116 * s, row), k.Spec.Name, _small, UiKit.Cream, TextAnchor.MiddleLeft);
+            }
+        }
+
+        /// <summary>
+        /// Pilote juste devant et juste derrière, avec l'écart en secondes. Bleu : l'écart tourne à l'avantage du joueur
+        /// (il rattrape celui de devant, ou creuse sur celui de derrière) ; vermillon : l'inverse.
+        /// </summary>
+        void DrawGaps(float x, float y, float s)
+        {
+            float row = 34 * s, width = 300 * s;
+            int rows = 0;
+            for (int side = 0; side < 2; side++) if (Race.GapToNeighbour(side == 0 ? -1 : 1, out _, out _)) rows++;
+            if (rows == 0) return;
+            _ui.Plate(new Rect(x - 10 * s, y - 6 * s, width, row * rows + 12 * s));
+            float yy = y;
+            for (int side = 0; side < 2; side++)
+            {
+                if (!Race.GapToNeighbour(side == 0 ? -1 : 1, out var k, out float gap)) continue;
+                int trend = _gapKart[side] == k ? _gapTrend[side] : 0;
+                // Devant : un écart qui fond est bon signe ; derrière : un écart qui grandit.
+                int good = side == 0 ? -trend : trend;
+                var col = good > 0 ? UiKit.Blue : good < 0 ? UiKit.Vermilion : UiKit.Cream;
+                Label(new Rect(x, yy, 96 * s, row), side == 0 ? "DEVANT" : "DERRIÈRE", _small, UiKit.Ochre, TextAnchor.MiddleLeft);
+                UiKit.Portrait(new Vector2(x + 110 * s, yy + row * 0.5f), 12 * s, k.Spec);
+                Label(new Rect(x + 128 * s, yy, 90 * s, row), k.Spec.Name, _small, UiKit.Cream, TextAnchor.MiddleLeft);
+                if (good != 0) Box(new Rect(x + width - 92 * s, yy + 4 * s, 76 * s, row - 8 * s), col);
+                _ui.Digits(new Rect(x + width - 92 * s, yy, 76 * s, row), RaceText.Seconds(gap), _small, good != 0 ? UiKit.Ink : UiKit.Cream, TextAnchor.MiddleCenter);
+                yy += row;
             }
         }
 
