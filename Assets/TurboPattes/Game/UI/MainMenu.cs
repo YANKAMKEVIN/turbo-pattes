@@ -43,6 +43,8 @@ namespace TurboPattes.Game.UI
         GameObject _kart;
         Vector3 _trackCenter;
         float _trackRadius, _titleAngle, _camBlend, _spin, _pilotChangedAt = -10f;
+        // Arrivée du logo : remise à zéro à chaque retour sur l'écran titre.
+        float _titleShownAt;
         // Grille des circuits : la piste n'est reconstruite qu'au choix validé.
         bool _gridOpen;
         int _gridIndex;
@@ -62,6 +64,7 @@ namespace TurboPattes.Game.UI
             _cup = GameSession.CupChoice;
             _circuitNames = Array.ConvertAll(Circuit.All(), c => c.ShortName);
 
+            _titleShownAt = Time.time;
             BuildStage();
             SetTrack(path);
             ShowPilot(_pilot);
@@ -271,6 +274,7 @@ namespace TurboPattes.Game.UI
             if (back || tap.HasValue && l.Back.Contains(tap.Value))
             {
                 _screen = Screen.Title;
+                _titleShownAt = Time.time;
                 Jukebox.Instance.Back();
                 return;
             }
@@ -492,14 +496,11 @@ namespace TurboPattes.Game.UI
             float a = 1f - _camBlend * 2f;
             UiKit.Box(new Rect(0, 0, w, h), UiKit.Alpha(UiKit.Ink, 0.3f * a));
 
-            // Logo qui se balance doucement.
-            var pivot = new Vector2(w * 0.5f, l.Safe.y + l.Safe.height * 0.3f);
-            var m = GUI.matrix;
-            GUIUtility.RotateAroundPivot(Mathf.Sin(Time.time * 1.3f) * 2.5f, pivot);
-            var logo = new GUIStyle(_ui.Huge) { fontSize = Mathf.RoundToInt(120 * s) };
-            _ui.Label(new Rect(0, pivot.y - 130 * s, w, 140 * s), "TURBO", logo, UiKit.Alpha(UiKit.Vermilion, a), TextAnchor.MiddleCenter, 6f);
-            _ui.Label(new Rect(0, pivot.y - 10 * s, w, 140 * s), "PATTES", logo, UiKit.Alpha(UiKit.Ochre, a), TextAnchor.MiddleCenter, 6f);
-            GUI.matrix = m;
+            // Logo penché en Saira, avec la patte de l'icône et un filet de vitesse ; il arrive en glissant.
+            float since = Time.time - _titleShownAt;
+            var pivot = new Vector2(w * 0.5f + LogoIntro.Offset(since) * w * 0.8f, l.Safe.y + l.Safe.height * 0.3f);
+            float la = a * LogoIntro.Alpha(since);
+            DrawLogo(pivot, s, la);
             var sub = new Rect(w * 0.5f - 290 * s, pivot.y + 122 * s, 580 * s, 44 * s);
             UiKit.Card(sub, UiKit.Alpha(UiKit.Cream, a), 14 * s, 4 * s);
             _ui.Label(sub, "Courses de karts à poils et à plumes", _ui.Medium, UiKit.Alpha(UiKit.Ink, a), TextAnchor.MiddleCenter);
@@ -512,6 +513,30 @@ namespace TurboPattes.Game.UI
             _ui.Plate(hint, 0.85f * a);
             _ui.Label(hint, "Touche l'écran, Entrée ou A", _ui.Body, UiKit.Alpha(UiKit.Cream, a), TextAnchor.MiddleCenter);
             _ui.Button(l.Settings, "Réglages", false, false, _ui.Small, a);
+        }
+
+        /// <summary>Logo : « TURBO » vermillon et « PATTES » ocre, penchés, patte crème à gauche, filets de vitesse derrière.</summary>
+        void DrawLogo(Vector2 pivot, float s, float a)
+        {
+            var m = GUI.matrix;
+            var shear = Matrix4x4.identity;
+            shear.m01 = -LogoIntro.Slant;
+            shear.m03 = LogoIntro.Slant * pivot.y;
+            GUI.matrix = m * shear;
+            // Filets de vitesse : deux traits crème qui filent derrière les lettres, vers la gauche.
+            UiKit.Box(new Rect(pivot.x - 420 * s, pivot.y - 34 * s, 300 * s, 12 * s), UiKit.Alpha(UiKit.Cream, 0.85f * a));
+            UiKit.Box(new Rect(pivot.x - 470 * s, pivot.y - 8 * s, 380 * s, 18 * s), UiKit.Alpha(UiKit.Cream, 0.85f * a));
+            UiKit.Box(new Rect(pivot.x - 430 * s, pivot.y + 24 * s, 260 * s, 8 * s), UiKit.Alpha(UiKit.Cream, 0.85f * a));
+            var logo = new GUIStyle(_ui.Huge) { fontSize = Mathf.RoundToInt(120 * s) };
+            _ui.Label(new Rect(pivot.x - 400 * s, pivot.y - 136 * s, 860 * s, 140 * s), "TURBO", logo, UiKit.Alpha(UiKit.Vermilion, a), TextAnchor.MiddleCenter, 6f);
+            _ui.Label(new Rect(pivot.x - 400 * s, pivot.y - 14 * s, 860 * s, 140 * s), "PATTES", logo, UiKit.Alpha(UiKit.Ochre, a), TextAnchor.MiddleCenter, 6f);
+            GUI.matrix = m;
+            // La patte, à gauche du mot, sur une pastille vermillon cerclée d'encre.
+            var paw = new Vector2(pivot.x - 290 * s, pivot.y - 62 * s);
+            UiKit.Disc(paw, 70 * s, UiKit.Alpha(UiKit.Ink, a));
+            UiKit.Disc(paw, 63 * s, UiKit.Alpha(UiKit.Vermilion, a));
+            GUI.DrawTexture(new Rect(paw.x - 52 * s, paw.y - 52 * s, 104 * s, 104 * s), Icons.Paw(), ScaleMode.ScaleToFit, true, 0f,
+                new Color(1f, 1f, 1f, a), 0f, 0f);
         }
 
         void DrawPilot(Layout l)

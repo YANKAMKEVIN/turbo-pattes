@@ -404,4 +404,21 @@ namespace TurboPattes.Tests
             Assert.That(Songs.Sprint(null), Is.Null);
         }
     }
+
+    public class LogoIntroTests
+    {
+        [Test]
+        public void Logo_GlisseDepasseEtSePose()
+        {
+            Assert.That(LogoIntro.Offset(0f), Is.EqualTo(1f).Within(1e-5f), "hors champ au départ");
+            Assert.That(LogoIntro.Offset(LogoIntro.Duration), Is.EqualTo(0f).Within(1e-5f), "en place à la fin");
+            Assert.That(LogoIntro.Offset(5f), Is.EqualTo(0f).Within(1e-5f));
+            float min = 1f;
+            for (int i = 0; i <= 70; i++) min = System.Math.Min(min, LogoIntro.Offset(i * LogoIntro.Duration / 70f));
+            Assert.That(min, Is.LessThan(0f), "léger dépassement avant de se poser");
+            Assert.That(min, Is.GreaterThan(-0.15f));
+            Assert.That(LogoIntro.Alpha(0f), Is.EqualTo(0f));
+            Assert.That(LogoIntro.Alpha(LogoIntro.Duration), Is.EqualTo(1f));
+        }
+    }
 }
