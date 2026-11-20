@@ -293,18 +293,16 @@ namespace TurboPattes.Game.UI
 
         void DrawItemSlot(Vector2 c, float r, KartMotor p)
         {
+            // En tactile, l'objet est dans le bouton OBJET, sous le pouce : ici, un simple rappel plus petit, sans nom.
+            bool touch = Race.Input.TouchMode;
+            if (touch) r *= 0.65f;
             Disc(c, r + 4 * _scale, UiKit.Cream);
             Disc(c, r, UiKit.Ink);
-            var kind = p.Item;
+            var kind = ItemRoll.Shown(p.Item, p.ItemRoll, Time.time);
             if (kind == ItemKind.None) return;
-            if (p.ItemRoll > 0f)
-            {
-                // Roulette : fait défiler les objets.
-                kind = (ItemKind)(1 + (int)(Time.time * 14f) % ItemRoll.KindCount);
-            }
             float ir = r * 0.9f;
             GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(kind), ScaleMode.ScaleToFit);
-            if (p.ItemRoll <= 0f)
+            if (p.ItemRoll <= 0f && !touch)
             {
                 var tag = new Rect(c.x - 100 * _scale, c.y + r + 8 * _scale, 200 * _scale, 28 * _scale);
                 _ui.Plate(tag);
@@ -418,8 +416,30 @@ namespace TurboPattes.Game.UI
             var p = Race.Player;
             var driftColor = p.Drift.Active && p.Drift.Level > 0 ? KartMotor.DriftColors[p.Drift.Level] : UiKit.Ochre;
             TouchButton(Gui(l.Drift), l.DriftR, "DÉRAPAGE", driftColor, input.DriftHeld);
-            if (!Race.Solo) TouchButton(Gui(l.Item), l.ItemR, "OBJET", UiKit.Blue, input.ItemHeld || p.Item != ItemKind.None && p.ItemRoll <= 0f);
+            if (!Race.Solo) ItemButton(Gui(l.Item), l.ItemR, p, input.ItemHeld);
             TouchButton(Gui(l.Brake), l.BrakeR, "FREIN", UiKit.Vermilion, input.BrakeHeld);
+        }
+
+        /// <summary>
+        /// Bouton OBJET : discret et vide sans objet ; pendant le tirage, la roulette y défile ; prêt, il montre l'icône
+        /// de l'objet en grand sur fond bleu atelier.
+        /// </summary>
+        void ItemButton(Vector2 c, float r, KartMotor p, bool held)
+        {
+            var kind = ItemRoll.Shown(p.Item, p.ItemRoll, Time.time);
+            if (kind == ItemKind.None)
+            {
+                Disc(c, r, UiKit.Alpha(UiKit.Ink, 0.35f));
+                Disc(c, r * 0.88f, UiKit.Alpha(UiKit.Blue, held ? 0.45f : 0.2f));
+                Label(new Rect(c.x - r, c.y - r, r * 2f, r * 2f), "OBJET", _small, UiKit.Alpha(UiKit.Cream, 0.45f), TextAnchor.MiddleCenter);
+                return;
+            }
+            bool ready = p.ItemRoll <= 0f;
+            Disc(c, r, UiKit.Alpha(UiKit.Ink, 0.7f));
+            if (ready) UiKit.Ring(c, r * 0.94f, 4f * _scale, UiKit.Cream, 40);
+            Disc(c, r * 0.84f, UiKit.Alpha(UiKit.Blue, held ? 1f : ready ? 0.9f : 0.55f));
+            float ir = r * (ready ? 0.72f : 0.6f);
+            GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(kind), ScaleMode.ScaleToFit);
         }
 
         void TouchButton(Vector2 c, float r, string text, Color color, bool lit)

@@ -33,6 +33,15 @@ namespace TurboPattes.Core
         /// <summary>Nombre d'objets différents (roulette de l'interface).</summary>
         public static int KindCount => Kinds.Length;
 
+        /// <summary>Objet montré par la roulette de l'interface à cet instant (14 images par seconde).</summary>
+        public static ItemKind Reel(float time) => Kinds[(int)Math.Floor(Math.Max(0f, time) * 14f) % Kinds.Length];
+
+        /// <summary>
+        /// Objet à dessiner pour un kart : l'objet détenu, ou la roulette pendant le tirage ; <see cref="ItemKind.None"/> si rien.
+        /// </summary>
+        public static ItemKind Shown(ItemKind held, float rollLeft, float time) =>
+            held == ItemKind.None ? ItemKind.None : rollLeft > 0f ? Reel(time) : held;
+
         /// <param name="rank">Place (0 = premier).</param>
         /// <param name="racers">Nombre de pilotes.</param>
         /// <param name="random01">Valeur aléatoire dans [0, 1).</param>

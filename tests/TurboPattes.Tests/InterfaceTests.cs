@@ -134,4 +134,24 @@ namespace TurboPattes.Tests
             Assert.That(MiniMap.Spread(0, 4), Is.Empty);
         }
     }
+
+    public class ItemButtonTests
+    {
+        [Test]
+        public void Bouton_VideRouletteOuObjet()
+        {
+            Assert.That(ItemRoll.Shown(ItemKind.None, 0f, 3f), Is.EqualTo(ItemKind.None));
+            Assert.That(ItemRoll.Shown(ItemKind.Honey, 0f, 3f), Is.EqualTo(ItemKind.Honey));
+            Assert.That(ItemRoll.Shown(ItemKind.Honey, 0.5f, 0f), Is.EqualTo(ItemKind.Carrot), "roulette au début");
+        }
+
+        [Test]
+        public void Roulette_PasseParTousLesObjets()
+        {
+            var seen = new System.Collections.Generic.HashSet<ItemKind>();
+            for (int i = 0; i < ItemRoll.KindCount; i++) seen.Add(ItemRoll.Reel((i + 0.5f) / 14f));
+            Assert.That(seen.Count, Is.EqualTo(ItemRoll.KindCount));
+            Assert.That(seen, Does.Not.Contain(ItemKind.None));
+        }
+    }
 }
