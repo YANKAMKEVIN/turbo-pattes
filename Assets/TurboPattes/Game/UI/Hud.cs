@@ -31,6 +31,10 @@ namespace TurboPattes.Game.UI
         int _driftLevel;
         // Résultats : instant d'arrivée sur l'écran (mise en scène des lignes, confettis).
         float _resultsAt = -1f;
+        // Traits de vitesse (turbo, sauts) et éclat du compteur au déclenchement d'un turbo.
+        float _speedLines;
+        bool _wasBoosting;
+        float _boostFlashAt = -10f;
         float _driftFlashAt = -10f;
         // Classement complet affiché deux secondes à chaque passage de ligne ; sinon les deux écarts utiles.
         int _seenLap = int.MinValue;
@@ -112,6 +116,7 @@ namespace TurboPattes.Game.UI
         void Update()
         {
             if (Race == null || Race.Player == null || SettingsScreen.IsOpen) return;
+            UpdateSpeedFeel();
             var tap = UiKit.Tap();
             if (Race.Paused && _confirm >= 0) Navigate(ConfirmRects(), tap, ChooseConfirm, vertical: false);
             else if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
@@ -231,6 +236,8 @@ namespace TurboPattes.Game.UI
                 return;
             }
 
+            DrawSpeedLines(w, h, p);
+
             // Tour et chrono, sur une plaque vert charbon (contraste stable quel que soit le décor).
             int lap = p.Laps.DisplayLap(Race.Laps);
             _ui.Plate(new Rect(left - 10 * s, top - 6 * s, 210 * s, 84 * s));
@@ -270,6 +277,8 @@ namespace TurboPattes.Game.UI
                 ? new Rect(w * 0.5f - 90 * s, h - safe.yMin - 66 * s, 180 * s, 50 * s)
                 : new Rect(right - 180 * s, h - safe.yMin - 74 * s, 180 * s, 54 * s);
             _ui.Plate(speedRect);
+            float boostFlash = Mathf.Clamp01(1f - (Time.time - _boostFlashAt) / 0.35f);
+            if (boostFlash > 0f) UiKit.Card(speedRect, UiKit.Alpha(UiKit.Ochre, 0.85f * boostFlash), Mathf.Min(speedRect.height * 0.3f, 18f * s));
             _ui.Digits(new Rect(speedRect.x, speedRect.y, speedRect.width - 64 * s, speedRect.height), $"{kmh:0}", _medium,
                 p.BoostTime > 0f ? UiKit.Ochre : UiKit.Cream, TextAnchor.MiddleRight);
             Label(new Rect(speedRect.xMax - 60 * s, speedRect.y, 56 * s, speedRect.height), "km/h", _small, UiKit.Alpha(UiKit.Cream, 0.75f), TextAnchor.MiddleLeft);
@@ -358,6 +367,35 @@ namespace TurboPattes.Game.UI
             var tag = new Rect(c.x - 80 * s, c.y + r + 6 * s, 160 * s, 26 * s);
             _ui.Plate(tag);
             Label(tag, "DERRIÈRE !", _small, UiKit.Vermilion, TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>Traits de vitesse radiaux sur les bords pendant le turbo et les sauts, plus ou moins nombreux selon la qualité.</summary>
+        /// <summary>Intensité des traits (lissée) et éclat du compteur ; une fois par image, dans Update.</summary>
+        void UpdateSpeedFeel()
+        {
+            var p = Race.Player;
+            bool boosting = p.BoostTime > 0f;
+            if (boosting && !_wasBoosting) _boostFlashAt = Time.time;
+            _wasBoosting = boosting;
+            float target = Race.State == RaceManager.Phase.Racing && !Race.Paused ? SpeedLines.Target(boosting, p.Airborne, p.Speed / KartMotor.MaxSpeed) : 0f;
+            _speedLines = Mathf.MoveTowards(_speedLines, target, Time.deltaTime * 4f);
+        }
+
+        void DrawSpeedLines(float w, float h, KartMotor p)
+        {
+            if (_speedLines <= 0.01f) return;
+            var center = new Vector2(w * 0.5f, h * 0.5f);
+            float half = center.magnitude, thick = 3f * _scale;
+            int count = SpeedLines.Count(QualityTuner.Effective);
+            var m = GUI.matrix;
+            for (int i = 0; i < count; i++)
+            {
+                SpeedLines.Line(i, count, Time.time, out float deg, out float inner, out float length, out float alpha);
+                GUI.matrix = m;
+                GUIUtility.RotateAroundPivot(deg, center);
+                Box(new Rect(center.x + inner * half, center.y - thick * 0.5f, length * half, thick), UiKit.Alpha(UiKit.Cream, 0.55f * alpha * _speedLines));
+            }
+            GUI.matrix = m;
         }
 
         /// <summary>Chevron de dépassement à gauche de la place : monte (gain) ou descend (perte) en s'effaçant.</summary>

@@ -355,4 +355,35 @@ namespace TurboPattes.Tests
             Assert.That(t.Update(2, PlaceTracker.MinGap), Is.EqualTo(1));
         }
     }
+
+    public class SpeedLinesTests
+    {
+        [Test]
+        public void Nombre_SuitLaQualite()
+        {
+            Assert.That(SpeedLines.Count(0), Is.GreaterThan(SpeedLines.Count(4)));
+            Assert.That(SpeedLines.Count(4), Is.GreaterThan(0));
+            Assert.That(SpeedLines.Count(99), Is.EqualTo(SpeedLines.Count(4)));
+        }
+
+        [Test]
+        public void Intensite_TurboEtSauts()
+        {
+            Assert.That(SpeedLines.Target(true, false, 0.2f), Is.EqualTo(1f));
+            Assert.That(SpeedLines.Target(false, true, 1f), Is.EqualTo(0.6f).Within(1e-5f));
+            Assert.That(SpeedLines.Target(false, false, 1f), Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void Traits_SurLesBords()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                SpeedLines.Line(i, 20, i * 0.37f, out _, out float inner, out float length, out float alpha);
+                Assert.That(inner, Is.InRange(0.6f, 1.01f), "loin du centre : la piste reste dégagée");
+                Assert.That(length, Is.InRange(0.1f, 0.3f));
+                Assert.That(alpha, Is.InRange(0f, 1f));
+            }
+        }
+    }
 }
