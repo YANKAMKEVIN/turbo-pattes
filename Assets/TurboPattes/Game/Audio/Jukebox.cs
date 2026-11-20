@@ -22,7 +22,7 @@ namespace TurboPattes.Game.Audio
         readonly Dictionary<Song, AudioClip> _clips = new();
         Song _wanted;
         float _level = 0.5f;
-        AudioClip _move, _confirm, _back;
+        AudioClip _move, _confirm, _back, _lastLap;
 
         public static Jukebox Instance
         {
@@ -52,6 +52,8 @@ namespace TurboPattes.Game.Audio
             _move = Blip("UiMove", new[] { 1180f }, 0.05f, 0.25f);
             _confirm = Blip("UiConfirm", new[] { 784f, 1175f }, 0.07f, 0.35f);
             _back = Blip("UiBack", new[] { 880f, 587f }, 0.07f, 0.3f);
+            // Petit appel de clairon montant pour le dernier tour.
+            _lastLap = Blip("LastLap", new[] { 784f, 988f, 1175f, 1568f, 1568f }, 0.09f, 0.4f);
 
             Prepare(Songs.Menu);
             Prepare(Songs.Finish);
@@ -71,6 +73,16 @@ namespace TurboPattes.Game.Audio
                 _stingClips[song] = clip;
             }
             _sting.PlayOneShot(clip, 0.8f * App.GameSession.MusicVolume);
+        }
+
+        /// <summary>
+        /// Dernier tour : court jingle, puis la partition du circuit reprend au tempo relevé
+        /// (<see cref="Songs.Sprint"/>, à préparer pendant le compte à rebours).
+        /// </summary>
+        public void LastLap(Song circuitSong, float level)
+        {
+            _sting.PlayOneShot(_lastLap, 0.9f * App.GameSession.MusicVolume);
+            Play(Songs.Sprint(circuitSong), level);
         }
 
         /// <summary>Lance le calcul d'un morceau en arrière-plan (par exemple pendant le compte à rebours).</summary>

@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 namespace TurboPattes.Game.UI
 {
     /// <summary>
-    /// Interface de course en IMGUI (prototype) : tour, place, objet, vitesse, classement, compte à rebours,
+    /// Interface de course en IMGUI, direction « Atelier plein gaz » (plaques vert charbon, fiches crème, Saira) : tour, place, objet, vitesse, classement, compte à rebours,
     /// commandes tactiles et écran de résultats. Le tactile est lu par <see cref="PlayerInput"/> ; ici on ne fait que dessiner.
     /// </summary>
     public sealed class Hud : MonoBehaviour
@@ -25,6 +25,30 @@ namespace TurboPattes.Game.UI
         GUIStyle _big, _medium, _small, _center;
         float _scale;
         int _focus;
+        /// <summary>Choix de pause en attente de confirmation (Recommencer ou Menu), -1 sinon.</summary>
+        int _confirm = -1;
+        // Éclat de la jauge de drift au passage d'un niveau.
+        int _driftLevel;
+        // Résultats : instant d'arrivée sur l'écran (mise en scène des lignes, confettis).
+        float _resultsAt = -1f;
+        // Traits de vitesse (turbo, sauts) et éclat du compteur au déclenchement d'un turbo.
+        float _speedLines;
+        bool _wasBoosting;
+        float _boostFlashAt = -10f;
+        float _driftFlashAt = -10f;
+        // Classement complet affiché deux secondes à chaque passage de ligne ; sinon les deux écarts utiles.
+        int _seenLap = int.MinValue;
+        float _fullStandingsUntil;
+        // Tendance des écarts, mesurée chaque seconde : le joueur rattrape-t-il, est-il rattrapé ?
+        float _trendAt;
+        readonly float[] _gapBefore = new float[2];
+        readonly int[] _gapTrend = new int[2];
+        readonly KartMotor[] _gapKart = new KartMotor[2];
+        // Mini-carte : cadrage du tracé recalculé seulement si la piste ou la place à l'écran change.
+        TurboPattes.Game.Track.TrackPath _mapPath;
+        Rect _mapRect;
+        MapFit _mapFit;
+        int[] _mapDots;
         static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier", "Plume planante", "Pelote de laine" };
         static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Réglages", "Menu" };
         static readonly string[] ResultChoices = { "Rejouer", "Menu" };
@@ -43,10 +67,10 @@ namespace TurboPattes.Game.UI
             _center = new GUIStyle(_big) { alignment = TextAnchor.MiddleCenter };
         }
 
-        public static string Ordinal(int rank) => rank == 1 ? "1er" : rank + "e";
+        public static string Ordinal(int rank) => RaceText.Ordinal(rank);
 
-        void Label(Rect r, string text, GUIStyle style, Color color, TextAnchor anchor = TextAnchor.UpperLeft) =>
-            _ui.Label(r, text, style, color, anchor);
+        void Label(Rect r, string text, GUIStyle style, Color color, TextAnchor anchor = TextAnchor.UpperLeft, float shadow = 0f) =>
+            _ui.Label(r, text, style, color, anchor, shadow);
 
         static void Disc(Vector2 center, float radius, Color color) => UiKit.Disc(center, radius, color);
 
@@ -76,6 +100,10 @@ namespace TurboPattes.Game.UI
 
         Rect[] PauseRects() => MenuButtons(PauseChoices.Length, Screen.height * 0.36f, false);
 
+        Rect ConfirmCard() => new(Screen.width * 0.5f - 320 * S, Screen.height * 0.3f, 640 * S, 240 * S);
+
+        Rect[] ConfirmRects() => MenuButtons(2, ConfirmCard().y + 146 * S, true);
+
         // Lignes du tableau de résultats : karts, ou tours en contre-la-montre.
         int ResultRows => Race.Solo ? Race.Laps + 4 : Race.Karts.Length;
 
@@ -88,13 +116,40 @@ namespace TurboPattes.Game.UI
         void Update()
         {
             if (Race == null || Race.Player == null || SettingsScreen.IsOpen) return;
+            UpdateSpeedFeel();
             var tap = UiKit.Tap();
-            if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
-            else if (Race.State == RaceManager.Phase.Results) Navigate(ResultRects(), tap, ChooseResult, vertical: false);
+            if (Race.Paused && _confirm >= 0) Navigate(ConfirmRects(), tap, ChooseConfirm, vertical: false);
+            else if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
+            else if (Race.State == RaceManager.Phase.Results)
+            {
+                if (_resultsAt < 0f) _resultsAt = Time.time;
+                Navigate(ResultRects(), tap, ChooseResult, vertical: false);
+            }
             else
             {
                 _focus = 0;
+                _confirm = -1;
+                TrackStandings();
                 if (tap.HasValue && Race.Input.TouchMode && PauseButton().Contains(tap.Value)) { Jukebox.Instance.Confirm(); Race.SetPaused(true); }
+            }
+        }
+
+        void TrackStandings()
+        {
+            int lap = Race.Player.Laps.Lap;
+            if (lap != _seenLap)
+            {
+                if (lap > _seenLap && _seenLap != int.MinValue && Race.State == RaceManager.Phase.Racing) _fullStandingsUntil = Time.time + 2f;
+                _seenLap = lap;
+            }
+            if (Time.time < _trendAt) return;
+            _trendAt = Time.time + 1f;
+            for (int side = 0; side < 2; side++)
+            {
+                bool has = Race.GapToNeighbour(side == 0 ? -1 : 1, out var kart, out float gap);
+                _gapTrend[side] = has && kart == _gapKart[side] ? RaceGaps.Trend(_gapBefore[side], gap) : 0;
+                _gapKart[side] = has ? kart : null;
+                _gapBefore[side] = gap;
             }
         }
 
@@ -130,7 +185,20 @@ namespace TurboPattes.Game.UI
         {
             if (i == 0) Race.SetPaused(false);
             else if (i == 2) SettingsScreen.Open();
-            else Leave(toMenu: i == 3);
+            else
+            {
+                // Recommencer ou Menu : on demande d'abord, « Annuler » sélectionné.
+                _confirm = i;
+                _focus = 0;
+            }
+        }
+
+        void ChooseConfirm(int i)
+        {
+            int choice = _confirm;
+            _confirm = -1;
+            _focus = 0; // retour sur « Reprendre »
+            if (i == 1) Leave(toMenu: choice == 3);
         }
 
         void ChooseResult(int i)
@@ -168,34 +236,58 @@ namespace TurboPattes.Game.UI
                 return;
             }
 
-            // Tour
+            DrawSpeedLines(w, h, p);
+
+            // Tour et chrono, sur une plaque vert charbon (contraste stable quel que soit le décor).
             int lap = p.Laps.DisplayLap(Race.Laps);
-            Label(new Rect(left, top, 400 * s, 50 * s), $"Tour {lap}/{Race.Laps}", _medium, Color.white);
-            Label(new Rect(left, top + 38 * s, 400 * s, 40 * s), FormatTime(Race.RaceTime), _small, new Color(1f, 1f, 1f, 0.85f));
+            _ui.Plate(new Rect(left - 10 * s, top - 6 * s, 210 * s, 84 * s));
+            Label(new Rect(left + 4 * s, top - 2 * s, 200 * s, 40 * s), "TOUR", _small, UiKit.Ochre, TextAnchor.MiddleLeft);
+            _ui.Digits(new Rect(left + 70 * s, top - 4 * s, 120 * s, 40 * s), $"{lap}/{Race.Laps}", _medium, UiKit.Cream, TextAnchor.MiddleLeft);
+            _ui.Digits(new Rect(left + 4 * s, top + 34 * s, 200 * s, 40 * s), FormatTime(Race.RaceTime), _medium, UiKit.Cream, TextAnchor.MiddleLeft);
 
             if (Race.Solo) DrawChrono(left, right, top, s);
             else
             {
-                // Place
+                // Place : grand chiffre sur fiche crème, vermillon quand on mène.
                 int rank = p.Rank + 1;
-                var rankColor = rank == 1 ? new Color(1f, 0.85f, 0.2f) : rank <= 3 ? new Color(0.6f, 0.95f, 1f) : Color.white;
-                Label(new Rect(right - 300 * s, top - 6 * s, 300 * s, 80 * s), Ordinal(rank), _big, rankColor, TextAnchor.UpperRight);
-                Label(new Rect(right - 300 * s, top + 62 * s, 300 * s, 30 * s), $"sur {Race.Karts.Length}", _small, Color.white, TextAnchor.UpperRight);
+                var place = new Rect(right - 150 * s, top - 6 * s, 150 * s, 100 * s);
+                UiKit.Card(place, rank == 1 ? UiKit.Vermilion : UiKit.Cream, 22 * s, 4 * s);
+                var ink = rank == 1 ? UiKit.Cream : UiKit.Ink;
+                // Dépassement : le chiffre rebondit et une flèche montante (bleue) ou descendante (vermillon) s'affiche.
+                var pt = Race.Place;
+                var placeStyle = pt.Showing ? new GUIStyle(_big) { fontSize = Mathf.RoundToInt(_big.fontSize * pt.Bounce) } : _big;
+                Label(new Rect(place.x - 40 * s, place.y - 4 * s, place.width + 80 * s, 76 * s), Ordinal(rank), placeStyle, ink, TextAnchor.MiddleCenter);
+                if (pt.Showing && pt.Direction != 0) PlaceArrow(new Vector2(place.x - 30 * s, place.center.y), pt.Direction > 0, pt.Since / PlaceTracker.Show, s);
+                Label(new Rect(place.x, place.y + 64 * s, place.width, 30 * s), $"sur {Race.Karts.Length}", _small, ink, TextAnchor.MiddleCenter);
 
-                DrawItemSlot(new Vector2(w * 0.5f, top + 46 * s), 42 * s, p);
-                DrawStandings(left, top + 90 * s, s);
+                DrawItemSlot(new Vector2(w * 0.5f, top + 42 * s), 40 * s, p);
+                if (Time.time < _fullStandingsUntil || Race.State == RaceManager.Phase.Countdown) DrawStandings(left, top + 96 * s, s);
+                else DrawGaps(left, top + 96 * s, s);
             }
 
-            // Vitesse et charge de drift
+            // Mini-carte à droite, sous la place (ou sous le panneau du chrono) ; en tactile, à gauche du bouton pause
+            // pour laisser la place au bouton OBJET.
+            DrawMiniMap(Race.Solo ? new Rect(right - 170 * s, top + 196 * s, 170 * s, 170 * s)
+                : Race.Input.TouchMode ? new Rect(PauseButton().xMin - 166 * s, top + 104 * s, 150 * s, 150 * s)
+                : new Rect(right - 170 * s, top + 110 * s, 170 * s, 170 * s), s);
+
+            // Vitesse (chiffres fixes) et charge de drift
             float kmh = p.Speed * 3.6f;
             var speedRect = Race.Input.TouchMode
-                ? new Rect(w * 0.5f - 150 * s, h - safe.yMin - 70 * s, 300 * s, 50 * s)
-                : new Rect(right - 300 * s, h - safe.yMin - 80 * s, 300 * s, 60 * s);
-            Label(speedRect, $"{kmh:0} km/h", _medium, p.BoostTime > 0f ? new Color(1f, 0.7f, 0.2f) : Color.white,
-                Race.Input.TouchMode ? TextAnchor.MiddleCenter : TextAnchor.LowerRight);
-            if (p.Drift.Active && p.Drift.Level > 0)
-                Label(new Rect(w * 0.5f - 200 * s, h * 0.66f, 400 * s, 40 * s), new string('>', p.Drift.Level * 2), _medium,
-                    KartMotor.DriftColors[p.Drift.Level], TextAnchor.MiddleCenter);
+                ? new Rect(w * 0.5f - 90 * s, h - safe.yMin - 66 * s, 180 * s, 50 * s)
+                : new Rect(right - 180 * s, h - safe.yMin - 74 * s, 180 * s, 54 * s);
+            _ui.Plate(speedRect);
+            float boostFlash = Mathf.Clamp01(1f - (Time.time - _boostFlashAt) / 0.35f);
+            if (boostFlash > 0f) UiKit.Card(speedRect, UiKit.Alpha(UiKit.Ochre, 0.85f * boostFlash), Mathf.Min(speedRect.height * 0.3f, 18f * s));
+            _ui.Digits(new Rect(speedRect.x, speedRect.y, speedRect.width - 64 * s, speedRect.height), $"{kmh:0}", _medium,
+                p.BoostTime > 0f ? UiKit.Ochre : UiKit.Cream, TextAnchor.MiddleRight);
+            Label(new Rect(speedRect.xMax - 60 * s, speedRect.y, 56 * s, speedRect.height), "km/h", _small, UiKit.Alpha(UiKit.Cream, 0.75f), TextAnchor.MiddleLeft);
+            if (p.Drift.Level > _driftLevel) _driftFlashAt = Time.time;
+            _driftLevel = p.Drift.Active ? p.Drift.Level : 0;
+            // Jauge de charge sous le kart : arc en trois segments, un par palier.
+            if (p.Drift.Active) DriftArc(new Vector2(w * 0.5f, h * 0.6f), 74 * s, 25f, 130f, 9 * s, p.Drift.Charge);
+
+            DrawThreat(w, h - safe.yMin - (Race.Input.TouchMode ? 150 : 170) * s, s);
 
             if (Race.State == RaceManager.Phase.Countdown)
             {
@@ -204,66 +296,234 @@ namespace TurboPattes.Game.UI
                 {
                     float pulse = 1f + (Mathf.Ceil(Race.CountdownLeft) - Race.CountdownLeft) * 0.5f;
                     var st = new GUIStyle(_center) { fontSize = Mathf.RoundToInt(140 * s * pulse) };
-                    Label(new Rect(0, h * 0.25f, w, h * 0.3f), n.ToString(), st, new Color(1f, 0.9f, 0.3f), TextAnchor.MiddleCenter);
+                    Label(new Rect(0, h * 0.25f, w, h * 0.3f), n.ToString(), st, UiKit.Ochre, TextAnchor.MiddleCenter, 5f);
                 }
-                Label(new Rect(0, h * 0.58f, w, 40 * s), Race.Circuit.Name, _medium, Color.white, TextAnchor.MiddleCenter);
+                var card = new Rect(w * 0.5f - 260 * s, h * 0.58f, 520 * s, 84 * s);
+                UiKit.Card(card, UiKit.Cream, 20 * s, 4 * s);
+                Label(new Rect(card.x, card.y + 4 * s, card.width, 44 * s), Race.Circuit.Name, _medium, UiKit.Ink, TextAnchor.MiddleCenter);
                 string sub = Cup != null ? $"{Cup.Def.Name} — course {Cup.Race + 1}/{Cups.RacesPerCup}" : Race.Solo ? "Contre-la-montre" : null;
-                if (sub != null) Label(new Rect(0, h * 0.58f + 40 * s, w, 34 * s), sub, _small, new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+                if (sub != null) Label(new Rect(card.x, card.y + 44 * s, card.width, 34 * s), sub, _small, UiKit.Vermilion, TextAnchor.MiddleCenter);
             }
             if (Race.BannerTime > 0f && !string.IsNullOrEmpty(Race.Banner))
-            {
-                var st = new GUIStyle(_center) { fontSize = Mathf.RoundToInt(70 * s) };
-                Label(new Rect(0, h * 0.28f, w, h * 0.2f), Race.Banner, st, new Color(1f, 0.85f, 0.25f, Mathf.Clamp01(Race.BannerTime * 2f)),
-                    TextAnchor.MiddleCenter);
-            }
+                Banner(Race.Banner, h * 0.3f, UiKit.Vermilion, UiKit.Cream, Mathf.Clamp01(Race.BannerTime * 2f), 64f);
             if (Race.WrongWay && Mathf.Repeat(Time.time, 0.8f) < 0.55f)
-                Label(new Rect(0, h * 0.4f, w, 80 * s), "Mauvais sens !", _big, new Color(1f, 0.3f, 0.3f), TextAnchor.MiddleCenter);
+                Banner("Mauvais sens !", h * 0.42f, UiKit.Ink, UiKit.Vermilion, 1f, 54f);
 
             if (Race.Input.TouchMode)
             {
                 DrawTouchControls(h, s);
                 var pb = PauseButton();
-                Disc(pb.center, pb.width * 0.5f, new Color(0f, 0f, 0f, 0.35f));
-                Box(new Rect(pb.center.x - 9 * s, pb.center.y - 11 * s, 6 * s, 22 * s), Color.white);
-                Box(new Rect(pb.center.x + 3 * s, pb.center.y - 11 * s, 6 * s, 22 * s), Color.white);
+                Disc(pb.center, pb.width * 0.5f, UiKit.Alpha(UiKit.Ink, 0.8f));
+                Box(new Rect(pb.center.x - 9 * s, pb.center.y - 11 * s, 6 * s, 22 * s), UiKit.Cream);
+                Box(new Rect(pb.center.x + 3 * s, pb.center.y - 11 * s, 6 * s, 22 * s), UiKit.Cream);
             }
             else if (Race.State == RaceManager.Phase.Countdown)
-                Label(new Rect(0, h - safe.yMin - 50 * s, w, 30 * s),
-                    "Flèches : conduire   Espace : drift   E : objet   Échap : pause   (manette : RT, RB, X, Start)", _small,
-                    new Color(1f, 1f, 1f, 0.8f), TextAnchor.MiddleCenter);
+            {
+                var hint = new Rect(w * 0.5f - 470 * s, h - safe.yMin - 52 * s, 940 * s, 36 * s);
+                _ui.Plate(hint, 0.9f);
+                Label(hint, "Flèches : conduire   Espace : dérapage   E : objet   Échap : pause   (manette : RT, RB, X, Start)", _ui.Body,
+                    UiKit.Cream, TextAnchor.MiddleCenter);
+            }
+        }
+
+        /// <summary>
+        /// Jauge de drift : arc de <paramref name="sweep"/> degrés à partir de <paramref name="start"/> (sens horaire à l'écran),
+        /// en trois segments qui se remplissent en continu, chacun à la couleur des étincelles de son niveau, avec un
+        /// éclat au passage d'un palier.
+        /// </summary>
+        void DriftArc(Vector2 c, float radius, float start, float sweep, float thickness, float charge)
+        {
+            const int segments = 3, dotsPerSegment = 12;
+            float gap = sweep >= 360f ? 8f : 5f;
+            float segSweep = (sweep - gap * (sweep >= 360f ? segments : segments - 1)) / segments;
+            float flash = Mathf.Clamp01(1f - (Time.time - _driftFlashAt) / 0.3f);
+            for (int seg = 0; seg < segments; seg++)
+            {
+                float fill = DriftCharge.SegmentFill(charge, seg);
+                var col = KartMotor.DriftColors[seg + 1];
+                float a0 = start + seg * (segSweep + gap);
+                for (int i = 0; i < dotsPerSegment; i++)
+                {
+                    float t = (i + 0.5f) / dotsPerSegment;
+                    float a = (a0 + t * segSweep) * Mathf.Deg2Rad;
+                    var pos = c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
+                    Disc(pos, thickness * 0.5f + 1.5f * _scale, UiKit.Alpha(UiKit.Ink, 0.7f));
+                    if (t <= fill) Disc(pos, thickness * 0.5f, col);
+                }
+            }
+            if (flash > 0f) UiKit.Ring(c, radius + (1f - flash) * 14f * _scale, thickness * 0.6f, UiKit.Alpha(UiKit.Cream, flash), 36);
+        }
+
+        /// <summary>Projectile qui arrive par l'arrière : son icône en bas de l'écran, qui grossit et clignote en approchant.</summary>
+        void DrawThreat(float w, float y, float s)
+        {
+            if (Race.Threat == ItemKind.None || !ThreatAlert.BlinkOn(Time.time, Race.ThreatUrgency)) return;
+            float r = 34 * s * ThreatAlert.Scale(Race.ThreatUrgency);
+            var c = new Vector2(w * 0.5f, y - r);
+            Disc(c, r + 4 * s, UiKit.Cream);
+            Disc(c, r, UiKit.Vermilion);
+            float ir = r * 0.78f;
+            GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(Race.Threat), ScaleMode.ScaleToFit);
+            var tag = new Rect(c.x - 80 * s, c.y + r + 6 * s, 160 * s, 26 * s);
+            _ui.Plate(tag);
+            Label(tag, "DERRIÈRE !", _small, UiKit.Vermilion, TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>Traits de vitesse radiaux sur les bords pendant le turbo et les sauts, plus ou moins nombreux selon la qualité.</summary>
+        /// <summary>Intensité des traits (lissée) et éclat du compteur ; une fois par image, dans Update.</summary>
+        void UpdateSpeedFeel()
+        {
+            var p = Race.Player;
+            bool boosting = p.BoostTime > 0f;
+            if (boosting && !_wasBoosting) _boostFlashAt = Time.time;
+            _wasBoosting = boosting;
+            float target = Race.State == RaceManager.Phase.Racing && !Race.Paused ? SpeedLines.Target(boosting, p.Airborne, p.Speed / KartMotor.MaxSpeed) : 0f;
+            _speedLines = Mathf.MoveTowards(_speedLines, target, Time.deltaTime * 4f);
+        }
+
+        void DrawSpeedLines(float w, float h, KartMotor p)
+        {
+            if (_speedLines <= 0.01f) return;
+            var center = new Vector2(w * 0.5f, h * 0.5f);
+            float half = center.magnitude, thick = 3f * _scale;
+            int count = SpeedLines.Count(QualityTuner.Effective);
+            var m = GUI.matrix;
+            for (int i = 0; i < count; i++)
+            {
+                SpeedLines.Line(i, count, Time.time, out float deg, out float inner, out float length, out float alpha);
+                GUI.matrix = m;
+                GUIUtility.RotateAroundPivot(deg, center);
+                Box(new Rect(center.x + inner * half, center.y - thick * 0.5f, length * half, thick), UiKit.Alpha(UiKit.Cream, 0.55f * alpha * _speedLines));
+            }
+            GUI.matrix = m;
+        }
+
+        /// <summary>Chevron de dépassement à gauche de la place : monte (gain) ou descend (perte) en s'effaçant.</summary>
+        void PlaceArrow(Vector2 c, bool up, float t, float s)
+        {
+            float a = 1f - t, dy = (up ? -1f : 1f) * t * 24f * s;
+            var col = UiKit.Alpha(up ? UiKit.Blue : UiKit.Vermilion, a);
+            var ink = UiKit.Alpha(UiKit.Ink, a);
+            float hw = 9 * s, hh = 26 * s;
+            // « /\ » pour monter, « \/ » pour descendre, cerné d'encre.
+            float k = up ? 0.4f : -0.4f;
+            Disc(new Vector2(c.x, c.y + dy), 24 * s, UiKit.Alpha(UiKit.Cream, a));
+            UiKit.Slash(new Rect(c.x - hw - 1 * s, c.y + dy - hh * 0.5f, hw, hh), ink, k);
+            UiKit.Slash(new Rect(c.x + 1 * s, c.y + dy - hh * 0.5f, hw, hh), ink, -k);
+            UiKit.Slash(new Rect(c.x - hw + 1 * s, c.y + dy - hh * 0.5f + 3 * s, hw - 4 * s, hh - 6 * s), col, k);
+            UiKit.Slash(new Rect(c.x + 3 * s, c.y + dy - hh * 0.5f + 3 * s, hw - 4 * s, hh - 6 * s), col, -k);
+        }
+
+        /// <summary>Bandeau penché, comme un trait de peinture rapide, pour les annonces de course.</summary>
+        void Banner(string text, float y, Color fill, Color ink, float alpha, float size)
+        {
+            float s = _scale, w = Screen.width;
+            var st = new GUIStyle(_center) { fontSize = Mathf.RoundToInt(size * s) };
+            float tw = st.CalcSize(new GUIContent(text)).x + 90 * s;
+            var r = new Rect(w * 0.5f - tw * 0.5f, y, tw, size * 1.35f * s);
+            UiKit.Slash(r, UiKit.Alpha(fill, alpha), 0.25f);
+            Label(r, text, st, UiKit.Alpha(ink, alpha), TextAnchor.MiddleCenter);
         }
 
         void DrawItemSlot(Vector2 c, float r, KartMotor p)
         {
-            Disc(c, r + 5 * _scale, new Color(1f, 1f, 1f, 0.9f));
-            Disc(c, r, new Color(0.12f, 0.15f, 0.28f));
-            var kind = p.Item;
+            // En tactile, l'objet est dans le bouton OBJET, sous le pouce : ici, un simple rappel plus petit, sans nom.
+            bool touch = Race.Input.TouchMode;
+            if (touch) r *= 0.65f;
+            Disc(c, r + 4 * _scale, UiKit.Cream);
+            Disc(c, r, UiKit.Ink);
+            var kind = ItemRoll.Shown(p.Item, p.ItemRoll, Time.time);
             if (kind == ItemKind.None) return;
-            if (p.ItemRoll > 0f)
-            {
-                // Roulette : fait défiler les objets.
-                kind = (ItemKind)(1 + (int)(Time.time * 14f) % ItemRoll.KindCount);
-            }
             float ir = r * 0.9f;
             GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(kind), ScaleMode.ScaleToFit);
-            if (p.ItemRoll <= 0f)
-                Label(new Rect(c.x - 150 * _scale, c.y + r + 4 * _scale, 300 * _scale, 30 * _scale), ItemNames[(int)kind], _small, Color.white,
-                    TextAnchor.UpperCenter);
+            if (p.ItemRoll <= 0f && !touch)
+            {
+                var tag = new Rect(c.x - 100 * _scale, c.y + r + 8 * _scale, 200 * _scale, 28 * _scale);
+                _ui.Plate(tag);
+                Label(tag, ItemNames[(int)kind], _small, UiKit.Cream, TextAnchor.MiddleCenter);
+            }
         }
 
         void DrawStandings(float x, float y, float s)
         {
             var order = Race.Order;
             float row = 24 * s;
+            _ui.Plate(new Rect(x - 10 * s, y - 6 * s, 190 * s, row * order.Length + 12 * s));
             for (int r = 0; r < order.Length; r++)
             {
                 var k = Race.Karts[order[r]];
                 float yy = y + r * row;
-                if (k.IsPlayer) Box(new Rect(x - 6 * s, yy, 170 * s, row), new Color(1f, 0.85f, 0.2f, 0.35f));
-                Label(new Rect(x, yy, 30 * s, row), (r + 1).ToString(), _small, Color.white);
+                if (k.IsPlayer) Box(new Rect(x - 10 * s, yy, 190 * s, row), UiKit.Vermilion);
+                _ui.Digits(new Rect(x, yy, 24 * s, row), (r + 1).ToString(), _small, k.IsPlayer ? UiKit.Cream : UiKit.Ochre, TextAnchor.MiddleCenter);
                 UiKit.Portrait(new Vector2(x + 38 * s, yy + row * 0.5f), 10 * s, k.Spec);
-                Label(new Rect(x + 54 * s, yy, 116 * s, row), k.Spec.Name, _small, k.IsPlayer ? new Color(1f, 0.92f, 0.5f) : Color.white);
+                Label(new Rect(x + 54 * s, yy, 116 * s, row), k.Spec.Name, _small, UiKit.Cream, TextAnchor.MiddleLeft);
             }
+        }
+
+        /// <summary>
+        /// Pilote juste devant et juste derrière, avec l'écart en secondes. Bleu : l'écart tourne à l'avantage du joueur
+        /// (il rattrape celui de devant, ou creuse sur celui de derrière) ; vermillon : l'inverse.
+        /// </summary>
+        void DrawGaps(float x, float y, float s)
+        {
+            float row = 34 * s, width = 300 * s;
+            int rows = 0;
+            for (int side = 0; side < 2; side++) if (Race.GapToNeighbour(side == 0 ? -1 : 1, out _, out _)) rows++;
+            if (rows == 0) return;
+            _ui.Plate(new Rect(x - 10 * s, y - 6 * s, width, row * rows + 12 * s));
+            float yy = y;
+            for (int side = 0; side < 2; side++)
+            {
+                if (!Race.GapToNeighbour(side == 0 ? -1 : 1, out var k, out float gap)) continue;
+                int trend = _gapKart[side] == k ? _gapTrend[side] : 0;
+                // Devant : un écart qui fond est bon signe ; derrière : un écart qui grandit.
+                int good = side == 0 ? -trend : trend;
+                var col = good > 0 ? UiKit.Blue : good < 0 ? UiKit.Vermilion : UiKit.Cream;
+                Label(new Rect(x, yy, 96 * s, row), side == 0 ? "DEVANT" : "DERRIÈRE", _small, UiKit.Ochre, TextAnchor.MiddleLeft);
+                UiKit.Portrait(new Vector2(x + 110 * s, yy + row * 0.5f), 12 * s, k.Spec);
+                Label(new Rect(x + 128 * s, yy, 90 * s, row), k.Spec.Name, _small, UiKit.Cream, TextAnchor.MiddleLeft);
+                if (good != 0) Box(new Rect(x + width - 92 * s, yy + 4 * s, 76 * s, row - 8 * s), col);
+                _ui.Digits(new Rect(x + width - 92 * s, yy, 76 * s, row), RaceText.Seconds(gap), _small, good != 0 ? UiKit.Ink : UiKit.Cream, TextAnchor.MiddleCenter);
+                yy += row;
+            }
+        }
+
+        /// <summary>Mini-carte : contour du circuit vu de dessus, un point par kart à la couleur du pilote, le joueur plus gros.</summary>
+        void DrawMiniMap(Rect r, float s)
+        {
+            var path = Race.Path;
+            if (path == null) return;
+            if (_mapPath != path || _mapRect != r || _mapDots == null)
+            {
+                var pts = path.Points;
+                var xs = new float[pts.Length];
+                var zs = new float[pts.Length];
+                for (int i = 0; i < pts.Length; i++) { xs[i] = pts[i].x; zs[i] = pts[i].z; }
+                _mapFit = MiniMap.Fit(xs, zs, r.x, r.y, r.width, r.height, 16 * s);
+                _mapDots = MiniMap.Spread(pts.Length, 120);
+                _mapPath = path;
+                _mapRect = r;
+            }
+            _ui.Plate(r, 0.85f);
+            foreach (int i in _mapDots)
+            {
+                _mapFit.Project(path.Points[i].x, path.Points[i].z, out float x, out float y);
+                Disc(new Vector2(x, y), 2.4f * s, UiKit.Alpha(UiKit.Cream, 0.8f));
+            }
+            // Ligne de départ : petit repère ocre.
+            _mapFit.Project(path.Points[0].x, path.Points[0].z, out float lx, out float ly);
+            Box(new Rect(lx - 6 * s, ly - 2 * s, 12 * s, 4 * s), UiKit.Ochre);
+            foreach (var k in Race.Karts)
+            {
+                if (k.IsPlayer) continue;
+                _mapFit.Project(k.Position.x, k.Position.z, out float x, out float y);
+                Disc(new Vector2(x, y), 5.5f * s, UiKit.Ink);
+                Disc(new Vector2(x, y), 4f * s, k.Spec.Kart);
+            }
+            var p = Race.Player;
+            _mapFit.Project(p.Position.x, p.Position.z, out float px, out float py);
+            Disc(new Vector2(px, py), 9f * s, UiKit.Cream);
+            Disc(new Vector2(px, py), 6.5f * s, p.Spec.Kart);
         }
 
         void DrawTouchControls(float h, float s)
@@ -275,30 +535,54 @@ namespace TurboPattes.Game.UI
             if (input.SteerActive)
             {
                 var a = Gui(input.SteerAnchor);
-                Disc(a, l.SteerRange * 1.2f, new Color(1f, 1f, 1f, 0.15f));
+                Disc(a, l.SteerRange * 1.2f, UiKit.Alpha(UiKit.Ink, 0.35f));
                 float dx = Mathf.Clamp(input.SteerFinger.x - input.SteerAnchor.x, -l.SteerRange, l.SteerRange);
-                Disc(a + new Vector2(dx, 0f), l.SteerRange * 0.5f, new Color(1f, 1f, 1f, 0.5f));
+                Disc(a + new Vector2(dx, 0f), l.SteerRange * 0.5f, UiKit.Alpha(UiKit.Cream, 0.75f));
             }
             else
             {
-                var hint = new Vector2(Screen.safeArea.xMin + l.SteerRange * 2f, h * 0.78f);
-                Disc(hint, l.SteerRange * 1.2f, new Color(1f, 1f, 1f, 0.1f));
-                Label(new Rect(hint.x - 120 * s, hint.y - 15 * s, 240 * s, 30 * s), "< glisser >", _small, new Color(1f, 1f, 1f, 0.6f),
+                var hint = new Vector2(l.SteerHintX, h * 0.78f);
+                Disc(hint, l.SteerRange * 1.2f, UiKit.Alpha(UiKit.Ink, 0.3f));
+                Label(new Rect(hint.x - 120 * s, hint.y - 15 * s, 240 * s, 30 * s), "< glisser >", _small, UiKit.Alpha(UiKit.Cream, 0.8f),
                     TextAnchor.MiddleCenter);
             }
 
             var p = Race.Player;
-            var driftColor = p.Drift.Active && p.Drift.Level > 0 ? KartMotor.DriftColors[p.Drift.Level] : new Color(1f, 0.55f, 0.2f);
-            Button(Gui(l.Drift), l.DriftR, "DRIFT", driftColor, input.DriftHeld);
-            if (!Race.Solo) Button(Gui(l.Item), l.ItemR, "OBJET", new Color(0.4f, 0.75f, 1f), input.ItemHeld || p.Item != ItemKind.None && p.ItemRoll <= 0f);
-            Button(Gui(l.Brake), l.BrakeR, "FREIN", new Color(0.9f, 0.3f, 0.3f), input.BrakeHeld);
+            var driftColor = p.Drift.Active && p.Drift.Level > 0 ? KartMotor.DriftColors[p.Drift.Level] : UiKit.Ochre;
+            TouchButton(Gui(l.Drift), l.DriftR, "DÉRAPAGE", driftColor, input.DriftHeld);
+            // Autour du bouton : la même jauge, en couronne.
+            if (p.Drift.Active) DriftArc(Gui(l.Drift), l.DriftR + 9 * s, -90f, 360f, 8 * s, p.Drift.Charge);
+            if (!Race.Solo) ItemButton(Gui(l.Item), l.ItemR, p, input.ItemHeld);
+            TouchButton(Gui(l.Brake), l.BrakeR, "FREIN", UiKit.Vermilion, input.BrakeHeld);
         }
 
-        void Button(Vector2 c, float r, string text, Color color, bool lit)
+        /// <summary>
+        /// Bouton OBJET : discret et vide sans objet ; pendant le tirage, la roulette y défile ; prêt, il montre l'icône
+        /// de l'objet en grand sur fond bleu atelier.
+        /// </summary>
+        void ItemButton(Vector2 c, float r, KartMotor p, bool held)
         {
-            Disc(c, r, new Color(0f, 0f, 0f, 0.3f));
-            Disc(c, r * 0.9f, new Color(color.r, color.g, color.b, lit ? 0.85f : 0.45f));
-            Label(new Rect(c.x - r, c.y - r, r * 2f, r * 2f), text, _small, Color.white, TextAnchor.MiddleCenter);
+            var kind = ItemRoll.Shown(p.Item, p.ItemRoll, Time.time);
+            if (kind == ItemKind.None)
+            {
+                Disc(c, r, UiKit.Alpha(UiKit.Ink, 0.35f));
+                Disc(c, r * 0.88f, UiKit.Alpha(UiKit.Blue, held ? 0.45f : 0.2f));
+                Label(new Rect(c.x - r, c.y - r, r * 2f, r * 2f), "OBJET", _small, UiKit.Alpha(UiKit.Cream, 0.45f), TextAnchor.MiddleCenter);
+                return;
+            }
+            bool ready = p.ItemRoll <= 0f;
+            Disc(c, r, UiKit.Alpha(UiKit.Ink, 0.7f));
+            if (ready) UiKit.Ring(c, r * 0.94f, 4f * _scale, UiKit.Cream, 40);
+            Disc(c, r * 0.84f, UiKit.Alpha(UiKit.Blue, held ? 1f : ready ? 0.9f : 0.55f));
+            float ir = r * (ready ? 0.72f : 0.6f);
+            GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(kind), ScaleMode.ScaleToFit);
+        }
+
+        void TouchButton(Vector2 c, float r, string text, Color color, bool lit)
+        {
+            Disc(c, r, UiKit.Alpha(UiKit.Ink, 0.55f));
+            Disc(c, r * 0.88f, UiKit.Alpha(color, lit ? 0.95f : 0.5f));
+            Label(new Rect(c.x - r, c.y - r, r * 2f, r * 2f), text, _small, lit ? UiKit.Ink : UiKit.Cream, TextAnchor.MiddleCenter);
         }
 
         /// <summary>Contre-la-montre : tour en cours, meilleur tour et record à droite.</summary>
@@ -306,25 +590,42 @@ namespace TurboPattes.Game.UI
         {
             // En tactile, le bouton pause occupe le coin : le panneau se range à sa gauche.
             if (Race.Input.TouchMode) right = Mathf.Min(right, PauseButton().xMin - 16 * s);
-            var gold = new Color(1f, 0.85f, 0.25f);
             float lapTime = Race.State == RaceManager.Phase.Racing && !Race.Player.Finished ? Race.RaceTime - Race.LapStartTime : 0f;
-            Label(new Rect(left, top + 66 * s, 400 * s, 34 * s), $"Tour  {FormatTime(lapTime)}", _small, Color.white);
+            _ui.Plate(new Rect(left - 10 * s, top + 84 * s, 210 * s, 44 * s));
+            Label(new Rect(left + 4 * s, top + 86 * s, 80 * s, 40 * s), "TOUR", _small, UiKit.Ochre, TextAnchor.MiddleLeft);
+            _ui.Digits(new Rect(left + 70 * s, top + 86 * s, 130 * s, 40 * s), FormatTime(lapTime), _medium, UiKit.Cream, TextAnchor.MiddleLeft);
             float bestLap = Ghost != null ? Ghost.BestLap : 0f;
             float bestTime = Ghost != null ? Ghost.BestTimeBefore : 0f;
-            Label(new Rect(right - 360 * s, top, 360 * s, 34 * s), "Meilleur tour", _small, gold, TextAnchor.UpperRight);
-            Label(new Rect(right - 360 * s, top + 26 * s, 360 * s, 40 * s), bestLap > 0f ? FormatTime(bestLap) : "--:--.--", _medium, Color.white, TextAnchor.UpperRight);
-            Label(new Rect(right - 360 * s, top + 72 * s, 360 * s, 34 * s), $"Record {Race.Laps} tour{(Race.Laps > 1 ? "s" : "")}", _small, gold, TextAnchor.UpperRight);
-            Label(new Rect(right - 360 * s, top + 98 * s, 360 * s, 40 * s), bestTime > 0f ? FormatTime(bestTime) : "--:--.--", _medium, Color.white, TextAnchor.UpperRight);
-            if (Ghost != null && Ghost.GhostVisible)
-                Label(new Rect(right - 360 * s, top + 142 * s, 360 * s, 30 * s), "Fantôme du meilleur tour", _small, new Color(0.75f, 0.9f, 1f), TextAnchor.UpperRight);
-            // Écart avec le meilleur tour aux temps intermédiaires et à la ligne : vert en avance, rouge en retard.
+            bool ghost = Ghost != null && Ghost.GhostVisible;
+            var panel = new Rect(right - 250 * s, top - 6 * s, 250 * s, ghost ? 178 * s : 148 * s);
+            UiKit.Card(panel, UiKit.Cream, 20 * s, 4 * s);
+            float px = panel.x + 16 * s, pw = panel.width - 32 * s;
+            Label(new Rect(px, top, pw, 30 * s), "Meilleur tour", _small, UiKit.Vermilion, TextAnchor.MiddleLeft);
+            _ui.Digits(new Rect(px, top + 26 * s, pw, 40 * s), bestLap > 0f ? FormatTime(bestLap) : "--:--,--", _medium, UiKit.Ink, TextAnchor.MiddleRight);
+            Label(new Rect(px, top + 70 * s, pw, 30 * s), $"Record {Race.Laps} tour{(Race.Laps > 1 ? "s" : "")}", _small, UiKit.Vermilion, TextAnchor.MiddleLeft);
+            _ui.Digits(new Rect(px, top + 96 * s, pw, 40 * s), bestTime > 0f ? FormatTime(bestTime) : "--:--,--", _medium, UiKit.Ink, TextAnchor.MiddleRight);
+            if (ghost)
+                Label(new Rect(px, top + 138 * s, pw, 30 * s), "Fantôme du meilleur tour", _small, UiKit.Blue, TextAnchor.MiddleLeft);
+            // Écart avec le meilleur tour aux temps intermédiaires et à la ligne : bleu en avance, vermillon en retard.
             if (Ghost != null && Ghost.DeltaAge < 2.5f)
             {
                 float d = Ghost.Delta;
-                var col = d <= 0f ? new Color(0.45f, 1f, 0.45f) : new Color(1f, 0.4f, 0.35f);
-                Label(new Rect(left, top + 100 * s, 400 * s, 50 * s), $"{(d <= 0f ? "-" : "+")}{Mathf.Abs(d):0.00}", _medium,
-                    new Color(col.r, col.g, col.b, Mathf.Clamp01((2.5f - Ghost.DeltaAge) * 2f)));
+                float a = Mathf.Clamp01((2.5f - Ghost.DeltaAge) * 2f);
+                var plate = new Rect(left - 10 * s, top + 136 * s, 150 * s, 50 * s);
+                UiKit.Card(plate, UiKit.Alpha(d <= 0f ? UiKit.Blue : UiKit.Vermilion, a), 14 * s);
+                _ui.Digits(plate, RaceText.Gap(d), _medium, UiKit.Alpha(UiKit.Cream, a), TextAnchor.MiddleCenter);
             }
+        }
+
+        /// <summary>Fond des écrans de fin et de pause : voile vert charbon sur la course.</summary>
+        static void Veil(float w, float h, float alpha = 0.72f) => Box(new Rect(0, 0, w, h), UiKit.Alpha(UiKit.Ink, alpha));
+
+        /// <summary>Grand titre crème avec un repère oblique vermillon dessous.</summary>
+        void Title(string text, float y, float w)
+        {
+            float s = _scale;
+            Label(new Rect(0, y, w, 80 * s), text, _big, UiKit.Cream, TextAnchor.MiddleCenter);
+            UiKit.Slash(new Rect(w * 0.5f - 70 * s, y + 78 * s, 140 * s, 8 * s), UiKit.Vermilion, 1.2f);
         }
 
         void DrawResults(float w, float h, float s)
@@ -339,32 +640,77 @@ namespace TurboPattes.Game.UI
                 DrawCupResults(w, s);
                 return;
             }
-            Box(new Rect(0, 0, w, h), new Color(0.05f, 0.08f, 0.18f, 0.55f));
+            Veil(w, h);
             var p = Race.Player;
-            Label(new Rect(0, 30 * s, w, 80 * s), p.Rank == 0 ? "Victoire !" : $"Tu finis {Ordinal(p.Rank + 1)}", _big,
-                new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+            float t = _resultsAt < 0f ? 0f : Time.time - _resultsAt;
+            int rows = Race.Order.Length;
+            if (ResultReveal.Celebrate(p.Rank)) DrawConfetti(w, h, s, t - ResultReveal.Done(rows));
+            Title(p.Rank == 0 ? "Victoire !" : $"Tu finis {Ordinal(p.Rank + 1)}", 22 * s, w);
 
             float panelW = 560 * s, x = (w - panelW) * 0.5f, y = 130 * s, row = 38 * s;
-            Box(new Rect(x, y - 10 * s, panelW, row * Race.Karts.Length + 20 * s), new Color(0f, 0f, 0f, 0.35f));
-            for (int r = 0; r < Race.Order.Length; r++)
+            UiKit.Card(new Rect(x, y - 10 * s, panelW, row * Race.Karts.Length + 20 * s), UiKit.Cream, 24 * s, 5 * s);
+            // Les lignes entrent une à une, du dernier au premier ; celle du joueur déborde de la fiche.
+            for (int r = 0; r < rows; r++)
             {
+                float k01 = ResultReveal.RowProgress(r, rows, t);
+                if (k01 <= 0f) continue;
                 var k = Race.Karts[Race.Order[r]];
-                float yy = y + r * row;
-                if (k.IsPlayer) Box(new Rect(x, yy, panelW, row), new Color(1f, 0.85f, 0.2f, 0.3f));
-                Label(new Rect(x + 16 * s, yy, 60 * s, row), Ordinal(r + 1), _medium, Color.white);
-                UiKit.Portrait(new Vector2(x + 110 * s, yy + row * 0.5f), 16 * s, k.Spec);
-                Label(new Rect(x + 130 * s, yy, 220 * s, row), k.Spec.Name, _medium, Color.white);
-                string time = k.Finished ? FormatTime(k.FinishTime) : "en course…";
-                Label(new Rect(x + panelW - 236 * s, yy, 220 * s, row), time, _medium, new Color(1f, 1f, 1f, 0.85f), TextAnchor.UpperRight);
+                float yy = y + r * row, xx = x - (1f - k01) * 120 * s;
+                var ink = UiKit.Alpha(k.IsPlayer ? UiKit.Cream : UiKit.Ink, k01);
+                if (k.IsPlayer)
+                {
+                    UiKit.Card(new Rect(xx - 14 * s, yy - 3 * s, panelW + 28 * s, row + 6 * s), UiKit.Alpha(UiKit.Vermilion, k01), 12 * s, 4 * s);
+                    UiKit.Slash(new Rect(xx - 4 * s, yy + 7 * s, 7 * s, row - 14 * s), UiKit.Alpha(UiKit.Ochre, k01));
+                }
+                Label(new Rect(xx + 16 * s, yy, 60 * s, row), Ordinal(r + 1), _medium, ink, TextAnchor.MiddleLeft);
+                UiKit.Portrait(new Vector2(xx + 110 * s, yy + row * 0.5f), 16 * s, k.Spec);
+                Label(new Rect(xx + 130 * s, yy, 220 * s, row), k.Spec.Name, _medium, ink, TextAnchor.MiddleLeft);
+                if (k.Finished) _ui.Digits(new Rect(xx + panelW - 236 * s, yy, 220 * s, row), FormatTime(k.FinishTime), _medium, ink, TextAnchor.MiddleRight);
+                else Label(new Rect(xx + panelW - 236 * s, yy, 220 * s, row), "en course…", _ui.Body, ink, TextAnchor.MiddleRight);
             }
 
-            float by = y + row * Race.Karts.Length + 30 * s;
-            var laps = Race.LapTimes;
-            string lapsText = "";
-            for (int i = 0; i < laps.Length; i++) lapsText += (i > 0 ? "   " : "") + $"T{i + 1} {FormatTime(laps[i])}";
-            Label(new Rect(0, by, w, 30 * s), lapsText, _small, Color.white, TextAnchor.MiddleCenter);
+            // Temps au tour du joueur, une fois le tableau en place ; le meilleur tour sur fiche ocre.
+            float lapsAlpha = Mathf.Clamp01((t - ResultReveal.Done(rows)) / 0.3f);
+            if (lapsAlpha > 0f)
+            {
+                float by = y + row * Race.Karts.Length + 24 * s;
+                var laps = Race.LapTimes;
+                int best = -1;
+                for (int i = 0; i < laps.Length; i++)
+                    if (laps[i] > 0f && (best < 0 || laps[i] < laps[best])) best = i;
+                float chipW = 170 * s, chipGap = 10 * s, cx0 = w * 0.5f - (laps.Length * chipW + (laps.Length - 1) * chipGap) * 0.5f;
+                for (int i = 0; i < laps.Length; i++)
+                {
+                    var chip = new Rect(cx0 + i * (chipW + chipGap), by, chipW, 34 * s);
+                    bool isBest = i == best && laps.Length > 1;
+                    UiKit.Card(chip, UiKit.Alpha(isBest ? UiKit.Ochre : UiKit.Cream, lapsAlpha), 10 * s);
+                    Label(new Rect(chip.x + 10 * s, chip.y, 40 * s, chip.height), $"T{i + 1}", _small, UiKit.Alpha(UiKit.Vermilion, lapsAlpha), TextAnchor.MiddleLeft);
+                    _ui.Digits(new Rect(chip.x, chip.y, chip.width - 10 * s, chip.height), FormatTime(laps[i]), _small, UiKit.Alpha(UiKit.Ink, lapsAlpha), TextAnchor.MiddleRight);
+                }
+            }
 
             DrawResultButtons();
+        }
+
+        static readonly Color[] ConfettiColors = { UiKit.Vermilion, UiKit.Ochre, UiKit.Blue, UiKit.Cream };
+
+        /// <summary>Confettis du podium en 2D : pluie de petits repères obliques aux couleurs de l'atelier.</summary>
+        void DrawConfetti(float w, float h, float s, float t)
+        {
+            if (t <= 0f) return;
+            for (int i = 0; i < 90; i++)
+            {
+                // Valeurs pseudo-aléatoires fixes par confetti (position, vitesse, balancement).
+                float a = Mathf.Repeat(i * 0.618034f, 1f), b = Mathf.Repeat(i * 0.414214f + 0.3f, 1f);
+                float fall = h * (0.18f + 0.22f * b);
+                // Chaque confetti part d'au-dessus de l'écran, plus ou moins tard, puis retombe en boucle.
+                float travel = t * fall - a * h;
+                if (travel < 0f) continue;
+                float y = Mathf.Repeat(travel, h * 1.1f) - h * 0.05f;
+                float x = a * w + Mathf.Sin(t * (1.5f + b * 2f) + i) * 24f * s;
+                float size = (7f + 6f * b) * s;
+                UiKit.Slash(new Rect(x, y, size, size * 0.55f), ConfettiColors[i % ConfettiColors.Length], Mathf.Sin(t * 3f + i) * 0.9f);
+            }
         }
 
         void DrawResultButtons()
@@ -372,19 +718,18 @@ namespace TurboPattes.Game.UI
             var buttons = ResultRects();
             var labels = ResultLabels;
             for (int i = 0; i < buttons.Length; i++)
-                _ui.Button(buttons[i], labels[i], i == 0 ? new Color(1f, 0.5f, 0.15f) : new Color(0.25f, 0.45f, 0.8f), i == _focus);
+                _ui.Button(buttons[i], labels[i], i == 0, i == _focus);
         }
 
         void DrawChronoResults(float w, float s)
         {
-            Box(new Rect(0, 0, w, Screen.height), new Color(0.05f, 0.08f, 0.18f, 0.55f));
-            var gold = new Color(1f, 0.85f, 0.25f);
+            Veil(w, Screen.height);
             var p = Race.Player;
             bool record = Ghost != null && Ghost.NewTimeRecord;
-            Label(new Rect(0, 30 * s, w, 80 * s), record ? "Nouveau record !" : "Contre-la-montre", _big, gold, TextAnchor.MiddleCenter);
+            Title(record ? "Nouveau record !" : "Contre-la-montre", 22 * s, w);
 
             float panelW = 520 * s, x = (w - panelW) * 0.5f, y = 130 * s, row = 38 * s;
-            Box(new Rect(x, y - 10 * s, panelW, row * ResultRows + 20 * s), new Color(0f, 0f, 0f, 0.35f));
+            UiKit.Card(new Rect(x, y - 10 * s, panelW, row * ResultRows + 20 * s), UiKit.Cream, 24 * s, 5 * s);
             var laps = Race.LapTimes;
             int bestIndex = -1;
             for (int i = 0; i < laps.Length; i++)
@@ -392,16 +737,19 @@ namespace TurboPattes.Game.UI
             for (int i = 0; i < laps.Length; i++)
             {
                 float yy = y + i * row;
-                if (i == bestIndex) Box(new Rect(x, yy, panelW, row), new Color(1f, 0.85f, 0.2f, 0.25f));
-                Label(new Rect(x + 20 * s, yy, 200 * s, row), $"Tour {i + 1}", _medium, Color.white);
-                Label(new Rect(x + panelW - 240 * s, yy, 220 * s, row), FormatTime(laps[i]), _medium, Color.white, TextAnchor.UpperRight);
+                bool best = i == bestIndex;
+                if (best) Box(new Rect(x, yy, panelW, row), UiKit.Vermilion);
+                var ink = best ? UiKit.Cream : UiKit.Ink;
+                Label(new Rect(x + 20 * s, yy, 200 * s, row), $"Tour {i + 1}", _medium, ink, TextAnchor.MiddleLeft);
+                _ui.Digits(new Rect(x + panelW - 240 * s, yy, 220 * s, row), FormatTime(laps[i]), _medium, ink, TextAnchor.MiddleRight);
             }
             float ty = y + laps.Length * row;
-            Label(new Rect(x + 20 * s, ty, 200 * s, row), "Total", _medium, gold);
-            Label(new Rect(x + panelW - 240 * s, ty, 220 * s, row), FormatTime(p.FinishTime), _medium, gold, TextAnchor.UpperRight);
+            Box(new Rect(x + 16 * s, ty + 2 * s, panelW - 32 * s, 2 * s), UiKit.Alpha(UiKit.Ink, 0.4f));
+            Label(new Rect(x + 20 * s, ty, 200 * s, row), "Total", _medium, UiKit.Vermilion, TextAnchor.MiddleLeft);
+            _ui.Digits(new Rect(x + panelW - 240 * s, ty, 220 * s, row), FormatTime(p.FinishTime), _medium, UiKit.Vermilion, TextAnchor.MiddleRight);
             float before = Ghost != null ? Ghost.BestTimeBefore : 0f;
             string recordText = before <= 0f ? "Premier temps sur ce circuit" : record ? $"Ancien record {FormatTime(before)}" : $"Record {FormatTime(before)}";
-            Label(new Rect(x + 20 * s, ty + row, panelW - 40 * s, row), recordText, _small, new Color(1f, 1f, 1f, 0.85f), TextAnchor.MiddleCenter);
+            Label(new Rect(x + 20 * s, ty + row, panelW - 40 * s, row), recordText, _ui.Body, UiKit.Ink, TextAnchor.MiddleCenter);
             if (Ghost != null) DrawMedals(x, ty + row * 1.8f, panelW, s);
             DrawResultButtons();
         }
@@ -419,56 +767,74 @@ namespace TurboPattes.Game.UI
                 float cx = x + (3 - m) * cw + cw * 0.5f;
                 bool earned = got >= medal;
                 var col = MedalColors[m];
-                Disc(new Vector2(cx - 50 * s, y + 18 * s), 13 * s, earned ? col : new Color(col.r, col.g, col.b, 0.25f));
+                Disc(new Vector2(cx - 50 * s, y + 18 * s), 14 * s, earned ? UiKit.Ink : UiKit.Alpha(UiKit.Ink, 0.25f));
+                Disc(new Vector2(cx - 50 * s, y + 18 * s), 11 * s, earned ? col : new Color(col.r, col.g, col.b, 0.25f));
                 Label(new Rect(cx - 32 * s, y + 4 * s, cw, 30 * s), $"{Medals.Name(medal)} {Medals.Target(Ghost.Circuit, medal):0.0}",
-                    _small, earned ? Color.white : new Color(1f, 1f, 1f, 0.5f), TextAnchor.MiddleLeft);
+                    _small, earned ? UiKit.Ink : UiKit.Alpha(UiKit.Ink, 0.45f), TextAnchor.MiddleLeft);
             }
             if (got > Ghost.MedalBefore)
-                Label(new Rect(x, y + 34 * s, w, 30 * s), $"Médaille {Medals.Name(got).ToLowerInvariant()} gagnée !", _small, MedalColors[(int)got], TextAnchor.MiddleCenter);
+                Label(new Rect(x, y + 34 * s, w, 30 * s), $"Médaille {Medals.Name(got).ToLowerInvariant()} gagnée !", _small, UiKit.Vermilion, TextAnchor.MiddleCenter);
         }
 
         /// <summary>Coupe : place à cette course, points gagnés et classement cumulé.</summary>
         void DrawCupResults(float w, float s)
         {
-            Box(new Rect(0, 0, w, Screen.height), new Color(0.05f, 0.08f, 0.18f, 0.55f));
-            var gold = new Color(1f, 0.85f, 0.25f);
+            Veil(w, Screen.height);
             var st = Cup.Standings;
             int me = Cup.Player;
-            Label(new Rect(0, 24 * s, w, 70 * s), $"Tu finis {Ordinal(st.LastPlace(me) + 1)}", _big, gold, TextAnchor.MiddleCenter);
-            Label(new Rect(0, 88 * s, w, 34 * s), $"{Cup.Def.Name} — après la course {Cup.Race + 1}/{Cups.RacesPerCup}", _small, Color.white, TextAnchor.MiddleCenter);
+            Label(new Rect(0, 20 * s, w, 70 * s), $"Tu finis {Ordinal(st.LastPlace(me) + 1)}", _big, UiKit.Cream, TextAnchor.MiddleCenter);
+            Label(new Rect(0, 88 * s, w, 34 * s), $"{Cup.Def.Name} — après la course {Cup.Race + 1}/{Cups.RacesPerCup}", _small, UiKit.Ochre, TextAnchor.MiddleCenter);
 
             float panelW = 600 * s, x = (w - panelW) * 0.5f, y = 130 * s, row = 38 * s;
-            Box(new Rect(x, y - 10 * s, panelW, row * ResultRows + 20 * s), new Color(0f, 0f, 0f, 0.35f));
+            UiKit.Card(new Rect(x, y - 10 * s, panelW, row * ResultRows + 20 * s), UiKit.Cream, 24 * s, 5 * s);
             var ranking = st.Ranking();
             for (int r = 0; r < ranking.Length; r++)
             {
                 int id = ranking[r];
                 var spec = AnimalSpec.Roster[id];
                 float yy = y + r * row;
-                if (id == me) Box(new Rect(x, yy, panelW, row), new Color(1f, 0.85f, 0.2f, 0.3f));
-                Label(new Rect(x + 16 * s, yy, 60 * s, row), Ordinal(r + 1), _medium, Color.white);
+                var ink = id == me ? UiKit.Cream : UiKit.Ink;
+                if (id == me) Box(new Rect(x, yy, panelW, row), UiKit.Vermilion);
+                Label(new Rect(x + 16 * s, yy, 60 * s, row), Ordinal(r + 1), _medium, ink, TextAnchor.MiddleLeft);
                 UiKit.Portrait(new Vector2(x + 110 * s, yy + row * 0.5f), 16 * s, spec);
-                Label(new Rect(x + 130 * s, yy, 200 * s, row), spec.Name, _medium, Color.white);
-                Label(new Rect(x + 320 * s, yy, 120 * s, row), $"{Ordinal(st.LastPlace(id) + 1)} +{st.LastPoints(id)}", _small, new Color(0.7f, 0.95f, 1f), TextAnchor.MiddleLeft);
-                Label(new Rect(x + panelW - 176 * s, yy, 160 * s, row), $"{st.Total(id)} pts", _medium, Color.white, TextAnchor.UpperRight);
+                Label(new Rect(x + 130 * s, yy, 200 * s, row), spec.Name, _medium, ink, TextAnchor.MiddleLeft);
+                Label(new Rect(x + 320 * s, yy, 120 * s, row), $"{Ordinal(st.LastPlace(id) + 1)} +{st.LastPoints(id)}", _small,
+                    id == me ? UiKit.Ochre : UiKit.Blue, TextAnchor.MiddleLeft);
+                Label(new Rect(x + panelW - 176 * s, yy, 160 * s, row), $"{st.Total(id)} pts", _medium, ink, TextAnchor.MiddleRight);
             }
             DrawResultButtons();
         }
 
         void DrawPause(float w, float h, float s)
         {
-            Box(new Rect(0, 0, w, h), new Color(0.05f, 0.08f, 0.18f, 0.6f));
-            Label(new Rect(0, h * 0.14f, w, 90 * s), "Pause", _big, new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+            Veil(w, h);
+            Title("Pause", h * 0.14f, w);
+            if (_confirm >= 0)
+            {
+                DrawConfirm(s);
+                return;
+            }
             var buttons = PauseRects();
             for (int i = 0; i < buttons.Length; i++)
-                _ui.Button(buttons[i], PauseChoices[i], i == 0 ? new Color(1f, 0.5f, 0.15f) : new Color(0.25f, 0.45f, 0.8f), i == _focus);
+                _ui.Button(buttons[i], PauseChoices[i], i == 0, i == _focus);
         }
 
-        static string FormatTime(float t)
+        /// <summary>Confirmation de Recommencer / Menu, qui nomme ce qui sera perdu.</summary>
+        void DrawConfirm(float s)
         {
-            int m = (int)(t / 60f);
-            float sec = t - m * 60f;
-            return $"{m}:{sec:00.00}";
+            bool toMenu = _confirm == 3;
+            string cup = Cup?.Def.Name;
+            var card = ConfirmCard();
+            UiKit.Card(card, UiKit.Cream, 28 * s, 6 * s);
+            Label(new Rect(card.x + 24 * s, card.y + 22 * s, card.width - 48 * s, 50 * s), LeaveWarning.Question(toMenu, cup), _medium, UiKit.Ink,
+                TextAnchor.MiddleCenter);
+            Label(new Rect(card.x + 24 * s, card.y + 76 * s, card.width - 48 * s, 40 * s),
+                LeaveWarning.Loss(toMenu, cup, Cup?.Race ?? 0, Race.Solo), _ui.Body, UiKit.Vermilion, TextAnchor.MiddleCenter);
+            var buttons = ConfirmRects();
+            _ui.Button(buttons[0], "Annuler", false, _focus == 0);
+            _ui.Button(buttons[1], LeaveWarning.Confirm(toMenu), true, _focus == 1);
         }
+
+        static string FormatTime(float t) => RaceText.Time(t);
     }
 }

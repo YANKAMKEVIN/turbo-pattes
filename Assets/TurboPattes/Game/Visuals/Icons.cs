@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TurboPattes.Core;
 using TurboPattes.Game.Kart;
@@ -33,6 +34,30 @@ namespace TurboPattes.Game.Visuals
                 default: Shield(c); break;
             }
             return ItemCache[kind] = c.ToTexture("Item" + kind);
+        }
+
+        static Texture2D _paw;
+
+        /// <summary>
+        /// Patte crème de l'icône de l'application (coussinet et quatre doigts, inclinée de 15°), pour le logo :
+        /// même dessin que Editor/AppIcon, sur fond transparent.
+        /// </summary>
+        public static Texture2D Paw()
+        {
+            if (_paw != null) return _paw;
+            var c = new IconCanvas();
+            var cream = new Color(0.949f, 0.906f, 0.808f); // #F2E7CE
+            const float scale = 1.15f, tilt = 15f;
+            float cs = Mathf.Cos(tilt * Mathf.Deg2Rad), sn = Mathf.Sin(tilt * Mathf.Deg2Rad);
+            // (u, v) : repère de la patte de AppIcon, v vers le haut ; la toile compte y vers le bas.
+            Func<Vector2, float> Part(float u, float v, float rx, float ry)
+            {
+                float x = u * scale, y = -v * scale;
+                return Ellipse(0.5f + x * cs - y * sn, 0.52f + x * sn + y * cs, rx * scale, ry * scale, tilt);
+            }
+            c.Fill(Union(Part(0f, -0.07f, 0.23f, 0.17f), Part(-0.285f, 0.12f, 0.08f, 0.105f), Part(-0.095f, 0.265f, 0.09f, 0.12f),
+                Part(0.095f, 0.265f, 0.09f, 0.12f), Part(0.285f, 0.12f, 0.08f, 0.105f)), cream, IconCanvas.Line, 0f);
+            return _paw = c.ToTexture("Paw");
         }
 
         public static Texture2D Portrait(AnimalSpec spec)

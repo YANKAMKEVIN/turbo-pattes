@@ -29,6 +29,17 @@ namespace TurboPattes.Core
             }
         }
 
+        /// <summary>
+        /// Remplissage (0 à 1) du segment <paramref name="segment"/> (0 à 2) de la jauge : le segment n se remplit entre
+        /// les paliers n - 1 et n, pour montrer ce qui manque avant le niveau suivant.
+        /// </summary>
+        public static float SegmentFill(float charge, int segment)
+        {
+            if (segment < 0 || segment >= Thresholds.Length) return 0f;
+            float from = segment == 0 ? 0f : Thresholds[segment - 1], to = Thresholds[segment];
+            return Math.Max(0f, Math.Min(1f, (charge - from) / (to - from)));
+        }
+
         public void Start(int direction)
         {
             if (direction == 0) throw new ArgumentException("Direction nulle", nameof(direction));

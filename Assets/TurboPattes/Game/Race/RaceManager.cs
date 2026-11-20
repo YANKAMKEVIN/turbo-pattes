@@ -49,10 +49,17 @@ namespace TurboPattes.Game.Race
         public event Action<int, float> LapCompleted;
         /// <summary>Passage à l'écran de résultats.</summary>
         public event Action RaceFinished;
+        /// <summary>Projectile qui arrive dans le dos du joueur (<see cref="ItemKind.None"/> sinon) et son urgence (0 à 1).</summary>
+        public ItemKind Threat { get; private set; }
+        public float ThreatUrgency { get; private set; }
         /// <summary>Musique jouée au « PARTEZ ! » (une par circuit).</summary>
         public Song Music { get; set; } = Songs.Race;
 
         AiDriver[] _ai;
+        ProgressClock[] _clocks;
+        readonly ThreatBeeper _threatBeeper = new();
+        /// <summary>Place du joueur et ses changements (rebond et flèche du HUD).</summary>
+        public PlaceTracker Place { get; } = new();
         float[] _baseScale;
         List<BoostPad> _pads;
         SoundBank _sound;
@@ -115,6 +122,7 @@ namespace TurboPattes.Game.Race
                 kart.Landed += k => { if (k.IsPlayer && k.Vertical.LandingSpeed > 4f) { _sound.Bump(); App.Haptics.Pulse(45); _cam.Shake(Mathf.Clamp(k.Vertical.LandingSpeed / 20f, 0.15f, 0.5f)); } };
             }
             Karts = karts.ToArray();
+            _clocks = Array.ConvertAll(Karts, _ => new ProgressClock());
             _ai = ai.ToArray();
             _baseScale = baseScale.ToArray();
             Items.PickedUp += k => { if (k.IsPlayer) _sound.Pop(); };
@@ -168,7 +176,11 @@ namespace TurboPattes.Game.Race
 
             CheckBoostPads();
             Items.Tick(dt, Karts, RankOf);
+            UpdateThreat(dt);
             ComputeOrder();
+            if (State != Phase.Countdown)
+                for (int i = 0; i < Karts.Length; i++) _clocks[i].Record(Karts[i].Progress, RaceTime);
+            UpdatePlace(dt);
             CheckFinish();
             ApplyRubberBand();
             UpdateWrongWay(dt);
@@ -238,6 +250,43 @@ namespace TurboPattes.Game.Race
 
         int RankOf(KartMotor k) => k.Rank;
 
+        void UpdatePlace(float dt)
+        {
+            // Pas de réaction pendant le compte à rebours ni après l'arrivée.
+            if (State != Phase.Racing || Player.Finished || Solo) return;
+            int change = Place.Update(Player.Rank, dt);
+            if (change == 0) return;
+            _sound.Place(change > 0);
+            if (change > 0) App.Haptics.Pulse(12);
+        }
+
+        void UpdateThreat(float dt)
+        {
+            var kind = ItemKind.None;
+            float distance = 0f;
+            bool incoming = !Player.Finished && Items.IncomingThreat(Player, out kind, out distance);
+            Threat = incoming ? kind : ItemKind.None;
+            ThreatUrgency = incoming ? ThreatAlert.Urgency(distance) : 0f;
+            if (_threatBeeper.Tick(dt, incoming, ThreatUrgency)) _sound.Warn();
+        }
+
+        /// <summary>
+        /// Écart en secondes avec le pilote juste devant (<paramref name="offset"/> = -1) ou juste derrière (+1) le joueur,
+        /// mesuré aux repères de passage. Faux s'il n'y a personne à cette place ou pas encore de mesure.
+        /// </summary>
+        public bool GapToNeighbour(int offset, out KartMotor other, out float seconds)
+        {
+            other = null;
+            seconds = 0f;
+            int r = Player.Rank + offset;
+            if (_clocks == null || Order == null || r < 0 || r >= Order.Length || offset == 0) return false;
+            int index = Order[r];
+            other = Karts[index];
+            return offset < 0
+                ? RaceGaps.Ahead(_clocks[index], Player.Progress, RaceTime, out seconds)
+                : RaceGaps.Behind(_clocks[Array.IndexOf(Karts, Player)], other.Progress, RaceTime, out seconds);
+        }
+
         void ComputeOrder()
         {
             var standings = new RacerStanding[Karts.Length];
@@ -259,7 +308,12 @@ namespace TurboPattes.Game.Race
                     _lapStart = RaceTime;
                     LapCompleted?.Invoke(_playerLap, LapTimes[_playerLap]);
                 }
-                if (lap == Laps - 1 && lap > _playerLap && State == Phase.Racing) ShowBanner("Dernier tour !", 2f);
+                if (lap == Laps - 1 && lap > _playerLap && State == Phase.Racing)
+                {
+                    ShowBanner("Dernier tour !", 2f);
+                    // Course de plusieurs tours : jingle, puis la musique du circuit repart plus vite pour le sprint final.
+                    if (Laps > 1) Jukebox.Instance.LastLap(Music, MusicLevel);
+                }
                 _playerLap = Mathf.Max(_playerLap, lap);
             }
 

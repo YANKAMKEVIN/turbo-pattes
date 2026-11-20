@@ -122,6 +122,13 @@ namespace TurboPattes.Game.App
             set => SaveF("tp.touch", Mathf.Clamp(value, 0.5f, 1.5f));
         }
 
+        /// <summary>Commandes tactiles pour gaucher : direction à droite, boutons à gauche.</summary>
+        public static bool LeftHanded
+        {
+            get => Load("tp.lefthanded", 0) != 0;
+            set => Save("tp.lefthanded", value ? 1 : 0);
+        }
+
         public static bool Vibration
         {
             get => Load("tp.vibration", 1) != 0;

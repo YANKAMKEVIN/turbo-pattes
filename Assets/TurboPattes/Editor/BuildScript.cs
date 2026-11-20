@@ -208,7 +208,8 @@ namespace TurboPattes.EditorTools
             PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = true;
             PlayerSettings.SplashScreen.showUnityLogo = true;
-            PlayerSettings.SplashScreen.backgroundColor = new Color(0.45f, 0.7f, 1f);
+            // Fond vert charbon de la direction « Atelier plein gaz » (#24302D), comme le logo de l'écran titre.
+            PlayerSettings.SplashScreen.backgroundColor = new Color(0x24 / 255f, 0x30 / 255f, 0x2D / 255f);
         }
 
         /// <summary>Active Input Handling = Input System Package (prend effet au prochain lancement de l'éditeur).</summary>

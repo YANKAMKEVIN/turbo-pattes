@@ -189,6 +189,8 @@ namespace TurboPattes.Game.App
             // Une musique par circuit, calculée pendant le compte à rebours.
             _race.Music = Songs.ForCircuit(_circuitIndex);
             Jukebox.Instance.Prepare(_race.Music);
+            // Version accélérée pour le dernier tour, calculée en même temps.
+            if (laps > 1) Jukebox.Instance.Prepare(Songs.Sprint(_race.Music));
             // En coupe, à partir de la 2e course, le dernier du classement part en tête et le leader en fond de grille.
             int[] grid = cup != null && cup.Race > 0 ? Cups.Grid(cup.Standings.Ranking()) : null;
             _race.Setup(_circuit, _path, _pads, _chase, _sound, PlayerSlot, laps, seed, pilot, GameSession.AiSpeedRange(difficulty), grid);

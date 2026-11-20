@@ -13,7 +13,7 @@ namespace TurboPattes.Game.UI
     /// </summary>
     public sealed class SettingsScreen : MonoBehaviour
     {
-        static readonly string[] Rows = { "Musique", "Effets", "Sensibilité tactile", "Vibrations", "Qualité graphique", "Retour" };
+        static readonly string[] Rows = { "Musique", "Effets", "Sensibilité tactile", "Commandes tactiles", "Vibrations", "Qualité graphique", "Retour" };
         static readonly string[] QualityNames = { "Auto", "Maximale", "Haute", "Moyenne", "Basse", "Minimale" };
 
         public static bool IsOpen { get; private set; }
@@ -73,7 +73,7 @@ namespace TurboPattes.Game.UI
             if (back || confirm && _row == Rows.Length - 1) { Close(); return; }
             if (dy != 0) { _row = Mathf.Clamp(_row + dy, 0, Rows.Length - 1); Jukebox.Instance.Move(); }
             if (dx != 0) Change(_row, dx);
-            else if (confirm && _row == 3) Change(3, 1);
+            else if (confirm && Toggle(_row)) Change(_row, 1);
 
             var tap = UiKit.Tap();
             if (!tap.HasValue) return;
@@ -85,9 +85,12 @@ namespace TurboPattes.Game.UI
                     continue;
                 }
                 if (Minus(i).Contains(tap.Value)) { _row = i; Change(i, -1); }
-                else if (Plus(i).Contains(tap.Value) || i == 3 && RowRect(i).Contains(tap.Value)) { _row = i; Change(i, 1); }
+                else if (Plus(i).Contains(tap.Value) || Toggle(i) && RowRect(i).Contains(tap.Value)) { _row = i; Change(i, 1); }
             }
         }
+
+        /// <summary>Lignes à deux états (commandes, vibrations) : un appui bascule, pas de boutons - / +.</summary>
+        static bool Toggle(int row) => row == 3 || row == 4;
 
         static void Change(int row, int d)
         {
@@ -96,11 +99,12 @@ namespace TurboPattes.Game.UI
                 case 0: GameSession.MusicVolume = Step(GameSession.MusicVolume, d * 0.1f, 0f, 1f); break;
                 case 1: GameSession.SfxVolume = Step(GameSession.SfxVolume, d * 0.1f, 0f, 1f); break;
                 case 2: GameSession.TouchSensitivity = Step(GameSession.TouchSensitivity, d * 0.1f, 0.5f, 1.5f); break;
-                case 3:
+                case 3: GameSession.LeftHanded = !GameSession.LeftHanded; break;
+                case 4:
                     GameSession.Vibration = !GameSession.Vibration;
                     Haptics.Pulse(60);
                     break;
-                case 4:
+                case 5:
                     GameSession.QualityMode = Mathf.Clamp(GameSession.QualityMode + d, -1, QualityTuner.MaxLevel);
                     QualityTuner.Apply(QualityTuner.Effective);
                     break;
@@ -126,28 +130,57 @@ namespace TurboPattes.Game.UI
             GUI.depth = -10;
             _ui.EnsureStyles();
             float s = S, w = Screen.width, h = Screen.height;
-            UiKit.Box(new Rect(0, 0, w, h), new Color(0.05f, 0.08f, 0.18f, 0.85f));
-            _ui.Label(new Rect(0, h * 0.06f, w, 80 * s), "Réglages", _ui.Big, new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
+            UiKit.Box(new Rect(0, 0, w, h), UiKit.Alpha(UiKit.Ink, 0.94f));
+            _ui.Label(new Rect(0, h * 0.06f, w, 80 * s), "Réglages", _ui.Big, UiKit.Cream, TextAnchor.MiddleCenter);
+            UiKit.Slash(new Rect(w * 0.5f - 70 * s, h * 0.06f + 76 * s, 140 * s, 8 * s), UiKit.Vermilion, 1.2f);
             for (int i = 0; i < Rows.Length; i++)
             {
                 var r = RowRect(i);
                 bool focus = i == _row;
                 if (i == Rows.Length - 1)
                 {
-                    _ui.Button(new Rect(r.center.x - 150 * s, r.y + 10 * s, 300 * s, r.height), "Retour", new Color(1f, 0.5f, 0.15f), focus);
+                    _ui.Button(new Rect(r.center.x - 150 * s, r.y + 10 * s, 300 * s, r.height), "Retour", true, focus);
                     continue;
                 }
-                UiKit.Box(r, focus ? new Color(0.2f, 0.28f, 0.5f, 0.95f) : new Color(0.12f, 0.15f, 0.28f, 0.8f), 14 * s);
-                if (focus) UiKit.Box(new Rect(r.x, r.y, 6 * s, r.height), Color.white, 3 * s);
-                _ui.Label(new Rect(r.x + 24 * s, r.y, 300 * s, r.height), Rows[i], _ui.Medium, Color.white, TextAnchor.MiddleLeft);
+                // Ligne en fiche crème ; la ligne active est surlignée en vermillon.
+                UiKit.Card(r, focus ? UiKit.Vermilion : UiKit.Cream, 16 * s, 4 * s);
+                var ink = focus ? UiKit.Cream : UiKit.Ink;
+                if (focus) UiKit.Slash(new Rect(r.x + 10 * s, r.y + r.height * 0.22f, 7 * s, r.height * 0.56f), UiKit.Ochre);
+                _ui.Label(new Rect(r.x + 28 * s, r.y, 300 * s, r.height), Rows[i], _ui.Medium, ink, TextAnchor.MiddleLeft);
                 var valueRect = new Rect(Minus(i).xMax, r.y, Plus(i).x - Minus(i).xMax, r.height);
-                _ui.Label(valueRect, Value(i), _ui.Medium, new Color(1f, 0.85f, 0.25f), TextAnchor.MiddleCenter);
-                if (i != 3)
+                _ui.Label(valueRect, Value(i), _ui.Medium, focus ? UiKit.Ochre : UiKit.Vermilion, TextAnchor.MiddleCenter);
+                if (i == 3) DrawZones(r, s);
+                if (!Toggle(i))
                 {
-                    _ui.Button(Minus(i), "-", new Color(0.25f, 0.45f, 0.8f), false);
-                    _ui.Button(Plus(i), "+", new Color(0.25f, 0.45f, 0.8f), false);
+                    var minus = Minus(i); var plus = Plus(i);
+                    float m = 7 * s;
+                    _ui.Button(new Rect(minus.x + m, minus.y + m, minus.width - 2 * m, minus.height - 2 * m), "-", false);
+                    _ui.Button(new Rect(plus.x + m, plus.y + m, plus.width - 2 * m, plus.height - 2 * m), "+", false);
                 }
             }
+        }
+
+        /// <summary>
+        /// Schéma des zones tactiles à droite de la ligne « Commandes tactiles » : écran en paysage, zone de glissement
+        /// d'un côté, les trois boutons de l'autre (calculés comme en course, par Core/TouchZones).
+        /// </summary>
+        void DrawZones(Rect row, float s)
+        {
+            float space = Screen.width - row.xMax - 24 * s;
+            if (space < 150 * s) return;
+            float pw = Mathf.Min(220 * s, space - 16 * s), ph = pw * 9f / 16f;
+            var phone = new Rect(row.xMax + 20 * s, row.center.y - ph * 0.5f, pw, ph);
+            UiKit.Card(phone, UiKit.Cream, 10 * s, 3 * s);
+            var z = TurboPattes.Core.TouchZones.Compute(pw, ph, 0f, pw, 0f, 1f, GameSession.LeftHanded);
+            // Zone de glissement, hachurée de repères obliques.
+            var zone = new Rect(phone.x + z.SteerMinX, phone.y, z.SteerMaxX - z.SteerMinX, ph);
+            UiKit.Box(zone, UiKit.Alpha(UiKit.Blue, 0.35f));
+            for (int k = 0; k < 4; k++)
+                UiKit.Slash(new Rect(zone.x + zone.width * (0.2f + k * 0.18f), zone.y + ph * 0.4f, 4 * s, ph * 0.2f), UiKit.Alpha(UiKit.Ink, 0.5f));
+            void Spot(TurboPattes.Core.TouchSpot b, Color c) => UiKit.Disc(new Vector2(phone.x + b.X, phone.yMax - b.Y), b.R, c);
+            Spot(z.Drift, UiKit.Ochre);
+            Spot(z.Item, UiKit.Blue);
+            Spot(z.Brake, UiKit.Vermilion);
         }
 
         static string Value(int row) => row switch
@@ -155,7 +188,8 @@ namespace TurboPattes.Game.UI
             0 => $"{Mathf.RoundToInt(GameSession.MusicVolume * 100)} %",
             1 => $"{Mathf.RoundToInt(GameSession.SfxVolume * 100)} %",
             2 => $"{GameSession.TouchSensitivity:0.0}",
-            3 => GameSession.Vibration ? "Oui" : "Non",
+            3 => GameSession.LeftHanded ? "Gaucher" : "Droitier",
+            4 => GameSession.Vibration ? "Oui" : "Non",
             _ => QualityNames[GameSession.QualityMode + 1],
         };
     }
