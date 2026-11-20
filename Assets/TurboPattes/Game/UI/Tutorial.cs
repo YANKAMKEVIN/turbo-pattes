@@ -1,5 +1,6 @@
 using TurboPattes.Core;
 using TurboPattes.Game.App;
+using TurboPattes.Game.Audio;
 using TurboPattes.Game.Race;
 using UnityEngine;
 
@@ -22,12 +23,27 @@ namespace TurboPattes.Game.UI
         readonly bool[] _done = new bool[5];
         string _text;
         float _left, _cooldown;
+        int _tip = -1, _tricksAtShow;
+        bool _achieved;
 
         void Update()
         {
             if (Race == null || Race.Player == null || Race.Paused) return;
             float dt = Time.deltaTime;
-            if (_left > 0f) { _left -= dt; return; }
+            if (_left > 0f)
+            {
+                // Geste réussi : le conseil s'efface vite, avec un son de validation.
+                var pl = Race.Player;
+                if (!_achieved && TutorialCues.Achieved(_tip, Race.LastPlayerInput.Steer, pl.Drift.Active ? pl.Drift.Level : 0,
+                        pl.Item != ItemKind.None, pl.Tricks - _tricksAtShow))
+                {
+                    _achieved = true;
+                    _left = Mathf.Min(_left, 0.35f);
+                    Jukebox.Instance.Confirm();
+                }
+                _left -= dt;
+                return;
+            }
             if (_cooldown > 0f) { _cooldown -= dt; return; }
             var p = Race.Player;
             bool touch = Race.Input.TouchMode;
@@ -58,6 +74,9 @@ namespace TurboPattes.Game.UI
         {
             if (_done[index] || _left > 0f) return;
             _done[index] = true;
+            _tip = index;
+            _achieved = false;
+            _tricksAtShow = Race.Player.Tricks;
             _text = text;
             _left = ShowTime;
             _cooldown = Gap;
@@ -68,12 +87,32 @@ namespace TurboPattes.Game.UI
         {
             if (_left <= 0f || string.IsNullOrEmpty(_text) || Race == null || Race.Paused || Race.State == RaceManager.Phase.Results) return;
             _ui.EnsureStyles();
+            GUI.depth = -1; // par-dessus le HUD
             float s = _ui.Scale, w = Screen.width, h = Screen.height;
             float a = Mathf.Clamp01(_left * 3f) * Mathf.Clamp01((ShowTime - _left) * 4f);
+            if (Race.Input.TouchMode && !_achieved) DrawPointer(h, s, a);
             var r = new Rect(w * 0.5f - 420 * s, h * 0.7f, 840 * s, 58 * s);
             _ui.Plate(r, a);
             UiKit.Slash(new Rect(r.x + 14 * s, r.y + r.height * 0.2f, 8 * s, r.height * 0.6f), UiKit.Alpha(UiKit.Ochre, a));
             _ui.Label(r, _text, _ui.Medium, UiKit.Alpha(UiKit.Cream, a), TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>Anneau ocre qui pulse autour de la commande tactile visée par le conseil.</summary>
+        void DrawPointer(float h, float s, float a)
+        {
+            var l = Race.Input.Layout;
+            Vector2 c;
+            float r;
+            switch (TutorialCues.Target(_tip))
+            {
+                case TutorialTarget.Steer: c = new Vector2(Screen.safeArea.xMin + l.SteerRange * 2f, h * 0.78f); r = l.SteerRange * 1.2f; break;
+                case TutorialTarget.Drift: c = new Vector2(l.Drift.x, h - l.Drift.y); r = l.DriftR; break;
+                case TutorialTarget.Item: c = new Vector2(l.Item.x, h - l.Item.y); r = l.ItemR; break;
+                default: return;
+            }
+            float pulse = TutorialCues.Pulse(Time.time);
+            UiKit.Ring(c, r * pulse + 6 * s, 10 * s, UiKit.Alpha(UiKit.Ink, 0.6f * a), 56);
+            UiKit.Ring(c, r * pulse + 6 * s, 7 * s, UiKit.Alpha(UiKit.Ochre, a), 56);
         }
     }
 }

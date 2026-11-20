@@ -259,4 +259,30 @@ namespace TurboPattes.Tests
             Assert.That(ResultReveal.Celebrate(3), Is.False);
         }
     }
+
+    public class TutorialCueTests
+    {
+        [Test]
+        public void Cibles_DesConseils()
+        {
+            Assert.That(TutorialCues.Target(0), Is.EqualTo(TutorialTarget.None));
+            Assert.That(TutorialCues.Target(1), Is.EqualTo(TutorialTarget.Steer));
+            Assert.That(TutorialCues.Target(2), Is.EqualTo(TutorialTarget.Drift));
+            Assert.That(TutorialCues.Target(3), Is.EqualTo(TutorialTarget.Item));
+            Assert.That(TutorialCues.Target(4), Is.EqualTo(TutorialTarget.Drift));
+        }
+
+        [Test]
+        public void Gestes_Reussis()
+        {
+            Assert.That(TutorialCues.Achieved(1, 0.2f, 0, false, 0), Is.False);
+            Assert.That(TutorialCues.Achieved(1, -0.8f, 0, false, 0), Is.True);
+            Assert.That(TutorialCues.Achieved(2, 0f, 1, false, 0), Is.True);
+            Assert.That(TutorialCues.Achieved(3, 0f, 0, true, 0), Is.False);
+            Assert.That(TutorialCues.Achieved(3, 0f, 0, false, 0), Is.True);
+            Assert.That(TutorialCues.Achieved(4, 0f, 0, false, 1), Is.True);
+            Assert.That(TutorialCues.Achieved(0, 1f, 3, false, 2), Is.False, "le super départ n'a pas de geste à valider");
+            Assert.That(TutorialCues.Pulse(0.3f), Is.InRange(1.1f, 1.3f));
+        }
+    }
 }
