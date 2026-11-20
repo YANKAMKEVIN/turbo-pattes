@@ -107,4 +107,31 @@ namespace TurboPattes.Tests
             Assert.That(RaceText.Seconds(-3f), Is.EqualTo("0,00"));
         }
     }
+
+    public class MiniMapTests
+    {
+        [Test]
+        public void Cadrage_MemeEchelleCentreNordEnHaut()
+        {
+            // Tracé de 200 m (x) sur 100 m (z) dans un carré de 100 px sans marge : échelle 0,5, centré verticalement.
+            var xs = new[] { -100f, 100f, 100f, -100f };
+            var zs = new[] { -50f, -50f, 50f, 50f };
+            var fit = MiniMap.Fit(xs, zs, 10f, 20f, 100f, 100f);
+            Assert.That(fit.Scale, Is.EqualTo(0.5f).Within(1e-5f));
+            fit.Project(-100f, 50f, out float x, out float y);
+            Assert.That(x, Is.EqualTo(10f).Within(1e-4f));
+            Assert.That(y, Is.EqualTo(45f).Within(1e-4f), "coin nord-ouest en haut à gauche, tracé centré");
+            fit.Project(100f, -50f, out x, out y);
+            Assert.That(x, Is.EqualTo(110f).Within(1e-4f));
+            Assert.That(y, Is.EqualTo(95f).Within(1e-4f));
+        }
+
+        [Test]
+        public void Pointilles_RegulierementEspaces()
+        {
+            Assert.That(MiniMap.Spread(10, 5), Is.EqualTo(new[] { 0, 2, 4, 6, 8 }));
+            Assert.That(MiniMap.Spread(3, 10), Is.EqualTo(new[] { 0, 1, 2 }));
+            Assert.That(MiniMap.Spread(0, 4), Is.Empty);
+        }
+    }
 }

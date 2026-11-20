@@ -33,6 +33,11 @@ namespace TurboPattes.Game.UI
         readonly float[] _gapBefore = new float[2];
         readonly int[] _gapTrend = new int[2];
         readonly KartMotor[] _gapKart = new KartMotor[2];
+        // Mini-carte : cadrage du tracé recalculé seulement si la piste ou la place à l'écran change.
+        TurboPattes.Game.Track.TrackPath _mapPath;
+        Rect _mapRect;
+        MapFit _mapFit;
+        int[] _mapDots;
         static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier", "Plume planante", "Pelote de laine" };
         static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Réglages", "Menu" };
         static readonly string[] ResultChoices = { "Rejouer", "Menu" };
@@ -219,6 +224,12 @@ namespace TurboPattes.Game.UI
                 else DrawGaps(left, top + 96 * s, s);
             }
 
+            // Mini-carte à droite, sous la place (ou sous le panneau du chrono) ; en tactile, à gauche du bouton pause
+            // pour laisser la place au bouton OBJET.
+            DrawMiniMap(Race.Solo ? new Rect(right - 170 * s, top + 196 * s, 170 * s, 170 * s)
+                : Race.Input.TouchMode ? new Rect(PauseButton().xMin - 166 * s, top + 104 * s, 150 * s, 150 * s)
+                : new Rect(right - 170 * s, top + 110 * s, 170 * s, 170 * s), s);
+
             // Vitesse (chiffres fixes) et charge de drift
             float kmh = p.Speed * 3.6f;
             var speedRect = Race.Input.TouchMode
@@ -343,6 +354,44 @@ namespace TurboPattes.Game.UI
                 _ui.Digits(new Rect(x + width - 92 * s, yy, 76 * s, row), RaceText.Seconds(gap), _small, good != 0 ? UiKit.Ink : UiKit.Cream, TextAnchor.MiddleCenter);
                 yy += row;
             }
+        }
+
+        /// <summary>Mini-carte : contour du circuit vu de dessus, un point par kart à la couleur du pilote, le joueur plus gros.</summary>
+        void DrawMiniMap(Rect r, float s)
+        {
+            var path = Race.Path;
+            if (path == null) return;
+            if (_mapPath != path || _mapRect != r || _mapDots == null)
+            {
+                var pts = path.Points;
+                var xs = new float[pts.Length];
+                var zs = new float[pts.Length];
+                for (int i = 0; i < pts.Length; i++) { xs[i] = pts[i].x; zs[i] = pts[i].z; }
+                _mapFit = MiniMap.Fit(xs, zs, r.x, r.y, r.width, r.height, 16 * s);
+                _mapDots = MiniMap.Spread(pts.Length, 120);
+                _mapPath = path;
+                _mapRect = r;
+            }
+            _ui.Plate(r, 0.85f);
+            foreach (int i in _mapDots)
+            {
+                _mapFit.Project(path.Points[i].x, path.Points[i].z, out float x, out float y);
+                Disc(new Vector2(x, y), 2.4f * s, UiKit.Alpha(UiKit.Cream, 0.8f));
+            }
+            // Ligne de départ : petit repère ocre.
+            _mapFit.Project(path.Points[0].x, path.Points[0].z, out float lx, out float ly);
+            Box(new Rect(lx - 6 * s, ly - 2 * s, 12 * s, 4 * s), UiKit.Ochre);
+            foreach (var k in Race.Karts)
+            {
+                if (k.IsPlayer) continue;
+                _mapFit.Project(k.Position.x, k.Position.z, out float x, out float y);
+                Disc(new Vector2(x, y), 5.5f * s, UiKit.Ink);
+                Disc(new Vector2(x, y), 4f * s, k.Spec.Kart);
+            }
+            var p = Race.Player;
+            _mapFit.Project(p.Position.x, p.Position.z, out float px, out float py);
+            Disc(new Vector2(px, py), 9f * s, UiKit.Cream);
+            Disc(new Vector2(px, py), 6.5f * s, p.Spec.Kart);
         }
 
         void DrawTouchControls(float h, float s)
