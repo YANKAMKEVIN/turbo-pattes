@@ -7,7 +7,7 @@ namespace TurboPattes.Game.Audio
     {
         const int Rate = 44100;
         AudioSource _engine, _drift, _oneShots;
-        AudioClip _beep, _go, _boost, _bump, _pop, _hit, _tick, _levelUp, _finish, _throw;
+        AudioClip _beep, _go, _boost, _bump, _pop, _hit, _tick, _levelUp, _finish, _throw, _warn;
 
         public static SoundBank Create(Transform parent)
         {
@@ -52,6 +52,7 @@ namespace TurboPattes.Game.Audio
             _levelUp = Tone("LevelUp", 0.12f, 880f, 1320f, 0.35f);
             _pop = Tone("Pop", 0.12f, 400f, 1400f, 0.6f);
             _throw = Tone("Throw", 0.18f, 700f, 250f, 0.5f);
+            _warn = Tone("Warn", 0.07f, 1760f, 1760f, 0.4f);
             _finish = Make("Finish", 1.2f, (t, i) =>
             {
                 float[] notes = { 523f, 659f, 784f, 1046f };
@@ -126,5 +127,7 @@ namespace TurboPattes.Game.Audio
         public void LevelUp() => Play(_levelUp, 0.6f);
         public void Finish() => Play(_finish);
         public void Throw() => Play(_throw, 0.7f);
+        /// <summary>Bip d'alerte : projectile qui arrive par l'arrière.</summary>
+        public void Warn() => Play(_warn, 0.55f);
     }
 }

@@ -154,4 +154,33 @@ namespace TurboPattes.Tests
             Assert.That(seen, Does.Not.Contain(ItemKind.None));
         }
     }
+
+    public class ThreatTests
+    {
+        [Test]
+        public void Urgence_GrossitEtAccelereEnApprochant()
+        {
+            Assert.That(ThreatAlert.Urgency(ThreatAlert.Range), Is.EqualTo(0f));
+            Assert.That(ThreatAlert.Urgency(0f), Is.EqualTo(1f));
+            Assert.That(ThreatAlert.Urgency(100f), Is.EqualTo(0f));
+            Assert.That(ThreatAlert.Interval(1f), Is.LessThan(ThreatAlert.Interval(0.2f)));
+            Assert.That(ThreatAlert.Scale(1f), Is.GreaterThan(ThreatAlert.Scale(0f)));
+        }
+
+        [Test]
+        public void Bips_UnToutDeSuitePuisAuRythme()
+        {
+            var b = new ThreatBeeper();
+            Assert.That(b.Tick(0.01f, true, 0f), Is.True, "premier bip immédiat");
+            int beeps = 0;
+            for (int i = 0; i < 110; i++) if (b.Tick(0.01f, true, 0f)) beeps++;
+            Assert.That(beeps, Is.EqualTo(2), "un bip toutes les 0,5 s au loin (1,1 s)");
+            b.Tick(0.01f, false, 0f);
+            beeps = 0;
+            for (int i = 0; i < 100; i++) if (b.Tick(0.01f, true, 1f)) beeps++;
+            Assert.That(beeps, Is.InRange(8, 11), "un bip toutes les 0,1 s au contact");
+            Assert.That(b.Tick(0.01f, false, 1f), Is.False);
+            Assert.That(b.Tick(0.01f, true, 1f), Is.True, "nouvelle menace : bip immédiat");
+        }
+    }
 }

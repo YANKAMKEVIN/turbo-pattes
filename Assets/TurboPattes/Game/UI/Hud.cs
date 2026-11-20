@@ -243,6 +243,8 @@ namespace TurboPattes.Game.UI
                 Label(new Rect(w * 0.5f - 200 * s, h * 0.66f, 400 * s, 40 * s), new string('>', p.Drift.Level * 2), _medium,
                     KartMotor.DriftColors[p.Drift.Level], TextAnchor.MiddleCenter, 2f);
 
+            DrawThreat(w, h - safe.yMin - (Race.Input.TouchMode ? 150 : 170) * s, s);
+
             if (Race.State == RaceManager.Phase.Countdown)
             {
                 int n = Mathf.CeilToInt(Race.CountdownLeft);
@@ -278,6 +280,21 @@ namespace TurboPattes.Game.UI
                 Label(hint, "Flèches : conduire   Espace : dérapage   E : objet   Échap : pause   (manette : RT, RB, X, Start)", _ui.Body,
                     UiKit.Cream, TextAnchor.MiddleCenter);
             }
+        }
+
+        /// <summary>Projectile qui arrive par l'arrière : son icône en bas de l'écran, qui grossit et clignote en approchant.</summary>
+        void DrawThreat(float w, float y, float s)
+        {
+            if (Race.Threat == ItemKind.None || !ThreatAlert.BlinkOn(Time.time, Race.ThreatUrgency)) return;
+            float r = 34 * s * ThreatAlert.Scale(Race.ThreatUrgency);
+            var c = new Vector2(w * 0.5f, y - r);
+            Disc(c, r + 4 * s, UiKit.Cream);
+            Disc(c, r, UiKit.Vermilion);
+            float ir = r * 0.78f;
+            GUI.DrawTexture(new Rect(c.x - ir, c.y - ir, ir * 2f, ir * 2f), Icons.Item(Race.Threat), ScaleMode.ScaleToFit);
+            var tag = new Rect(c.x - 80 * s, c.y + r + 6 * s, 160 * s, 26 * s);
+            _ui.Plate(tag);
+            Label(tag, "DERRIÈRE !", _small, UiKit.Vermilion, TextAnchor.MiddleCenter);
         }
 
         /// <summary>Bandeau penché, comme un trait de peinture rapide, pour les annonces de course.</summary>

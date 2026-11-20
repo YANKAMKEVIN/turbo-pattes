@@ -71,6 +71,34 @@ namespace TurboPattes.Game.Items
             }
         }
 
+        /// <summary>
+        /// Projectile le plus proche qui arrive dans le dos de <paramref name="target"/> : pelote qui le vise, ou noix
+        /// de coco lancée derrière lui et qui roule vers lui. Distance en mètres.
+        /// </summary>
+        public bool IncomingThreat(KartMotor target, out ItemKind kind, out float distance)
+        {
+            kind = ItemKind.None;
+            distance = float.MaxValue;
+            foreach (var y in _yarns)
+            {
+                if (y.Target != target) continue;
+                float d = target.Progress - y.Progress;
+                if (d >= 0f && d < distance) { distance = d; kind = ItemKind.Yarn; }
+            }
+            foreach (var c in _coconuts)
+            {
+                if (c.Owner == target && c.OwnerGrace > 0f) continue;
+                var to = target.Position - c.Pos;
+                to.y = 0f;
+                float d = to.magnitude;
+                if (d < 0.01f || d >= ThreatAlert.Range || d >= distance) continue;
+                var dir = to / d;
+                // Elle roule vers lui, et elle est derrière lui (pas une coco qu'il croise de face).
+                if (Vector3.Dot(c.Dir, dir) > 0.8f && Vector3.Dot(target.Forward, dir) > 0.3f) { distance = d; kind = ItemKind.Coconut; }
+            }
+            return kind != ItemKind.None && distance < ThreatAlert.Range;
+        }
+
         Transform BuildBubble(Vector3 pos)
         {
             var t = new GameObject("Bubble").transform;

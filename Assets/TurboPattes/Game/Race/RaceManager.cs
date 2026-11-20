@@ -49,11 +49,15 @@ namespace TurboPattes.Game.Race
         public event Action<int, float> LapCompleted;
         /// <summary>Passage à l'écran de résultats.</summary>
         public event Action RaceFinished;
+        /// <summary>Projectile qui arrive dans le dos du joueur (<see cref="ItemKind.None"/> sinon) et son urgence (0 à 1).</summary>
+        public ItemKind Threat { get; private set; }
+        public float ThreatUrgency { get; private set; }
         /// <summary>Musique jouée au « PARTEZ ! » (une par circuit).</summary>
         public Song Music { get; set; } = Songs.Race;
 
         AiDriver[] _ai;
         ProgressClock[] _clocks;
+        readonly ThreatBeeper _threatBeeper = new();
         float[] _baseScale;
         List<BoostPad> _pads;
         SoundBank _sound;
@@ -170,6 +174,7 @@ namespace TurboPattes.Game.Race
 
             CheckBoostPads();
             Items.Tick(dt, Karts, RankOf);
+            UpdateThreat(dt);
             ComputeOrder();
             if (State != Phase.Countdown)
                 for (int i = 0; i < Karts.Length; i++) _clocks[i].Record(Karts[i].Progress, RaceTime);
@@ -241,6 +246,16 @@ namespace TurboPattes.Game.Race
         }
 
         int RankOf(KartMotor k) => k.Rank;
+
+        void UpdateThreat(float dt)
+        {
+            var kind = ItemKind.None;
+            float distance = 0f;
+            bool incoming = !Player.Finished && Items.IncomingThreat(Player, out kind, out distance);
+            Threat = incoming ? kind : ItemKind.None;
+            ThreatUrgency = incoming ? ThreatAlert.Urgency(distance) : 0f;
+            if (_threatBeeper.Tick(dt, incoming, ThreatUrgency)) _sound.Warn();
+        }
 
         /// <summary>
         /// Écart en secondes avec le pilote juste devant (<paramref name="offset"/> = -1) ou juste derrière (+1) le joueur,
