@@ -29,6 +29,8 @@ namespace TurboPattes.Game.UI
         int _confirm = -1;
         // Éclat de la jauge de drift au passage d'un niveau.
         int _driftLevel;
+        // Résultats : instant d'arrivée sur l'écran (mise en scène des lignes, confettis).
+        float _resultsAt = -1f;
         float _driftFlashAt = -10f;
         // Classement complet affiché deux secondes à chaque passage de ligne ; sinon les deux écarts utiles.
         int _seenLap = int.MinValue;
@@ -113,7 +115,11 @@ namespace TurboPattes.Game.UI
             var tap = UiKit.Tap();
             if (Race.Paused && _confirm >= 0) Navigate(ConfirmRects(), tap, ChooseConfirm, vertical: false);
             else if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
-            else if (Race.State == RaceManager.Phase.Results) Navigate(ResultRects(), tap, ChooseResult, vertical: false);
+            else if (Race.State == RaceManager.Phase.Results)
+            {
+                if (_resultsAt < 0f) _resultsAt = Time.time;
+                Navigate(ResultRects(), tap, ChooseResult, vertical: false);
+            }
             else
             {
                 _focus = 0;
@@ -578,30 +584,75 @@ namespace TurboPattes.Game.UI
             }
             Veil(w, h);
             var p = Race.Player;
+            float t = _resultsAt < 0f ? 0f : Time.time - _resultsAt;
+            int rows = Race.Order.Length;
+            if (ResultReveal.Celebrate(p.Rank)) DrawConfetti(w, h, s, t - ResultReveal.Done(rows));
             Title(p.Rank == 0 ? "Victoire !" : $"Tu finis {Ordinal(p.Rank + 1)}", 22 * s, w);
 
             float panelW = 560 * s, x = (w - panelW) * 0.5f, y = 130 * s, row = 38 * s;
             UiKit.Card(new Rect(x, y - 10 * s, panelW, row * Race.Karts.Length + 20 * s), UiKit.Cream, 24 * s, 5 * s);
-            for (int r = 0; r < Race.Order.Length; r++)
+            // Les lignes entrent une à une, du dernier au premier ; celle du joueur déborde de la fiche.
+            for (int r = 0; r < rows; r++)
             {
+                float k01 = ResultReveal.RowProgress(r, rows, t);
+                if (k01 <= 0f) continue;
                 var k = Race.Karts[Race.Order[r]];
-                float yy = y + r * row;
-                var ink = k.IsPlayer ? UiKit.Cream : UiKit.Ink;
-                if (k.IsPlayer) Box(new Rect(x, yy, panelW, row), UiKit.Vermilion);
-                Label(new Rect(x + 16 * s, yy, 60 * s, row), Ordinal(r + 1), _medium, ink, TextAnchor.MiddleLeft);
-                UiKit.Portrait(new Vector2(x + 110 * s, yy + row * 0.5f), 16 * s, k.Spec);
-                Label(new Rect(x + 130 * s, yy, 220 * s, row), k.Spec.Name, _medium, ink, TextAnchor.MiddleLeft);
-                if (k.Finished) _ui.Digits(new Rect(x + panelW - 236 * s, yy, 220 * s, row), FormatTime(k.FinishTime), _medium, ink, TextAnchor.MiddleRight);
-                else Label(new Rect(x + panelW - 236 * s, yy, 220 * s, row), "en course…", _ui.Body, ink, TextAnchor.MiddleRight);
+                float yy = y + r * row, xx = x - (1f - k01) * 120 * s;
+                var ink = UiKit.Alpha(k.IsPlayer ? UiKit.Cream : UiKit.Ink, k01);
+                if (k.IsPlayer)
+                {
+                    UiKit.Card(new Rect(xx - 14 * s, yy - 3 * s, panelW + 28 * s, row + 6 * s), UiKit.Alpha(UiKit.Vermilion, k01), 12 * s, 4 * s);
+                    UiKit.Slash(new Rect(xx - 4 * s, yy + 7 * s, 7 * s, row - 14 * s), UiKit.Alpha(UiKit.Ochre, k01));
+                }
+                Label(new Rect(xx + 16 * s, yy, 60 * s, row), Ordinal(r + 1), _medium, ink, TextAnchor.MiddleLeft);
+                UiKit.Portrait(new Vector2(xx + 110 * s, yy + row * 0.5f), 16 * s, k.Spec);
+                Label(new Rect(xx + 130 * s, yy, 220 * s, row), k.Spec.Name, _medium, ink, TextAnchor.MiddleLeft);
+                if (k.Finished) _ui.Digits(new Rect(xx + panelW - 236 * s, yy, 220 * s, row), FormatTime(k.FinishTime), _medium, ink, TextAnchor.MiddleRight);
+                else Label(new Rect(xx + panelW - 236 * s, yy, 220 * s, row), "en course…", _ui.Body, ink, TextAnchor.MiddleRight);
             }
 
-            float by = y + row * Race.Karts.Length + 30 * s;
-            var laps = Race.LapTimes;
-            string lapsText = "";
-            for (int i = 0; i < laps.Length; i++) lapsText += (i > 0 ? "   " : "") + $"T{i + 1} {FormatTime(laps[i])}";
-            Label(new Rect(0, by, w, 30 * s), lapsText, _small, UiKit.Cream, TextAnchor.MiddleCenter);
+            // Temps au tour du joueur, une fois le tableau en place ; le meilleur tour sur fiche ocre.
+            float lapsAlpha = Mathf.Clamp01((t - ResultReveal.Done(rows)) / 0.3f);
+            if (lapsAlpha > 0f)
+            {
+                float by = y + row * Race.Karts.Length + 24 * s;
+                var laps = Race.LapTimes;
+                int best = -1;
+                for (int i = 0; i < laps.Length; i++)
+                    if (laps[i] > 0f && (best < 0 || laps[i] < laps[best])) best = i;
+                float chipW = 170 * s, chipGap = 10 * s, cx0 = w * 0.5f - (laps.Length * chipW + (laps.Length - 1) * chipGap) * 0.5f;
+                for (int i = 0; i < laps.Length; i++)
+                {
+                    var chip = new Rect(cx0 + i * (chipW + chipGap), by, chipW, 34 * s);
+                    bool isBest = i == best && laps.Length > 1;
+                    UiKit.Card(chip, UiKit.Alpha(isBest ? UiKit.Ochre : UiKit.Cream, lapsAlpha), 10 * s);
+                    Label(new Rect(chip.x + 10 * s, chip.y, 40 * s, chip.height), $"T{i + 1}", _small, UiKit.Alpha(UiKit.Vermilion, lapsAlpha), TextAnchor.MiddleLeft);
+                    _ui.Digits(new Rect(chip.x, chip.y, chip.width - 10 * s, chip.height), FormatTime(laps[i]), _small, UiKit.Alpha(UiKit.Ink, lapsAlpha), TextAnchor.MiddleRight);
+                }
+            }
 
             DrawResultButtons();
+        }
+
+        static readonly Color[] ConfettiColors = { UiKit.Vermilion, UiKit.Ochre, UiKit.Blue, UiKit.Cream };
+
+        /// <summary>Confettis du podium en 2D : pluie de petits repères obliques aux couleurs de l'atelier.</summary>
+        void DrawConfetti(float w, float h, float s, float t)
+        {
+            if (t <= 0f) return;
+            for (int i = 0; i < 90; i++)
+            {
+                // Valeurs pseudo-aléatoires fixes par confetti (position, vitesse, balancement).
+                float a = Mathf.Repeat(i * 0.618034f, 1f), b = Mathf.Repeat(i * 0.414214f + 0.3f, 1f);
+                float fall = h * (0.18f + 0.22f * b);
+                // Chaque confetti part d'au-dessus de l'écran, plus ou moins tard, puis retombe en boucle.
+                float travel = t * fall - a * h;
+                if (travel < 0f) continue;
+                float y = Mathf.Repeat(travel, h * 1.1f) - h * 0.05f;
+                float x = a * w + Mathf.Sin(t * (1.5f + b * 2f) + i) * 24f * s;
+                float size = (7f + 6f * b) * s;
+                UiKit.Slash(new Rect(x, y, size, size * 0.55f), ConfettiColors[i % ConfettiColors.Length], Mathf.Sin(t * 3f + i) * 0.9f);
+            }
         }
 
         void DrawResultButtons()

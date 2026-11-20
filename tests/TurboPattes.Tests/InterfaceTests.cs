@@ -237,4 +237,26 @@ namespace TurboPattes.Tests
             Assert.That(CircuitGrid.Move(3, 0, 1, 7), Is.EqualTo(6));
         }
     }
+
+    public class ResultRevealTests
+    {
+        [Test]
+        public void Lignes_DuDernierAuPremier()
+        {
+            Assert.That(ResultReveal.RowStart(7, 8), Is.LessThan(ResultReveal.RowStart(0, 8)), "le dernier entre d'abord");
+            Assert.That(ResultReveal.RowProgress(0, 8, 0f), Is.EqualTo(0f));
+            Assert.That(ResultReveal.RowProgress(7, 8, ResultReveal.RowStart(7, 8) + ResultReveal.Slide), Is.EqualTo(1f).Within(1e-5f));
+            Assert.That(ResultReveal.Done(8), Is.EqualTo(ResultReveal.RowStart(0, 8) + ResultReveal.Slide));
+            float mid = ResultReveal.RowProgress(3, 8, ResultReveal.RowStart(3, 8) + ResultReveal.Slide * 0.5f);
+            Assert.That(mid, Is.GreaterThan(0.5f), "entrée freinée en fin de course");
+        }
+
+        [Test]
+        public void Confettis_SeulementSurLePodium()
+        {
+            Assert.That(ResultReveal.Celebrate(0), Is.True);
+            Assert.That(ResultReveal.Celebrate(2), Is.True);
+            Assert.That(ResultReveal.Celebrate(3), Is.False);
+        }
+    }
 }
