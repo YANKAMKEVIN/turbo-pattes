@@ -343,5 +343,30 @@ namespace TurboPattes.Core
 
         /// <summary>Morceau du circuit n (0 = Prairie) ; retombe sur la Prairie hors limites.</summary>
         public static Song ForCircuit(int index) => index >= 0 && index < Circuits.Length ? Circuits[index] : Race;
+
+        /// <summary>Tempo du dernier tour, relevé d'environ 12 %.</summary>
+        public const float SprintTempo = 1.12f;
+
+        static readonly Dictionary<Song, Song> Sprints = new();
+
+        /// <summary>
+        /// La même partition au tempo du dernier tour. Toujours la même instance pour un morceau donné
+        /// (le lecteur range les morceaux calculés par instance).
+        /// </summary>
+        public static Song Sprint(Song song)
+        {
+            if (song == null) return null;
+            lock (Sprints)
+            {
+                if (Sprints.TryGetValue(song, out var fast)) return fast;
+                fast = new Song
+                {
+                    Name = song.Name + " (sprint)", Bpm = song.Bpm * SprintTempo, Chords = song.Chords, Melody = song.Melody,
+                    Style = song.Style, Lead = song.Lead, Key = song.Key,
+                };
+                Sprints[song] = fast;
+                return fast;
+            }
+        }
     }
 }

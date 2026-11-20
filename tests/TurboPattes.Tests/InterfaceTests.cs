@@ -386,4 +386,22 @@ namespace TurboPattes.Tests
             }
         }
     }
+
+    public class SprintMusicTests
+    {
+        [Test]
+        public void DernierTour_MemePartitionPlusRapide()
+        {
+            var song = Songs.Canyon;
+            var fast = Songs.Sprint(song);
+            Assert.That(fast, Is.SameAs(Songs.Sprint(song)), "même instance à chaque appel");
+            Assert.That(fast.Bpm, Is.EqualTo(song.Bpm * 1.12f).Within(1e-3f));
+            Assert.That(fast.Melody, Is.EqualTo(song.Melody));
+            Assert.That(fast.Chords, Is.EqualTo(song.Chords));
+            Assert.That(fast.Style, Is.EqualTo(song.Style));
+            Assert.That(fast.Name, Is.Not.EqualTo(song.Name), "nom distinct : le lecteur enchaîne sur le nouveau morceau");
+            Assert.That(fast.StepSeconds, Is.LessThan(song.StepSeconds));
+            Assert.That(Songs.Sprint(null), Is.Null);
+        }
+    }
 }

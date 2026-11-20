@@ -308,7 +308,12 @@ namespace TurboPattes.Game.Race
                     _lapStart = RaceTime;
                     LapCompleted?.Invoke(_playerLap, LapTimes[_playerLap]);
                 }
-                if (lap == Laps - 1 && lap > _playerLap && State == Phase.Racing) ShowBanner("Dernier tour !", 2f);
+                if (lap == Laps - 1 && lap > _playerLap && State == Phase.Racing)
+                {
+                    ShowBanner("Dernier tour !", 2f);
+                    // Course de plusieurs tours : jingle, puis la musique du circuit repart plus vite pour le sprint final.
+                    if (Laps > 1) Jukebox.Instance.LastLap(Music, MusicLevel);
+                }
                 _playerLap = Mathf.Max(_playerLap, lap);
             }
 
