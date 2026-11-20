@@ -183,4 +183,26 @@ namespace TurboPattes.Tests
             Assert.That(b.Tick(0.01f, true, 1f), Is.True, "nouvelle menace : bip immédiat");
         }
     }
+
+    public class LeaveWarningTests
+    {
+        [Test]
+        public void Coupe_NommeLaCoupeEtLesCoursesPerdues()
+        {
+            Assert.That(LeaveWarning.Question(true, "Coupe Braise"), Is.EqualTo("Quitter la Coupe Braise ?"));
+            Assert.That(LeaveWarning.Loss(true, "Coupe Braise", 2, false), Is.EqualTo("Les 2 courses jouées seront perdues."));
+            Assert.That(LeaveWarning.Loss(true, "Coupe Braise", 1, false), Is.EqualTo("La course jouée sera perdue."));
+            Assert.That(LeaveWarning.Loss(true, "Coupe Braise", 0, false), Is.EqualTo("La coupe en cours sera perdue."));
+        }
+
+        [Test]
+        public void HorsCoupe_EtRecommencer()
+        {
+            Assert.That(LeaveWarning.Question(true, null), Is.EqualTo("Revenir au menu ?"));
+            Assert.That(LeaveWarning.Question(false, "Coupe Braise"), Is.EqualTo("Recommencer la course ?"));
+            Assert.That(LeaveWarning.Loss(false, null, 0, true), Is.EqualTo("Le chrono repart de zéro."));
+            Assert.That(LeaveWarning.Confirm(true), Is.EqualTo("Quitter"));
+            Assert.That(LeaveWarning.Confirm(false), Is.EqualTo("Recommencer"));
+        }
+    }
 }

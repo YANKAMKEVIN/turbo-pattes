@@ -25,6 +25,8 @@ namespace TurboPattes.Game.UI
         GUIStyle _big, _medium, _small, _center;
         float _scale;
         int _focus;
+        /// <summary>Choix de pause en attente de confirmation (Recommencer ou Menu), -1 sinon.</summary>
+        int _confirm = -1;
         // Classement complet affiché deux secondes à chaque passage de ligne ; sinon les deux écarts utiles.
         int _seenLap = int.MinValue;
         float _fullStandingsUntil;
@@ -89,6 +91,10 @@ namespace TurboPattes.Game.UI
 
         Rect[] PauseRects() => MenuButtons(PauseChoices.Length, Screen.height * 0.36f, false);
 
+        Rect ConfirmCard() => new(Screen.width * 0.5f - 320 * S, Screen.height * 0.3f, 640 * S, 240 * S);
+
+        Rect[] ConfirmRects() => MenuButtons(2, ConfirmCard().y + 146 * S, true);
+
         // Lignes du tableau de résultats : karts, ou tours en contre-la-montre.
         int ResultRows => Race.Solo ? Race.Laps + 4 : Race.Karts.Length;
 
@@ -102,11 +108,13 @@ namespace TurboPattes.Game.UI
         {
             if (Race == null || Race.Player == null || SettingsScreen.IsOpen) return;
             var tap = UiKit.Tap();
-            if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
+            if (Race.Paused && _confirm >= 0) Navigate(ConfirmRects(), tap, ChooseConfirm, vertical: false);
+            else if (Race.Paused) Navigate(PauseRects(), tap, ChoosePause, vertical: true);
             else if (Race.State == RaceManager.Phase.Results) Navigate(ResultRects(), tap, ChooseResult, vertical: false);
             else
             {
                 _focus = 0;
+                _confirm = -1;
                 TrackStandings();
                 if (tap.HasValue && Race.Input.TouchMode && PauseButton().Contains(tap.Value)) { Jukebox.Instance.Confirm(); Race.SetPaused(true); }
             }
@@ -163,7 +171,20 @@ namespace TurboPattes.Game.UI
         {
             if (i == 0) Race.SetPaused(false);
             else if (i == 2) SettingsScreen.Open();
-            else Leave(toMenu: i == 3);
+            else
+            {
+                // Recommencer ou Menu : on demande d'abord, « Annuler » sélectionné.
+                _confirm = i;
+                _focus = 0;
+            }
+        }
+
+        void ChooseConfirm(int i)
+        {
+            int choice = _confirm;
+            _confirm = -1;
+            _focus = 0; // retour sur « Reprendre »
+            if (i == 1) Leave(toMenu: choice == 3);
         }
 
         void ChooseResult(int i)
@@ -645,9 +666,30 @@ namespace TurboPattes.Game.UI
         {
             Veil(w, h);
             Title("Pause", h * 0.14f, w);
+            if (_confirm >= 0)
+            {
+                DrawConfirm(s);
+                return;
+            }
             var buttons = PauseRects();
             for (int i = 0; i < buttons.Length; i++)
                 _ui.Button(buttons[i], PauseChoices[i], i == 0, i == _focus);
+        }
+
+        /// <summary>Confirmation de Recommencer / Menu, qui nomme ce qui sera perdu.</summary>
+        void DrawConfirm(float s)
+        {
+            bool toMenu = _confirm == 3;
+            string cup = Cup?.Def.Name;
+            var card = ConfirmCard();
+            UiKit.Card(card, UiKit.Cream, 28 * s, 6 * s);
+            Label(new Rect(card.x + 24 * s, card.y + 22 * s, card.width - 48 * s, 50 * s), LeaveWarning.Question(toMenu, cup), _medium, UiKit.Ink,
+                TextAnchor.MiddleCenter);
+            Label(new Rect(card.x + 24 * s, card.y + 76 * s, card.width - 48 * s, 40 * s),
+                LeaveWarning.Loss(toMenu, cup, Cup?.Race ?? 0, Race.Solo), _ui.Body, UiKit.Vermilion, TextAnchor.MiddleCenter);
+            var buttons = ConfirmRects();
+            _ui.Button(buttons[0], "Annuler", false, _focus == 0);
+            _ui.Button(buttons[1], LeaveWarning.Confirm(toMenu), true, _focus == 1);
         }
 
         static string FormatTime(float t) => RaceText.Time(t);
