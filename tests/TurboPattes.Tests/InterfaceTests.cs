@@ -205,4 +205,20 @@ namespace TurboPattes.Tests
             Assert.That(LeaveWarning.Confirm(false), Is.EqualTo("Recommencer"));
         }
     }
+
+    public class DriftGaugeTests
+    {
+        [Test]
+        public void Segments_SeRemplissentEntreLesPaliers()
+        {
+            var t = DriftCharge.Thresholds;
+            Assert.That(DriftCharge.SegmentFill(0f, 0), Is.EqualTo(0f));
+            Assert.That(DriftCharge.SegmentFill(t[0] * 0.5f, 0), Is.EqualTo(0.5f).Within(1e-5f));
+            Assert.That(DriftCharge.SegmentFill(t[0] * 0.5f, 1), Is.EqualTo(0f));
+            Assert.That(DriftCharge.SegmentFill((t[0] + t[1]) * 0.5f, 0), Is.EqualTo(1f));
+            Assert.That(DriftCharge.SegmentFill((t[0] + t[1]) * 0.5f, 1), Is.EqualTo(0.5f).Within(1e-5f));
+            Assert.That(DriftCharge.SegmentFill(99f, 2), Is.EqualTo(1f));
+            Assert.That(DriftCharge.SegmentFill(99f, 3), Is.EqualTo(0f));
+        }
+    }
 }

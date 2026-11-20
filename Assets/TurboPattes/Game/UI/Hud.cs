@@ -27,6 +27,9 @@ namespace TurboPattes.Game.UI
         int _focus;
         /// <summary>Choix de pause en attente de confirmation (Recommencer ou Menu), -1 sinon.</summary>
         int _confirm = -1;
+        // Éclat de la jauge de drift au passage d'un niveau.
+        int _driftLevel;
+        float _driftFlashAt = -10f;
         // Classement complet affiché deux secondes à chaque passage de ligne ; sinon les deux écarts utiles.
         int _seenLap = int.MinValue;
         float _fullStandingsUntil;
@@ -260,9 +263,10 @@ namespace TurboPattes.Game.UI
             _ui.Digits(new Rect(speedRect.x, speedRect.y, speedRect.width - 64 * s, speedRect.height), $"{kmh:0}", _medium,
                 p.BoostTime > 0f ? UiKit.Ochre : UiKit.Cream, TextAnchor.MiddleRight);
             Label(new Rect(speedRect.xMax - 60 * s, speedRect.y, 56 * s, speedRect.height), "km/h", _small, UiKit.Alpha(UiKit.Cream, 0.75f), TextAnchor.MiddleLeft);
-            if (p.Drift.Active && p.Drift.Level > 0)
-                Label(new Rect(w * 0.5f - 200 * s, h * 0.66f, 400 * s, 40 * s), new string('>', p.Drift.Level * 2), _medium,
-                    KartMotor.DriftColors[p.Drift.Level], TextAnchor.MiddleCenter, 2f);
+            if (p.Drift.Level > _driftLevel) _driftFlashAt = Time.time;
+            _driftLevel = p.Drift.Active ? p.Drift.Level : 0;
+            // Jauge de charge sous le kart : arc en trois segments, un par palier.
+            if (p.Drift.Active) DriftArc(new Vector2(w * 0.5f, h * 0.6f), 74 * s, 25f, 130f, 9 * s, p.Drift.Charge);
 
             DrawThreat(w, h - safe.yMin - (Race.Input.TouchMode ? 150 : 170) * s, s);
 
@@ -301,6 +305,34 @@ namespace TurboPattes.Game.UI
                 Label(hint, "Flèches : conduire   Espace : dérapage   E : objet   Échap : pause   (manette : RT, RB, X, Start)", _ui.Body,
                     UiKit.Cream, TextAnchor.MiddleCenter);
             }
+        }
+
+        /// <summary>
+        /// Jauge de drift : arc de <paramref name="sweep"/> degrés à partir de <paramref name="start"/> (sens horaire à l'écran),
+        /// en trois segments qui se remplissent en continu, chacun à la couleur des étincelles de son niveau, avec un
+        /// éclat au passage d'un palier.
+        /// </summary>
+        void DriftArc(Vector2 c, float radius, float start, float sweep, float thickness, float charge)
+        {
+            const int segments = 3, dotsPerSegment = 12;
+            float gap = sweep >= 360f ? 8f : 5f;
+            float segSweep = (sweep - gap * (sweep >= 360f ? segments : segments - 1)) / segments;
+            float flash = Mathf.Clamp01(1f - (Time.time - _driftFlashAt) / 0.3f);
+            for (int seg = 0; seg < segments; seg++)
+            {
+                float fill = DriftCharge.SegmentFill(charge, seg);
+                var col = KartMotor.DriftColors[seg + 1];
+                float a0 = start + seg * (segSweep + gap);
+                for (int i = 0; i < dotsPerSegment; i++)
+                {
+                    float t = (i + 0.5f) / dotsPerSegment;
+                    float a = (a0 + t * segSweep) * Mathf.Deg2Rad;
+                    var pos = c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
+                    Disc(pos, thickness * 0.5f + 1.5f * _scale, UiKit.Alpha(UiKit.Ink, 0.7f));
+                    if (t <= fill) Disc(pos, thickness * 0.5f, col);
+                }
+            }
+            if (flash > 0f) UiKit.Ring(c, radius + (1f - flash) * 14f * _scale, thickness * 0.6f, UiKit.Alpha(UiKit.Cream, flash), 36);
         }
 
         /// <summary>Projectile qui arrive par l'arrière : son icône en bas de l'écran, qui grossit et clignote en approchant.</summary>
@@ -454,6 +486,8 @@ namespace TurboPattes.Game.UI
             var p = Race.Player;
             var driftColor = p.Drift.Active && p.Drift.Level > 0 ? KartMotor.DriftColors[p.Drift.Level] : UiKit.Ochre;
             TouchButton(Gui(l.Drift), l.DriftR, "DÉRAPAGE", driftColor, input.DriftHeld);
+            // Autour du bouton : la même jauge, en couronne.
+            if (p.Drift.Active) DriftArc(Gui(l.Drift), l.DriftR + 9 * s, -90f, 360f, 8 * s, p.Drift.Charge);
             if (!Race.Solo) ItemButton(Gui(l.Item), l.ItemR, p, input.ItemHeld);
             TouchButton(Gui(l.Brake), l.BrakeR, "FREIN", UiKit.Vermilion, input.BrakeHeld);
         }
