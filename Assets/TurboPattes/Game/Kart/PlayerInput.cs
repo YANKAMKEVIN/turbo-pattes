@@ -5,16 +5,19 @@ namespace TurboPattes.Game.Kart
 {
     /// <summary>
     /// Commandes du joueur : clavier, manette et écran tactile, fusionnés.
-    /// Tactile : glisser à gauche pour tourner (joystick horizontal), boutons Drift / Objet / Frein à droite,
-    /// accélération automatique.
+    /// Tactile : glisser à gauche pour tourner (joystick horizontal), boutons Dérapage / Objet / Frein à droite,
+    /// accélération automatique ; côtés échangés pour les gauchers (réglages).
     /// </summary>
     public sealed class PlayerInput
     {
         /// <summary>Disposition des commandes tactiles, en pixels écran (origine en bas à gauche).</summary>
         public struct TouchLayout
         {
-            public float SteerZoneMaxX;
+            public float SteerZoneMinX, SteerZoneMaxX;
             public float SteerRange;
+            /// <summary>Abscisse du repère « glisser » (côté de la direction).</summary>
+            public float SteerHintX;
+            public bool LeftHanded;
             public Vector2 Drift, Item, Brake;
             public float DriftR, ItemR, BrakeR;
         }
@@ -88,21 +91,22 @@ namespace TurboPattes.Game.Kart
         void ComputeLayout()
         {
             var safe = Screen.safeArea;
-            float h = Screen.height;
-            float margin = h * 0.05f;
-            float driftR = h * 0.13f;
-            var drift = new Vector2(safe.xMax - margin - driftR, safe.yMin + margin + driftR);
+            // Droitier ou gaucher (réglages) : la disposition est calculée par Core/TouchZones.
+            var z = Core.TouchZones.Compute(Screen.width, Screen.height, safe.xMin, safe.xMax, safe.yMin,
+                App.GameSession.TouchSensitivity, App.GameSession.LeftHanded);
             Layout = new TouchLayout
             {
-                SteerZoneMaxX = Screen.width * 0.45f,
-                // Plus sensible = moins de glisser pour braquer à fond (réglages).
-                SteerRange = h * 0.09f / App.GameSession.TouchSensitivity,
-                Drift = drift,
-                DriftR = driftR,
-                ItemR = h * 0.095f,
-                Item = drift + new Vector2(-driftR * 0.25f, driftR + h * 0.14f),
-                BrakeR = h * 0.075f,
-                Brake = drift + new Vector2(-driftR - h * 0.16f, -driftR * 0.35f),
+                SteerZoneMinX = z.SteerMinX,
+                SteerZoneMaxX = z.SteerMaxX,
+                SteerRange = z.SteerRange,
+                SteerHintX = z.SteerHintX,
+                LeftHanded = z.LeftHanded,
+                Drift = new Vector2(z.Drift.X, z.Drift.Y),
+                DriftR = z.Drift.R,
+                Item = new Vector2(z.Item.X, z.Item.Y),
+                ItemR = z.Item.R,
+                Brake = new Vector2(z.Brake.X, z.Brake.Y),
+                BrakeR = z.Brake.R,
             };
         }
 
@@ -131,7 +135,7 @@ namespace TurboPattes.Game.Kart
                 if (Inside(pos, l.Drift, l.DriftR * 1.15f)) { DriftHeld = true; continue; }
                 if (Inside(pos, l.Item, l.ItemR * 1.2f)) { itemTouch = true; continue; }
                 if (Inside(pos, l.Brake, l.BrakeR * 1.2f)) { BrakeHeld = true; continue; }
-                if (pos.x < l.SteerZoneMaxX && _steerTouch < 0)
+                if (pos.x >= l.SteerZoneMinX && pos.x <= l.SteerZoneMaxX && _steerTouch < 0)
                 {
                     _steerTouch = id;
                     SteerAnchor = pos;

@@ -105,7 +105,7 @@ namespace TurboPattes.Game.UI
             float r;
             switch (TutorialCues.Target(_tip))
             {
-                case TutorialTarget.Steer: c = new Vector2(Screen.safeArea.xMin + l.SteerRange * 2f, h * 0.78f); r = l.SteerRange * 1.2f; break;
+                case TutorialTarget.Steer: c = new Vector2(l.SteerHintX, h * 0.78f); r = l.SteerRange * 1.2f; break;
                 case TutorialTarget.Drift: c = new Vector2(l.Drift.x, h - l.Drift.y); r = l.DriftR; break;
                 case TutorialTarget.Item: c = new Vector2(l.Item.x, h - l.Item.y); r = l.ItemR; break;
                 default: return;

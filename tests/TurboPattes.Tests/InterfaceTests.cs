@@ -285,4 +285,43 @@ namespace TurboPattes.Tests
             Assert.That(TutorialCues.Pulse(0.3f), Is.InRange(1.1f, 1.3f));
         }
     }
+
+    public class TouchZonesTests
+    {
+        [Test]
+        public void Droitier_DirectionAGaucheBoutonsADroite()
+        {
+            var z = TouchZones.Compute(1600f, 720f, 0f, 1600f, 0f, 1f, false);
+            Assert.That(z.InSteerZone(100f), Is.True);
+            Assert.That(z.InSteerZone(1500f), Is.False);
+            Assert.That(z.Drift.X, Is.GreaterThan(800f));
+            Assert.That(z.Item.X, Is.GreaterThan(800f));
+            Assert.That(z.Brake.X, Is.GreaterThan(800f));
+            Assert.That(z.SteerHintX, Is.LessThan(800f));
+        }
+
+        [Test]
+        public void Gaucher_MiroirDansLaZoneSure()
+        {
+            // Encoche à gauche : zone sûre de 80 à 1600 px.
+            var r = TouchZones.Compute(1600f, 720f, 80f, 1600f, 0f, 1f, false);
+            var l = TouchZones.Compute(1600f, 720f, 80f, 1600f, 0f, 1f, true);
+            Assert.That(l.Drift.X, Is.EqualTo(80f + 1600f - r.Drift.X).Within(1e-3f));
+            Assert.That(l.Brake.X, Is.EqualTo(80f + 1600f - r.Brake.X).Within(1e-3f));
+            Assert.That(l.Item.Y, Is.EqualTo(r.Item.Y));
+            Assert.That(l.Drift.R, Is.EqualTo(r.Drift.R));
+            Assert.That(l.InSteerZone(1500f), Is.True);
+            Assert.That(l.InSteerZone(100f), Is.False);
+            Assert.That(l.SteerHintX, Is.GreaterThan(800f));
+        }
+
+        [Test]
+        public void Sensibilite_RaccourcitLeGlisser()
+        {
+            var normal = TouchZones.Compute(1600f, 720f, 0f, 1600f, 0f, 1f, false);
+            var vive = TouchZones.Compute(1600f, 720f, 0f, 1600f, 0f, 1.5f, false);
+            Assert.That(vive.SteerRange, Is.LessThan(normal.SteerRange));
+            Assert.That(normal.Drift.Contains(normal.Drift.X + normal.Drift.R * 1.1f, normal.Drift.Y, 1.15f), Is.True);
+        }
+    }
 }

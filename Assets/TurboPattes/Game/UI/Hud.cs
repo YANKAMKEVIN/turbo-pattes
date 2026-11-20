@@ -483,7 +483,7 @@ namespace TurboPattes.Game.UI
             }
             else
             {
-                var hint = new Vector2(Screen.safeArea.xMin + l.SteerRange * 2f, h * 0.78f);
+                var hint = new Vector2(l.SteerHintX, h * 0.78f);
                 Disc(hint, l.SteerRange * 1.2f, UiKit.Alpha(UiKit.Ink, 0.3f));
                 Label(new Rect(hint.x - 120 * s, hint.y - 15 * s, 240 * s, 30 * s), "< glisser >", _small, UiKit.Alpha(UiKit.Cream, 0.8f),
                     TextAnchor.MiddleCenter);
