@@ -324,4 +324,35 @@ namespace TurboPattes.Tests
             Assert.That(normal.Drift.Contains(normal.Drift.X + normal.Drift.R * 1.1f, normal.Drift.Y, 1.15f), Is.True);
         }
     }
+
+    public class PlaceTrackerTests
+    {
+        [Test]
+        public void Depassement_AnnonceEtRebond()
+        {
+            var t = new PlaceTracker();
+            Assert.That(t.Update(5, 0.1f), Is.EqualTo(0), "première mesure : rien à annoncer");
+            Assert.That(t.Showing, Is.False);
+            Assert.That(t.Update(4, 0.5f), Is.EqualTo(1), "place gagnée");
+            Assert.That(t.Direction, Is.EqualTo(1));
+            Assert.That(t.Showing, Is.True);
+            t.Update(4, PlaceTracker.Show * 0.5f);
+            Assert.That(t.Bounce, Is.GreaterThan(1.2f));
+            t.Update(4, PlaceTracker.Show);
+            Assert.That(t.Showing, Is.False);
+            Assert.That(t.Bounce, Is.EqualTo(1f));
+            Assert.That(t.Update(5, 0.1f), Is.EqualTo(-1), "place perdue");
+        }
+
+        [Test]
+        public void Rafale_UneSeuleAnnonce()
+        {
+            var t = new PlaceTracker();
+            t.Update(3, 0f);
+            Assert.That(t.Update(2, 1f), Is.EqualTo(1));
+            Assert.That(t.Update(3, 0.05f), Is.EqualTo(0), "redoublé aussitôt : pas de second son");
+            Assert.That(t.Direction, Is.EqualTo(-1), "mais la flèche suit");
+            Assert.That(t.Update(2, PlaceTracker.MinGap), Is.EqualTo(1));
+        }
+    }
 }

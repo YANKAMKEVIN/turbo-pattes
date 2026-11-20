@@ -246,7 +246,11 @@ namespace TurboPattes.Game.UI
                 var place = new Rect(right - 150 * s, top - 6 * s, 150 * s, 100 * s);
                 UiKit.Card(place, rank == 1 ? UiKit.Vermilion : UiKit.Cream, 22 * s, 4 * s);
                 var ink = rank == 1 ? UiKit.Cream : UiKit.Ink;
-                Label(new Rect(place.x, place.y - 4 * s, place.width, 76 * s), Ordinal(rank), _big, ink, TextAnchor.MiddleCenter);
+                // Dépassement : le chiffre rebondit et une flèche montante (bleue) ou descendante (vermillon) s'affiche.
+                var pt = Race.Place;
+                var placeStyle = pt.Showing ? new GUIStyle(_big) { fontSize = Mathf.RoundToInt(_big.fontSize * pt.Bounce) } : _big;
+                Label(new Rect(place.x - 40 * s, place.y - 4 * s, place.width + 80 * s, 76 * s), Ordinal(rank), placeStyle, ink, TextAnchor.MiddleCenter);
+                if (pt.Showing && pt.Direction != 0) PlaceArrow(new Vector2(place.x - 30 * s, place.center.y), pt.Direction > 0, pt.Since / PlaceTracker.Show, s);
                 Label(new Rect(place.x, place.y + 64 * s, place.width, 30 * s), $"sur {Race.Karts.Length}", _small, ink, TextAnchor.MiddleCenter);
 
                 DrawItemSlot(new Vector2(w * 0.5f, top + 42 * s), 40 * s, p);
@@ -354,6 +358,22 @@ namespace TurboPattes.Game.UI
             var tag = new Rect(c.x - 80 * s, c.y + r + 6 * s, 160 * s, 26 * s);
             _ui.Plate(tag);
             Label(tag, "DERRIÈRE !", _small, UiKit.Vermilion, TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>Chevron de dépassement à gauche de la place : monte (gain) ou descend (perte) en s'effaçant.</summary>
+        void PlaceArrow(Vector2 c, bool up, float t, float s)
+        {
+            float a = 1f - t, dy = (up ? -1f : 1f) * t * 24f * s;
+            var col = UiKit.Alpha(up ? UiKit.Blue : UiKit.Vermilion, a);
+            var ink = UiKit.Alpha(UiKit.Ink, a);
+            float hw = 9 * s, hh = 26 * s;
+            // « /\ » pour monter, « \/ » pour descendre, cerné d'encre.
+            float k = up ? 0.4f : -0.4f;
+            Disc(new Vector2(c.x, c.y + dy), 24 * s, UiKit.Alpha(UiKit.Cream, a));
+            UiKit.Slash(new Rect(c.x - hw - 1 * s, c.y + dy - hh * 0.5f, hw, hh), ink, k);
+            UiKit.Slash(new Rect(c.x + 1 * s, c.y + dy - hh * 0.5f, hw, hh), ink, -k);
+            UiKit.Slash(new Rect(c.x - hw + 1 * s, c.y + dy - hh * 0.5f + 3 * s, hw - 4 * s, hh - 6 * s), col, k);
+            UiKit.Slash(new Rect(c.x + 3 * s, c.y + dy - hh * 0.5f + 3 * s, hw - 4 * s, hh - 6 * s), col, -k);
         }
 
         /// <summary>Bandeau penché, comme un trait de peinture rapide, pour les annonces de course.</summary>

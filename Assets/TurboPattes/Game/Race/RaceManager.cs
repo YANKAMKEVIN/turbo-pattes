@@ -58,6 +58,8 @@ namespace TurboPattes.Game.Race
         AiDriver[] _ai;
         ProgressClock[] _clocks;
         readonly ThreatBeeper _threatBeeper = new();
+        /// <summary>Place du joueur et ses changements (rebond et flèche du HUD).</summary>
+        public PlaceTracker Place { get; } = new();
         float[] _baseScale;
         List<BoostPad> _pads;
         SoundBank _sound;
@@ -178,6 +180,7 @@ namespace TurboPattes.Game.Race
             ComputeOrder();
             if (State != Phase.Countdown)
                 for (int i = 0; i < Karts.Length; i++) _clocks[i].Record(Karts[i].Progress, RaceTime);
+            UpdatePlace(dt);
             CheckFinish();
             ApplyRubberBand();
             UpdateWrongWay(dt);
@@ -246,6 +249,16 @@ namespace TurboPattes.Game.Race
         }
 
         int RankOf(KartMotor k) => k.Rank;
+
+        void UpdatePlace(float dt)
+        {
+            // Pas de réaction pendant le compte à rebours ni après l'arrivée.
+            if (State != Phase.Racing || Player.Finished || Solo) return;
+            int change = Place.Update(Player.Rank, dt);
+            if (change == 0) return;
+            _sound.Place(change > 0);
+            if (change > 0) App.Haptics.Pulse(12);
+        }
 
         void UpdateThreat(float dt)
         {
