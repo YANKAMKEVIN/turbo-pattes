@@ -399,8 +399,9 @@ namespace TurboPattes.Game.Track
             var pine = Mats.Lit(new Color(0.15f, 0.42f, 0.32f), 0.15f);
             var snow = Mats.Lit(new Color(0.96f, 0.98f, 1f), 0.4f);
             var ice = Mats.Lit(new Color(0.65f, 0.88f, 1f), 0.9f, 0.1f);
-            var carrot = Mats.Lit(new Color(1f, 0.5f, 0.1f), 0.3f);
-            var coal = Mats.Lit(new Color(0.1f, 0.1f, 0.1f), 0.2f);
+            var marshalRoof = Mats.Lit(new Color(0.78f, 0.13f, 0.1f), 0.4f);
+            var pole = Mats.Lit(new Color(0.72f, 0.74f, 0.78f), 0.8f, 0.8f);
+            var flag = Mats.Lit(new Color(0.95f, 0.76f, 0f), 0.2f);
 
             c.Scatter(120, 16f, 160f, (p, d) =>
             {
@@ -430,14 +431,12 @@ namespace TurboPattes.Game.Track
             });
             c.Scatter(8, 15f, 40f, (p, d) =>
             {
-                // Bonhomme de neige.
-                c.P(PrimitiveType.Sphere, p + Vector3.up * 0.9f, Vector3.one * 1.8f, snow);
-                c.P(PrimitiveType.Sphere, p + Vector3.up * 2.3f, Vector3.one * 1.3f, snow);
-                c.P(PrimitiveType.Sphere, p + Vector3.up * 3.3f, Vector3.one * 0.9f, snow);
+                // Poste de commissaire : guérite blanche à toit rouge, mât et drapeau jaune.
                 var face = c.Yaw();
-                c.S(MeshKit.Cone, p + Vector3.up * 3.3f + face * Vector3.forward * 0.45f, new Vector3(0.18f, 0.6f, 0.18f), carrot, face * Quaternion.Euler(90f, 0f, 0f), false);
-                foreach (float x in new[] { -0.15f, 0.15f })
-                    c.P(PrimitiveType.Sphere, p + Vector3.up * 3.45f + face * new Vector3(x, 0f, 0.4f), Vector3.one * 0.1f, coal, null, false);
+                c.P(PrimitiveType.Cube, p + Vector3.up * 1.1f, new Vector3(1.8f, 2.2f, 1.6f), snow, face);
+                c.P(PrimitiveType.Cube, p + Vector3.up * 2.3f, new Vector3(2.2f, 0.2f, 2f), marshalRoof, face);
+                c.P(PrimitiveType.Cylinder, p + face * new Vector3(1.2f, 1.8f, 0f), new Vector3(0.08f, 1.8f, 0.08f), pole, null, false);
+                c.P(PrimitiveType.Cube, p + face * new Vector3(1.6f, 3.2f, 0f), new Vector3(0.8f, 0.55f, 0.03f), flag, face, false);
             });
             c.Ring(16, 380f, 520f, p =>
             {

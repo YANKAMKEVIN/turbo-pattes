@@ -144,7 +144,7 @@ namespace TurboPattes.Game.Visuals
                 _curb = New("Curb", w, h);
                 for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
-                    _curb.SetPixel(x, y, y < h / 2 ? new Color(0.92f, 0.16f, 0.18f) : new Color(0.97f, 0.97f, 0.97f));
+                    _curb.SetPixel(x, y, y < h / 2 ? new Color(0.78f, 0.13f, 0.1f) : new Color(0.95f, 0.96f, 0.97f));
                 _curb.Apply();
                 return _curb;
             }
@@ -313,5 +313,35 @@ namespace TurboPattes.Game.Visuals
                 return _windows;
             }
         }
+
+        static readonly System.Collections.Generic.Dictionary<(string, Color, Color, Color), Texture2D> Banners = new();
+
+        /// <summary>
+        /// Panneau sponsor fictif : texte en police pixel (<see cref="Core.PixelFont"/>) sur fond <paramref name="bg"/>,
+        /// filet <paramref name="accent"/> en bas. Rapport largeur / hauteur : <see cref="BannerAspect"/>.
+        /// </summary>
+        public static Texture2D Banner(string text, Color bg, Color ink, Color accent)
+        {
+            if (Banners.TryGetValue((text, bg, ink, accent), out var t)) return t;
+            const int px = 4, margin = 3, rows = Core.PixelFont.Height + 2 * 2;
+            int w = (Core.PixelFont.TextWidth(text) + 2 * margin) * px, h = rows * px;
+            t = New("Banner" + text, w, h, TextureWrapMode.Clamp);
+            t.filterMode = FilterMode.Point;
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                // Ligne de la police comptée depuis le haut ; la texture compte depuis le bas.
+                int fx = x / px - margin, fy = (h - 1 - y) / px - 2;
+                var c = y < px ? accent : Core.PixelFont.TextPixel(text, fx, fy) ? ink : bg;
+                t.SetPixel(x, y, c);
+            }
+            t.Apply();
+            Banners[(text, bg, ink, accent)] = t;
+            return t;
+        }
+
+        /// <summary>Largeur / hauteur d'un panneau <see cref="Banner"/> pour ce texte.</summary>
+        public static float BannerAspect(string text) =>
+            (Core.PixelFont.TextWidth(text) + 6f) / (Core.PixelFont.Height + 4f);
     }
 }

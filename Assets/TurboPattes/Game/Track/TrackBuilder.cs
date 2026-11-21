@@ -1,3 +1,4 @@
+using TurboPattes.Core;
 using System.Collections.Generic;
 using TurboPattes.Game.Visuals;
 using UnityEngine;
@@ -29,6 +30,8 @@ namespace TurboPattes.Game.Track
                 BuildKickers(path, root);
             }
             BuildStartLine(path, root);
+            BuildSponsorBoards(path, root);
+            BuildTireStacks(path, root);
             var pads = BuildBoostPads(circuit, path, root);
             switch (circuit.Theme)
             {
@@ -221,22 +224,32 @@ namespace TurboPattes.Game.Track
                 Mats.Textured(ProceduralTextures.Checker, Color.white, new Vector2(7f, 1.25f), 0.2f), rot * Quaternion.Euler(90, 0, 0), "StartLine");
             line.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
 
-            // Portique : deux piliers et une banderole damier, avec des pattes dorées.
+            // Portique : piliers et poutre carbone, bandeau damier, cinq feux de départ rouges et panneaux sponsors.
             var arch = new GameObject("StartArch").transform;
             arch.SetParent(root, false);
             arch.SetPositionAndRotation(p, rot);
             float x = path.HalfWidth + 2.2f;
-            var pillar = Mats.Lit(new Color(0.95f, 0.45f, 0.15f), 0.4f);
-            MeshKit.Prim(PrimitiveType.Cylinder, arch, new Vector3(-x, 3.5f, 0), new Vector3(1f, 3.5f, 1f), pillar);
-            MeshKit.Prim(PrimitiveType.Cylinder, arch, new Vector3(x, 3.5f, 0), new Vector3(1f, 3.5f, 1f), pillar);
+            var carbon = Mats.Lit(new Color(0.08f, 0.09f, 0.1f), 0.7f, 0.2f);
+            MeshKit.Prim(PrimitiveType.Cube, arch, new Vector3(-x, 3.6f, 0), new Vector3(0.9f, 7.2f, 0.9f), carbon);
+            MeshKit.Prim(PrimitiveType.Cube, arch, new Vector3(x, 3.6f, 0), new Vector3(0.9f, 7.2f, 0.9f), carbon);
             MeshKit.Prim(PrimitiveType.Cube, arch, new Vector3(0, 7.3f, 0), new Vector3(x * 2f + 1.5f, 1.8f, 0.5f),
                 Mats.Textured(ProceduralTextures.Checker, Color.white, new Vector2(10f, 1f), 0.3f));
-            var gold = Mats.Lit(new Color(1f, 0.8f, 0.25f), 0.7f, 0.6f);
-            foreach (float px in new[] { -x * 0.5f, x * 0.5f })
-                PawSign(arch, new Vector3(px, 7.3f, -0.4f), 1.1f, gold);
+            // Feux : boîtier carbone et cinq lampes rouges allumées, face aux pilotes qui arrivent (vers -z local).
+            MeshKit.Prim(PrimitiveType.Cube, arch, new Vector3(0, 6.0f, -0.35f), new Vector3(4.2f, 0.8f, 0.3f), carbon);
+            var light = Mats.Emissive(new Color(0.78f, 0.13f, 0.1f), new Color(1f, 0.1f, 0.05f) * 1.5f);
+            for (int i = 0; i < 5; i++)
+                MeshKit.Prim(PrimitiveType.Sphere, arch, new Vector3(-1.6f + i * 0.8f, 6.0f, -0.52f), new Vector3(0.5f, 0.5f, 0.2f), light);
+            // Panneaux sponsors sur les piliers, des deux côtés.
+            for (int k = 0; k < 2; k++)
+            {
+                string name = Sponsors.Names[k];
+                foreach (float face in new[] { -1f, 1f })
+                    SponsorPanel(arch, new Vector3((k == 0 ? -x : x), 3.4f, face * 0.47f), Quaternion.Euler(0f, face > 0f ? 180f : 0f, 90f),
+                        0.8f, name, k);
+            }
         }
 
-        /// <summary>Emblème de deux chevrons « » » dans le plan local XY (caisses objet, portique de départ).</summary>
+        /// <summary>Emblème de deux chevrons « » » dans le plan local XY (caisses objet).</summary>
         public static Transform ChevronSign(Transform parent, Vector3 localPos, float size, Material mat)
         {
             var sign = new GameObject("Chevrons").transform;
@@ -252,25 +265,97 @@ namespace TurboPattes.Game.Track
             return sign;
         }
 
-        /// <summary>Emblème de patte (coussinet + 4 doigts) dans le plan local XY.</summary>
-        public static Transform PawSign(Transform parent, Vector3 localPos, float size, Material mat)
+        /// <summary>
+        /// Panneau sponsor fictif (texte en police pixel) dans le plan local XY, visible depuis -z, de hauteur
+        /// <paramref name="height"/> ; <paramref name="variant"/> choisit les couleurs.
+        /// </summary>
+        public static GameObject SponsorPanel(Transform parent, Vector3 localPos, Quaternion rot, float height, string name, int variant)
         {
-            var paw = new GameObject("Paw").transform;
-            paw.SetParent(parent, false);
-            paw.localPosition = localPos;
-            paw.localScale = Vector3.one * size;
-            MeshKit.Prim(PrimitiveType.Sphere, paw, new Vector3(0, -0.15f, 0), new Vector3(0.7f, 0.55f, 0.25f), mat);
-            float[] xs = { -0.42f, -0.15f, 0.15f, 0.42f };
-            float[] ys = { 0.2f, 0.42f, 0.42f, 0.2f };
-            for (int i = 0; i < 4; i++)
-                MeshKit.Prim(PrimitiveType.Sphere, paw, new Vector3(xs[i], ys[i], 0), new Vector3(0.28f, 0.32f, 0.22f), mat);
-            return paw;
+            var (bg, ink, accent) = SponsorColors(variant);
+            var tex = ProceduralTextures.Banner(name, bg, ink, accent);
+            float w = height * ProceduralTextures.BannerAspect(name);
+            var go = MeshKit.Prim(PrimitiveType.Quad, parent, localPos, new Vector3(w, height, 1f), Mats.Textured(tex, Color.white, Vector2.one, 0.3f), rot, "Sponsor");
+            go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            return go;
+        }
+
+        /// <summary>Couleurs des panneaux : blanc piste, carbone, rouge course, bleu télémétrie, en alternance (fond, texte, filet).</summary>
+        static (Color bg, Color ink, Color accent) SponsorColors(int variant)
+        {
+            Color chalk = new(0.95f, 0.96f, 0.97f), carbon = new(0.08f, 0.09f, 0.1f), red = new(0.78f, 0.13f, 0.1f),
+                blue = new(0.1f, 0.38f, 0.75f), signal = new(0.95f, 0.76f, 0f);
+            return (variant % 4) switch
+            {
+                0 => (chalk, carbon, red),
+                1 => (carbon, chalk, signal),
+                2 => (red, chalk, carbon),
+                _ => (blue, chalk, chalk),
+            };
+        }
+
+        /// <summary>
+        /// Panneaux sponsors posés sur les murets de part et d'autre de la ligne droite des stands (60 m avant et
+        /// après la ligne), tournés vers la piste.
+        /// </summary>
+        static void BuildSponsorBoards(TrackPath path, Transform root)
+        {
+            var boards = new GameObject("SponsorBoards").transform;
+            boards.SetParent(root, false);
+            int n = 0;
+            for (float d = -60f; d <= 60f; d += 15f, n++)
+            {
+                if (Mathf.Abs(d) < 6f) continue; // le portique
+                float s = Mathf.Repeat(d, path.Length);
+                if (path.TurnBetween(s - 6f, s + 6f) > 8f) continue; // seulement en ligne droite
+                foreach (int side in new[] { -1, 1 })
+                {
+                    path.Sample(s, out _, out _, out var r);
+                    var pos = path.PointAt(s, side * (path.BarrierAt(s, side) + 0.3f)) + Vector3.up * 1.75f;
+                    string name = Sponsors.Names[(n + (side > 0 ? 2 : 0)) % Sponsors.Names.Length];
+                    // Quad visible depuis -z : son avant regarde vers l'extérieur, sa face vers la piste.
+                    SponsorPanel(boards, pos, Quaternion.LookRotation(r * side, Vector3.up), 1.1f, name, n + side);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Piles de pneus derrière le muret, à l'extérieur des virages les plus serrés (points de freinage), sur le sol
+        /// seulement (pas sur les tronçons portés).
+        /// </summary>
+        static void BuildTireStacks(TrackPath path, Transform root)
+        {
+            if (path.Floating) return;
+            var stacks = new GameObject("TireStacks").transform;
+            stacks.SetParent(root, false);
+            var rubber = Mats.Lit(new Color(0.07f, 0.07f, 0.08f), 0.25f);
+            var band = Mats.Lit(new Color(0.95f, 0.96f, 0.97f), 0.3f);
+            float lastS = -100f;
+            for (float s = 0f; s < path.Length; s += 4f)
+            {
+                if (s - lastS < 40f || path.TurnBetween(s - 10f, s + 10f) < 40f) continue;
+                int i = path.Nearest(path.PointAt(s), -1);
+                if (path.Elevated != null && path.Elevated[i]) continue;
+                lastS = s;
+                int outside = -path.TurnSign(s - 10f, s + 10f);
+                path.Sample(s, out _, out var t, out _);
+                for (int k = -2; k <= 2; k++)
+                {
+                    float ss = s + k * 1.3f;
+                    var basePos = path.PointAt(ss, outside * (path.BarrierAt(ss, outside) + 1.4f));
+                    for (int h = 0; h < 3; h++)
+                    {
+                        var tire = MeshKit.Prim(PrimitiveType.Cylinder, stacks, basePos + Vector3.up * (0.18f + h * 0.36f), new Vector3(1.1f, 0.17f, 1.1f),
+                            (h + k) % 3 == 0 ? band : rubber);
+                        tire.GetComponent<MeshRenderer>().shadowCastingMode = h == 0 ? ShadowCastingMode.On : ShadowCastingMode.Off;
+                    }
+                }
+            }
         }
 
         static List<BoostPad> BuildBoostPads(Circuit circuit, TrackPath path, Transform root)
         {
             var pads = new List<BoostPad>();
-            var mat = Mats.NewEmissive(Color.white, new Color(1f, 0.55f, 0.1f) * 1.2f);
+            var mat = Mats.NewEmissive(Color.white, new Color(0.95f, 0.72f, 0f) * 1.2f);
             mat.SetTexture("_BaseMap", ProceduralTextures.Chevrons);
             mat.SetTexture("_EmissionMap", ProceduralTextures.Chevrons);
             mat.SetTextureScale("_BaseMap", new Vector2(1f, 2f));
@@ -301,9 +386,9 @@ namespace TurboPattes.Game.Track
                 Mats.Lit(new Color(0.35f, 0.72f, 0.2f), 0.15f),
                 Mats.Lit(new Color(0.15f, 0.5f, 0.3f), 0.15f),
             };
-            Material[] flowers =
+            Material[] hedges =
             {
-                Mats.Lit(new Color(1f, 0.4f, 0.55f)), Mats.Lit(new Color(1f, 0.85f, 0.2f)), Mats.Lit(new Color(0.7f, 0.5f, 1f)),
+                Mats.Lit(new Color(0.2f, 0.42f, 0.22f), 0.1f), Mats.Lit(new Color(0.26f, 0.5f, 0.24f), 0.1f), Mats.Lit(new Color(0.17f, 0.36f, 0.24f), 0.1f),
             };
 
             int placed = 0;
@@ -338,7 +423,7 @@ namespace TurboPattes.Game.Track
                 }
             }
 
-            // Massifs de fleurs près des barrières (côté extérieur).
+            // Haies basses près des barrières (côté extérieur).
             for (int k = 0; k < 90; k++)
             {
                 float s = Rand(rng, 0, path.Length);
@@ -346,7 +431,8 @@ namespace TurboPattes.Game.Track
                 var pos = path.PointAt(s, side * (path.BarrierAt(s, side) + Rand(rng, 1.6f, 4f)));
                 int i = path.Nearest(pos, -1);
                 if (Vector3.Distance(pos, path.Points[i]) < path.BarrierOffset + 1.2f) continue;
-                var f = MeshKit.Prim(PrimitiveType.Sphere, decor, pos + Vector3.up * 0.25f, new Vector3(0.7f, 0.5f, 0.7f), flowers[rng.Next(flowers.Length)]);
+                var f = MeshKit.Prim(PrimitiveType.Cube, decor, pos + Vector3.up * 0.35f, new Vector3(1.6f, 0.7f, 0.8f), hedges[rng.Next(hedges.Length)],
+                    Quaternion.LookRotation(path.Tangents[i]));
                 f.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             }
 
@@ -383,7 +469,10 @@ namespace TurboPattes.Game.Track
             BuildGrandstand(path, decor, rng);
         }
 
-        /// <summary>Tribune près de la ligne d'arrivée, côté gauche, avec un public de petits cubes colorés.</summary>
+        /// <summary>
+        /// Tribune couverte près de la ligne d'arrivée, côté gauche : gradins béton, toiture graphite, public aux
+        /// couleurs des équipes, bandeau sponsor sur le muret de la tribune.
+        /// </summary>
         static void BuildGrandstand(TrackPath path, Transform parent, System.Random rng)
         {
             path.Sample(path.Length - 25f, out var p, out var t, out var r);
@@ -391,12 +480,16 @@ namespace TurboPattes.Game.Track
             stand.SetParent(parent, false);
             stand.SetPositionAndRotation(p - r * (path.BarrierOffset + 3f), Quaternion.LookRotation(t));
             var concrete = Mats.Lit(new Color(0.85f, 0.85f, 0.9f), 0.2f);
-            var roof = Mats.Lit(new Color(0.95f, 0.3f, 0.3f), 0.4f);
-            Material[] crowd =
+            var roof = Mats.Lit(new Color(0.15f, 0.17f, 0.2f), 0.5f, 0.3f);
+            // Public : maillots aux couleurs des huit équipes, plus du blanc et du gris.
+            var crowd = new Material[Roster.All.Length + 2];
+            for (int i = 0; i < Roster.All.Length; i++)
             {
-                Mats.Lit(new Color(1f, 0.5f, 0.2f)), Mats.Lit(new Color(0.3f, 0.6f, 1f)), Mats.Lit(new Color(1f, 0.85f, 0.3f)),
-                Mats.Lit(new Color(0.5f, 0.85f, 0.4f)), Mats.Lit(new Color(0.9f, 0.4f, 0.8f)), Mats.Lit(new Color(1f, 1f, 1f)),
-            };
+                var c = Roster.All[i].Primary;
+                crowd[i] = Mats.Lit(new Color(c.R, c.G, c.B));
+            }
+            crowd[crowd.Length - 2] = Mats.Lit(new Color(0.92f, 0.93f, 0.95f));
+            crowd[crowd.Length - 1] = Mats.Lit(new Color(0.45f, 0.48f, 0.52f));
             const float len = 40f;
             for (int step = 0; step < 5; step++)
             {
@@ -415,6 +508,10 @@ namespace TurboPattes.Game.Track
                 Quaternion.Euler(0, 0, -8f));
             foreach (float z in new[] { -len * 0.5f, 0f, len * 0.5f })
                 MeshKit.Prim(PrimitiveType.Cylinder, stand, new Vector3(-8.5f, 5f, z), new Vector3(0.4f, 5f, 0.4f), concrete);
+            // Bandeau sponsor au pied des gradins, tourné vers la piste (+x local).
+            for (int k = 0; k < 3; k++)
+                SponsorPanel(stand, new Vector3(-0.15f, 0.55f, -len * 0.33f + k * len * 0.33f), Quaternion.Euler(0f, -90f, 0f), 1f,
+                    Sponsors.Names[(k + 2) % Sponsors.Names.Length], k + 1);
         }
     }
 }

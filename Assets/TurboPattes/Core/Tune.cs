@@ -151,7 +151,7 @@ namespace TurboPattes.Core
                 "A5 - - - G5 - E5 - | F5 - - - A5 - C6 - | A5 - - - F5 - D5 - | B4 - D5 - G5 - . . ",
         };
 
-        /// <summary>Prairie des Pattes : rapide et entraînant.</summary>
+        /// <summary>Circuit des Prés (ex-Prairie des Pattes) : rapide et entraînant.</summary>
         public static readonly Song Race = new()
         {
             Name = "Prairie",
@@ -166,7 +166,7 @@ namespace TurboPattes.Core
                 "A4 C5 E5 A5 - G5 E5 C5 | F5 - E5 F5 A5 - F5 C5 | E5 - G5 - C6 - B5 G5 | D5 - G5 F5 E5 D5 B4 G4 |" +
                 "E5 . A5 . E5 C5 A4 C5 | C5 F5 A5 C6 A5 F5 C5 A4 | B4 D5 G5 B5 A5 G5 F5 D5 | G5 - - - D5 - G4 . ",
         };
-            /// <summary>Canyon Caramel : galop de western en ré mineur, guitare pincée.</summary>
+            /// <summary>Canyon Rouge (ex-Canyon Caramel) : galop de western en ré mineur, guitare pincée.</summary>
         public static readonly Song Canyon = new()
         {
             Name = "Canyon",

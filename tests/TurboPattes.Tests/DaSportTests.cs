@@ -174,3 +174,60 @@ namespace TurboPattes.Tests
         }
     }
 }
+
+namespace TurboPattes.Tests
+{
+    public class DecorTests
+    {
+        [Test]
+        public void PolicePixel_ToutesLesLettresDesSponsorsEtDesChiffres()
+        {
+            foreach (var name in Sponsors.Names)
+            {
+                Assert.That(name.Length, Is.InRange(3, 8), name);
+                foreach (char c in name)
+                {
+                    bool any = false;
+                    for (int y = 0; y < PixelFont.Height; y++)
+                    for (int x = 0; x < PixelFont.Width; x++)
+                        any |= PixelFont.Pixel(c, x, y);
+                    Assert.That(any, Is.True, $"{c} dans {name}");
+                }
+            }
+            // Chiffres et lettres : chaque dessin est différent des autres.
+            var seen = new System.Collections.Generic.HashSet<string>();
+            foreach (char c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+            {
+                var bits = new System.Text.StringBuilder();
+                for (int y = 0; y < PixelFont.Height; y++)
+                for (int x = 0; x < PixelFont.Width; x++)
+                    bits.Append(PixelFont.Pixel(c, x, y) ? '#' : '.');
+                Assert.That(bits.ToString(), Does.Contain("#"), c.ToString());
+                Assert.That(seen.Add(bits.ToString()), Is.True, $"{c} ressemble à une autre lettre");
+            }
+            Assert.That(Sponsors.Names.Distinct().Count(), Is.EqualTo(Sponsors.Names.Length));
+        }
+
+        [Test]
+        public void PolicePixel_LargeurEtPositionDesLettres()
+        {
+            Assert.That(PixelFont.TextWidth("AB"), Is.EqualTo(11));
+            Assert.That(PixelFont.TextWidth(""), Is.EqualTo(0));
+            // « T » : barre du haut pleine, jambe au milieu.
+            Assert.That(PixelFont.TextPixel("T", 0, 0), Is.True);
+            Assert.That(PixelFont.TextPixel("T", 2, 6), Is.True);
+            Assert.That(PixelFont.TextPixel("T", 0, 6), Is.False);
+            // La colonne d'espacement entre deux lettres reste vide.
+            for (int y = 0; y < PixelFont.Height; y++) Assert.That(PixelFont.TextPixel("MM", 5, y), Is.False);
+            Assert.That(PixelFont.TextPixel("AB", 6, 0), Is.True, "B commence à la colonne 6");
+            Assert.That(PixelFont.Normalize('é'), Is.EqualTo('E'));
+            Assert.That(PixelFont.Normalize('?'), Is.EqualTo(' '));
+        }
+
+        [Test]
+        public void Coupes_NomsSportifs()
+        {
+            Assert.That(Cups.All.Select(c => c.Name), Is.EqualTo(new[] { "Coupe Asphalte", "Coupe Horizon", "Coupe Braise" }));
+        }
+    }
+}

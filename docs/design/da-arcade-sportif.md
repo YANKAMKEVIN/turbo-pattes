@@ -161,6 +161,8 @@ Bulles d'objets → **caisses objet** : cube translucide qui tourne, chevron jau
 - **Portique de départ** : poutre carbone avec **cinq feux rouges** et bandeau damier ; plus de pattes dorées.
 - **Palette des décors** : chaque thème garde son ambiance (ciel, lumière, sol), mais les murets passent à des
   couleurs sport (acier, blanc, rouge, ou couleurs de l'univers en version désaturée).
+- **Abords** : haies basses à la place des massifs de fleurs, postes de commissaires (guérite, drapeau jaune) à la
+  place des bonshommes de neige ; les autres décors de thème (palmiers, coraux, montgolfières, néons…) restent.
 - **Sponsors fictifs** (inventés, sans logo réel ; à vérifier avant publication) : VELTRA (pneus), KORVEX (huiles),
   ORLAN (énergie), TAVIK (freins), MIRALTO (chronométrage). Texte en police pixel générée par code
   (`Core/PixelFont`).
