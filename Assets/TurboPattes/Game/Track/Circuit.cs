@@ -43,6 +43,17 @@ namespace TurboPattes.Game.Track
         public (int control, float length, float rise)[] Kickers;
         /// <summary>Ponts : tronçon porté par des piles (pas de talus dessous), centré sur un point de contrôle.</summary>
         public (int control, float halfLength)[] Bridges;
+        /// <summary>
+        /// Raccourcis risqués (<see cref="Core.Shortcut"/>) : virage centré sur un point de contrôle, demi-longueur de la zone,
+        /// côté intérieur (-1 gauche, +1 droite) et recul du muret (m). Un petit tremplin est posé dans le sable.
+        /// </summary>
+        public (int control, float halfLength, int side, float extra)[] Shortcuts;
+        /// <summary>
+        /// Virages relevés (<see cref="Core.Banking"/>) : centre sur un point de contrôle, demi-longueur et angle
+        /// (positif = extérieur droit relevé, pour un virage à gauche). Seulement sur les tronçons portés
+        /// (piste suspendue, ponts) : le terrain sous la piste ne suit pas encore l'inclinaison.
+        /// </summary>
+        public (int control, float halfLength, float degrees)[] Banks;
 
         /// <summary>Gravité relative (espace : sauts plus longs).</summary>
         public float Gravity = 1f;
@@ -56,13 +67,13 @@ namespace TurboPattes.Game.Track
         public const int Count = 10;
 
         /// <summary>
-        /// « Prairie des Pattes » : une longue ligne droite, une boucle serrée, des S en montée vers le nord,
+        /// « Circuit des Prés » (ex-Prairie des Pattes) : une longue ligne droite, une boucle serrée, des S en montée vers le nord,
         /// une épingle au fond et un grand retour rapide. Géométrie vérifiée : ~1,1 km, rayon mini ~15 m,
         /// tronçons voisins séparés d'au moins 40 m.
         /// </summary>
         public static Circuit Meadow() => new()
         {
-            Name = "Prairie des Pattes",
+            Name = "Circuit des Prés",
             ShortName = "Prairie",
             Theme = Theme.Meadow,
             Control = new[]
@@ -76,17 +87,20 @@ namespace TurboPattes.Game.Track
             },
             ItemRows = new[] { 0.09f, 0.37f, 0.52f, 0.83f },
             Boosts = new[] { (0.055f, -3.5f), (0.495f, 3f), (0.74f, -2.5f) },
+            // Grand virage à gauche du nord-est (rayon ~34 m) : bande de sable à l'intérieur, muret reculé à 21 m
+            // (au moins 42 m des autres tronçons, vérifié).
+            Shortcuts = new[] { (17, 35f, -1, 9f) },
         };
     
         /// <summary>
-        /// « Canyon Caramel » : un huit dans un désert de roches rousses. Départ au sud-est, passage sous le pont,
+        /// « Canyon Rouge » (ex-Canyon Caramel) : un huit dans un désert de roches rousses. Départ au sud-est, passage sous le pont,
         /// boucle ouest qui ondule (bosse, creux) en montant, retour sur le pont à 8 m au-dessus du premier passage,
         /// plateau, tremplin au sommet puis longue descente vers la ligne. Géométrie vérifiée : ~1,18 km,
         /// rayon mini ~16 m, tronçons séparés d'au moins 40 m sauf au croisement (8 m de dénivelé).
         /// </summary>
         public static Circuit Canyon() => new()
         {
-            Name = "Canyon Caramel",
+            Name = "Canyon Rouge",
             ShortName = "Canyon",
             Theme = Theme.Canyon,
             Control = new[]
@@ -104,10 +118,10 @@ namespace TurboPattes.Game.Track
             Boosts = new[] { (0.035f, 3f), (0.53f, -2.5f), (0.745f, 0f) },
         };
 
-        /// <summary>« Jungle Papaye » : une boucle sinueuse sous les arbres géants : montée vers le belvédère, deux tremplins dans la descente vers le bas-fond.</summary>
+        /// <summary>« Jungle Émeraude » (ex-Jungle Papaye) : une boucle sinueuse sous les arbres géants : montée vers le belvédère, deux tremplins dans la descente vers le bas-fond.</summary>
         public static Circuit Jungle() => new()
         {
-            Name = "Jungle Papaye",
+            Name = "Jungle Émeraude",
             ShortName = "Jungle",
             Theme = Theme.Jungle,
             Control = new[] { new Vector2(154, 38), new Vector2(114, 57), new Vector2(100, 87), new Vector2(83, 126), new Vector2(42, 148), new Vector2(-7, 145), new Vector2(-51, 132), new Vector2(-96, 122), new Vector2(-140, 104), new Vector2(-174, 73), new Vector2(-200, 36), new Vector2(-225, -7), new Vector2(-232, -58), new Vector2(-193, -97), new Vector2(-119, -103), new Vector2(-56, -85), new Vector2(-23, -81), new Vector2(5, -104), new Vector2(51, -131), new Vector2(111, -141), new Vector2(173, -128), new Vector2(226, -95), new Vector2(245, -45), new Vector2(214, 7) },
@@ -117,10 +131,10 @@ namespace TurboPattes.Game.Track
             Boosts = new[] { (0.04f, 0f), (0.47f, -2.5f), (0.7f, 2.5f) },
         };
 
-        /// <summary>« Lagon Coco » : une boucle de sable entre les îlots : pont-ponton au-dessus du lagon, tremplin vers la plage.</summary>
+        /// <summary>« Lagon Turquoise » (ex-Lagon Coco) : une boucle de sable entre les îlots : pont-ponton au-dessus du lagon, tremplin vers la plage.</summary>
         public static Circuit Lagoon() => new()
         {
-            Name = "Lagon Coco",
+            Name = "Lagon Turquoise",
             ShortName = "Lagon",
             Theme = Theme.Lagoon,
             Control = new[] { new Vector2(68, 125), new Vector2(25, 165), new Vector2(-39, 182), new Vector2(-105, 170), new Vector2(-156, 138), new Vector2(-183, 96), new Vector2(-185, 51), new Vector2(-163, 13), new Vector2(-134, -15), new Vector2(-118, -37), new Vector2(-117, -67), new Vector2(-111, -108), new Vector2(-79, -146), new Vector2(-25, -163), new Vector2(34, -157), new Vector2(86, -139), new Vector2(136, -121), new Vector2(186, -98), new Vector2(218, -61), new Vector2(210, -16), new Vector2(165, 18), new Vector2(115, 36), new Vector2(89, 51), new Vector2(83, 81) },
@@ -131,10 +145,10 @@ namespace TurboPattes.Game.Track
             Boosts = new[] { (0.04f, 0f), (0.47f, -2.5f), (0.7f, 2.5f) },
         };
 
-        /// <summary>« Récif Bulle » : sous la mer : la piste ondule entre coraux et algues, deux tremplins au-dessus des fosses.</summary>
+        /// <summary>« Récif Profond » (ex-Récif Bulle) : sous la mer : la piste ondule entre coraux et algues, deux tremplins au-dessus des fosses.</summary>
         public static Circuit Reef() => new()
         {
-            Name = "Récif Bulle",
+            Name = "Récif Profond",
             ShortName = "Récif",
             Theme = Theme.Reef,
             Control = new[] { new Vector2(211, 0), new Vector2(170, 41), new Vector2(113, 59), new Vector2(74, 67), new Vector2(56, 89), new Vector2(37, 127), new Vector2(0, 159), new Vector2(-47, 159), new Vector2(-82, 129), new Vector2(-100, 91), new Vector2(-113, 59), new Vector2(-134, 33), new Vector2(-159, 0), new Vector2(-171, -42), new Vector2(-159, -83), new Vector2(-126, -115), new Vector2(-82, -129), new Vector2(-37, -126), new Vector2(0, -110), new Vector2(28, -94), new Vector2(56, -89), new Vector2(101, -91), new Vector2(159, -83), new Vector2(206, -50) },
@@ -153,6 +167,8 @@ namespace TurboPattes.Game.Track
             Control = new[] { new Vector2(-187, 132), new Vector2(-232, 93), new Vector2(-244, 42), new Vector2(-236, -8), new Vector2(-215, -52), new Vector2(-172, -84), new Vector2(-111, -93), new Vector2(-58, -86), new Vector2(-27, -93), new Vector2(7, -126), new Vector2(66, -160), new Vector2(138, -166), new Vector2(201, -142), new Vector2(247, -99), new Vector2(265, -45), new Vector2(238, 8), new Vector2(177, 43), new Vector2(122, 60), new Vector2(96, 80), new Vector2(76, 113), new Vector2(40, 140), new Vector2(-8, 149), new Vector2(-61, 149), new Vector2(-122, 147) },
             Heights = new[] { 44.5f, 47.5f, 48f, 47.5f, 47.5f, 48f, 49.5f, 51.5f, 52.5f, 51.5f, 48f, 43.5f, 39.5f, 36.5f, 36f, 36.5f, 36.5f, 36f, 34.5f, 32.5f, 31.5f, 32.5f, 36f, 40.5f },
             Kickers = new[] { (10, 10f, 1.6f), (18, 10f, 1.5f) },
+            // Le virage le plus serré (à gauche, rayon ~70 m) est relevé de 12°.
+            Banks = new[] { (14, 55f, 12f) },
             Gravity = 0.85f,
             Floating = true,
             ItemRows = new[] { 0.1f, 0.33f, 0.58f, 0.84f },

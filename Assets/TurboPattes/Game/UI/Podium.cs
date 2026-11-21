@@ -27,6 +27,9 @@ namespace TurboPattes.Game.UI
         Camera _cam;
         Transform _stage;
         readonly Transform[] _karts = new Transform[3];
+        readonly KartRig[] _rigs = new KartRig[3];
+        /// <summary>Le reste du peloton au pied du podium, avec sa place (animation de fin selon la place).</summary>
+        readonly System.Collections.Generic.List<(KartRig rig, int rank)> _others = new();
         Transform[] _confetti;
         Vector3[] _confettiSpin;
         float _time;
@@ -57,21 +60,23 @@ namespace TurboPattes.Game.UI
                 float h = BlockHeights[i];
                 MeshKit.Prim(PrimitiveType.Cube, _stage, new Vector3(BlockX[i], h * 0.5f, 0f), new Vector3(3.2f, h, 3.2f), Mats.Lit(BlockColors[i], 0.5f, 0.3f));
                 MeshKit.Prim(PrimitiveType.Cube, _stage, new Vector3(BlockX[i], h * 0.55f, 1.62f), new Vector3(0.9f, 0.6f, 0.05f), Mats.Lit(Color.white));
-                var spec = AnimalSpec.Roster[_ranking[i]];
+                var spec = DriverSpec.Roster[_ranking[i]];
                 var rig = KartFactory.Build(spec, _stage);
                 rig.Shield.SetActive(false);
                 rig.Root.localPosition = new Vector3(BlockX[i], h, 0f);
                 rig.Root.localRotation = Quaternion.Euler(0f, 180f + (i == 0 ? 0f : i == 1 ? 18f : -18f), 0f);
                 _karts[i] = rig.Root;
+                _rigs[i] = rig;
             }
             // Le reste du peloton au pied du podium.
             for (int r = 3; r < _ranking.Length; r++)
             {
-                var rig = KartFactory.Build(AnimalSpec.Roster[_ranking[r]], _stage);
+                var rig = KartFactory.Build(DriverSpec.Roster[_ranking[r]], _stage);
                 rig.Shield.SetActive(false);
                 float x = (r - 3 - (_ranking.Length - 4) * 0.5f) * 3.1f;
                 rig.Root.localPosition = new Vector3(x, 0f, -5.5f);
                 rig.Root.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                _others.Add((rig, r));
             }
             BuildConfetti();
 
@@ -111,9 +116,11 @@ namespace TurboPattes.Game.UI
                 c.localPosition = p;
                 c.localRotation *= Quaternion.Euler(_confettiSpin[i] * dt);
             }
-            // Le vainqueur sautille.
+            // Le vainqueur sautille ; les trois du podium lèvent les bras (décalés), le peloton fête ou baisse la tête.
             float hop = Mathf.Abs(Mathf.Sin(_time * 3f)) * 0.35f;
             _karts[0].localPosition = new Vector3(BlockX[0], BlockHeights[0] + hop, 0f);
+            for (int i = 0; i < 3; i++) KartFactory.Pose(_rigs[i], DriverPoses.Victory(Mathf.Max(0f, _time - i * 0.25f)));
+            foreach (var (rig, rank) in _others) KartFactory.Pose(rig, DriverPoses.Pose(DriverPoses.For(rank, _ranking.Length), _time));
 
             var kb = Keyboard.current;
             var pad = Gamepad.current;
@@ -144,41 +151,41 @@ namespace TurboPattes.Game.UI
             float s = _ui.Scale, w = Screen.width;
             var safe = Screen.safeArea;
             float top = Screen.height - safe.yMax + 16 * s;
-            // Titre et verdict sur une fiche crème ; noms au-dessus des marches sur des plaques.
+            // Titre et verdict sur une fiche blanc piste ; noms au-dessus des marches sur des plaques.
             var head = new Rect(w * 0.5f - 330 * s, top - 6 * s, 660 * s, (_unlocked ? 172 : _trophy > 0 ? 142 : 112) * s);
-            UiKit.Card(head, UiKit.Cream, 26 * s, 5 * s);
-            _ui.Label(new Rect(0, top, w, 70 * s), _cup.Def.Name, _ui.Big, UiKit.Ink, TextAnchor.MiddleCenter);
+            UiKit.Card(head, UiKit.Chalk, 26 * s, 5 * s);
+            _ui.Label(new Rect(0, top, w, 70 * s), _cup.Def.Name, _ui.Big, UiKit.Carbon, TextAnchor.MiddleCenter);
             int playerPlace = System.Array.IndexOf(_ranking, _cup.Player);
             string verdict = playerPlace == 0 ? "Tu remportes la coupe !" : playerPlace < 3 ? $"Tu montes sur le podium ({Hud.Ordinal(playerPlace + 1)}) !" : $"Tu finis {Hud.Ordinal(playerPlace + 1)} de la coupe";
-            _ui.Label(new Rect(0, top + 66 * s, w, 40 * s), verdict, _ui.Medium, UiKit.Vermilion, TextAnchor.MiddleCenter);
+            _ui.Label(new Rect(0, top + 66 * s, w, 40 * s), verdict, _ui.Medium, UiKit.Red, TextAnchor.MiddleCenter);
             if (_trophy > 0)
-                _ui.Label(new Rect(0, top + 104 * s, w, 32 * s), TrophyNames[_trophy] + (_newTrophy ? " gagné !" : ""), _ui.Small, UiKit.Ink, TextAnchor.MiddleCenter);
+                _ui.Label(new Rect(0, top + 104 * s, w, 32 * s), TrophyNames[_trophy] + (_newTrophy ? " gagné !" : ""), _ui.Small, UiKit.Carbon, TextAnchor.MiddleCenter);
             if (_unlocked)
                 _ui.Label(new Rect(0, top + 134 * s, w, 32 * s), $"Nouvelle coupe ouverte : {Cups.All[_cup.CupIndex + 1].Name}", _ui.Small,
-                    UiKit.Blue, TextAnchor.MiddleCenter);
+                    UiKit.Telemetry, TextAnchor.MiddleCenter);
 
             // Nom et points au-dessus de chaque marche.
             for (int i = 0; i < 3; i++)
             {
                 var sp = _cam.WorldToScreenPoint(_karts[i].position + Vector3.up * 2.6f);
                 if (sp.z <= 0f) continue;
-                var spec = AnimalSpec.Roster[_ranking[i]];
+                var spec = DriverSpec.Roster[_ranking[i]];
                 var r = new Rect(sp.x - 110 * s, Screen.height - sp.y - 54 * s, 220 * s, 60 * s);
-                UiKit.Card(r, i == 0 ? UiKit.Vermilion : UiKit.Alpha(UiKit.Ink, 0.88f), 14 * s);
-                _ui.Label(new Rect(r.x, r.y + 2 * s, r.width, 32 * s), $"{Hud.Ordinal(i + 1)}  {spec.Name}", _ui.Medium, UiKit.Cream, TextAnchor.MiddleCenter);
-                _ui.Label(new Rect(r.x, r.y + 32 * s, r.width, 26 * s), $"{_cup.Standings.Total(_ranking[i])} pts", _ui.Small, UiKit.Ochre, TextAnchor.MiddleCenter);
+                UiKit.Card(r, i == 0 ? UiKit.Red : UiKit.Alpha(UiKit.Carbon, 0.88f), 14 * s);
+                _ui.Label(new Rect(r.x, r.y + 2 * s, r.width, 32 * s), $"{Hud.Ordinal(i + 1)}  {spec.Name}", _ui.Medium, UiKit.Chalk, TextAnchor.MiddleCenter);
+                _ui.Label(new Rect(r.x, r.y + 32 * s, r.width, 26 * s), $"{_cup.Standings.Total(_ranking[i])} pts", _ui.Small, UiKit.Signal, TextAnchor.MiddleCenter);
             }
 
             // Classement complet, à droite.
             float row = 30 * s, pw = 250 * s, px = safe.xMax - 24 * s - pw, py = top + 180 * s;
-            UiKit.Card(new Rect(px - 10 * s, py - 10 * s, pw + 20 * s, row * _ranking.Length + 20 * s), UiKit.Cream, 18 * s, 4 * s);
+            UiKit.Card(new Rect(px - 10 * s, py - 10 * s, pw + 20 * s, row * _ranking.Length + 20 * s), UiKit.Chalk, 18 * s, 4 * s);
             for (int r = 0; r < _ranking.Length; r++)
             {
-                var spec = AnimalSpec.Roster[_ranking[r]];
+                var spec = DriverSpec.Roster[_ranking[r]];
                 float y = py + r * row;
                 bool me = _ranking[r] == _cup.Player;
-                var ink = me ? UiKit.Cream : UiKit.Ink;
-                if (me) UiKit.Box(new Rect(px - 10 * s, y, pw + 20 * s, row), UiKit.Vermilion);
+                var ink = me ? UiKit.Chalk : UiKit.Carbon;
+                if (me) UiKit.Box(new Rect(px - 10 * s, y, pw + 20 * s, row), UiKit.Red);
                 _ui.Label(new Rect(px, y, 40 * s, row), (r + 1).ToString(), _ui.Small, ink, TextAnchor.MiddleLeft);
                 UiKit.Portrait(new Vector2(px + 52 * s, y + row * 0.5f), 12 * s, spec);
                 _ui.Label(new Rect(px + 72 * s, y, 110 * s, row), spec.Name, _ui.Small, ink, TextAnchor.MiddleLeft);

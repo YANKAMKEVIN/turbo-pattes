@@ -38,7 +38,7 @@ namespace TurboPattes.Game.Visuals
             m = Resources.Load<Material>(name);
             if (m == null)
             {
-                Debug.LogWarning($"[TurboPattes] Gabarit {name} absent de Resources : Shader.Find (lancer « Turbo Pattes/Configurer le projet »).");
+                Debug.LogWarning($"[TurboPattes] Gabarit {name} absent de Resources : Shader.Find (lancer « {TurboPattes.Core.Brand.Title}/Configurer le projet »).");
                 m = new Material(Shader.Find(fallbackShader));
             }
             Templates[name] = m;

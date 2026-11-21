@@ -93,11 +93,11 @@ namespace TurboPattes.Game.UI
             if (Race.Input.TouchMode && !_achieved) DrawPointer(h, s, a);
             var r = new Rect(w * 0.5f - 420 * s, h * 0.7f, 840 * s, 58 * s);
             _ui.Plate(r, a);
-            UiKit.Slash(new Rect(r.x + 14 * s, r.y + r.height * 0.2f, 8 * s, r.height * 0.6f), UiKit.Alpha(UiKit.Ochre, a));
-            _ui.Label(r, _text, _ui.Medium, UiKit.Alpha(UiKit.Cream, a), TextAnchor.MiddleCenter);
+            UiKit.Slash(new Rect(r.x + 14 * s, r.y + r.height * 0.2f, 8 * s, r.height * 0.6f), UiKit.Alpha(UiKit.Signal, a));
+            _ui.Label(r, _text, _ui.Medium, UiKit.Alpha(UiKit.Chalk, a), TextAnchor.MiddleCenter);
         }
 
-        /// <summary>Anneau ocre qui pulse autour de la commande tactile visée par le conseil.</summary>
+        /// <summary>Anneau jaune qui pulse autour de la commande tactile visée par le conseil.</summary>
         void DrawPointer(float h, float s, float a)
         {
             var l = Race.Input.Layout;
@@ -111,8 +111,8 @@ namespace TurboPattes.Game.UI
                 default: return;
             }
             float pulse = TutorialCues.Pulse(Time.time);
-            UiKit.Ring(c, r * pulse + 6 * s, 10 * s, UiKit.Alpha(UiKit.Ink, 0.6f * a), 56);
-            UiKit.Ring(c, r * pulse + 6 * s, 7 * s, UiKit.Alpha(UiKit.Ochre, a), 56);
+            UiKit.Ring(c, r * pulse + 6 * s, 10 * s, UiKit.Alpha(UiKit.Carbon, 0.6f * a), 56);
+            UiKit.Ring(c, r * pulse + 6 * s, 7 * s, UiKit.Alpha(UiKit.Signal, a), 56);
         }
     }
 }

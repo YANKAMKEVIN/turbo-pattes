@@ -8,18 +8,20 @@ using UnityEngine.InputSystem.EnhancedTouch;
 namespace TurboPattes.Game.UI
 {
     /// <summary>
-    /// Composants IMGUI partagés par le HUD et les menus, dans la direction « Atelier plein gaz » : police Saira,
-    /// fiches crème à coin oblique, plaques vert charbon derrière les informations de course, surlignage vermillon,
-    /// repères obliques ocre, chiffres à largeur fixe. Clics lus via l'Input System (souris et tactile).
-    /// Les clics se lisent dans Update (une fois par image), le dessin dans OnGUI.
+    /// Composants IMGUI partagés par le HUD et les menus, direction « arcade sportif » (docs/design/da-arcade-sportif.md) :
+    /// Saira Condensed, plaques carbone derrière les informations de course, fiches blanc piste à coin coupé,
+    /// surlignage rouge course, repères obliques jaune signal, chiffres à largeur fixe.
+    /// Clics lus via l'Input System (souris et tactile). Les clics se lisent dans Update (une fois par image), le dessin dans OnGUI.
     /// </summary>
     public sealed class UiKit
     {
-        public static readonly Color Ink = Of(Atelier.Charcoal);
-        public static readonly Color Cream = Of(Atelier.Cream);
-        public static readonly Color Vermilion = Of(Atelier.Vermilion);
-        public static readonly Color Ochre = Of(Atelier.Ochre);
-        public static readonly Color Blue = Of(Atelier.Workshop);
+        public static readonly Color Carbon = Of(Palette.Carbon);
+        public static readonly Color Graphite = Of(Palette.Graphite);
+        public static readonly Color Chalk = Of(Palette.Chalk);
+        public static readonly Color Red = Of(Palette.Red);
+        public static readonly Color Signal = Of(Palette.Signal);
+        public static readonly Color Telemetry = Of(Palette.Telemetry);
+        public static readonly Color Steel = Of(Palette.Steel);
 
         /// <summary>Titres, positions (Bold) ; commandes (SemiBold) ; descriptions (Regular).</summary>
         public GUIStyle Huge, Big, Medium, Small, Body;
@@ -36,10 +38,10 @@ namespace TurboPattes.Game.UI
             if (_fontsLoaded) return;
             _fontsLoaded = true;
             // Sans le fichier (import raté), la police intégrée prend le relais : GUIStyle.font = null.
-            _bold = Resources.Load<Font>(Atelier.FontBold);
-            _semiBold = Resources.Load<Font>(Atelier.FontSemiBold) ?? _bold;
-            _regular = Resources.Load<Font>(Atelier.FontRegular) ?? _semiBold;
-            if (_bold == null) Debug.LogWarning("[TurboPattes] Police Saira introuvable dans Resources/Fonts : police par défaut.");
+            _bold = Resources.Load<Font>(Typography.Bold);
+            _semiBold = Resources.Load<Font>(Typography.SemiBold) ?? _bold;
+            _regular = Resources.Load<Font>(Typography.Regular) ?? _semiBold;
+            if (_bold == null) Debug.LogWarning("[TurboPattes] Police Saira Condensed introuvable dans Resources/Fonts : police par défaut.");
         }
 
         /// <summary>À appeler dans OnGUI avant de dessiner.</summary>
@@ -49,7 +51,7 @@ namespace TurboPattes.Game.UI
             if (Big != null && Mathf.Approximately(scale, Scale)) return;
             Scale = scale;
             LoadFonts();
-            Big = new GUIStyle { font = _bold, fontSize = Mathf.RoundToInt(60 * scale), fontStyle = FontStyle.Normal, normal = { textColor = Color.white } };
+            Big = new GUIStyle { font = _bold, fontSize = Mathf.RoundToInt(60 * scale), fontStyle = _bold == null ? FontStyle.Bold : FontStyle.Normal, normal = { textColor = Color.white } };
             Huge = new GUIStyle(Big) { fontSize = Mathf.RoundToInt(110 * scale) };
             Medium = new GUIStyle(Big) { font = _semiBold, fontSize = Mathf.RoundToInt(29 * scale) };
             Small = new GUIStyle(Big) { font = _semiBold, fontSize = Mathf.RoundToInt(20 * scale) };
@@ -63,7 +65,7 @@ namespace TurboPattes.Game.UI
             if (shadow > 0f)
             {
                 float o = Mathf.Max(1f, shadow * Scale);
-                s.normal.textColor = Linear(new Color(Ink.r, Ink.g, Ink.b, 0.75f * color.a));
+                s.normal.textColor = Linear(new Color(Carbon.r, Carbon.g, Carbon.b, 0.75f * color.a));
                 GUI.Label(new Rect(r.x + o, r.y + o, r.width, r.height), text, s);
             }
             s.normal.textColor = Linear(color);
@@ -116,11 +118,11 @@ namespace TurboPattes.Game.UI
             }
         }
 
-        /// <summary>Portrait du pilote sur une pastille de la couleur de son kart.</summary>
-        public static void Portrait(Vector2 center, float radius, AnimalSpec spec, float ring = 0f)
+        /// <summary>Portrait du pilote (casque) sur une pastille graphite cerclée de la couleur de son équipe.</summary>
+        public static void Portrait(Vector2 center, float radius, DriverSpec spec, float ring = 0f)
         {
-            if (ring > 0f) Disc(center, radius + ring, spec.KartTrim);
-            Disc(center, radius, spec.Kart);
+            Disc(center, radius + Mathf.Max(ring, radius * 0.12f), spec.Kart);
+            Disc(center, radius, Graphite);
             float r = radius * 1.12f;
             GUI.DrawTexture(new Rect(center.x - r, center.y - r * 1.06f, r * 2f, r * 2f), Icons.Portrait(spec), ScaleMode.ScaleToFit);
         }
@@ -132,11 +134,11 @@ namespace TurboPattes.Game.UI
 
         /// <summary>
         /// Fiche à coin oblique (coin haut droit coupé de <paramref name="cut"/> pixels), avec une ombre courte et
-        /// nette décalée vers le bas, comme une fiche de chronométrage posée sur l'établi.
+        /// nette décalée vers le bas, comme une fiche de chronométrage.
         /// </summary>
         public static void Card(Rect r, Color fill, float cut, float shadow = 0f)
         {
-            if (shadow > 0f) CardShape(new Rect(r.x + shadow * 0.5f, r.y + shadow, r.width, r.height), new Color(Ink.r, Ink.g, Ink.b, 0.4f * fill.a), cut);
+            if (shadow > 0f) CardShape(new Rect(r.x + shadow * 0.5f, r.y + shadow, r.width, r.height), new Color(Carbon.r, Carbon.g, Carbon.b, 0.4f * fill.a), cut);
             CardShape(r, fill, cut);
         }
 
@@ -149,8 +151,8 @@ namespace TurboPattes.Game.UI
             GUI.DrawTexture(new Rect(r.xMax - cut, r.y, cut, cut), ProceduralTextures.Wedge, ScaleMode.StretchToFill, true, 0f, Linear(fill), 0f, 0f);
         }
 
-        /// <summary>Plaque vert charbon presque opaque : contraste stable derrière les informations de course.</summary>
-        public void Plate(Rect r, float alpha = 1f) => Card(r, new Color(Ink.r, Ink.g, Ink.b, 0.86f * alpha), Mathf.Min(r.height * 0.3f, 18f * Scale));
+        /// <summary>Plaque carbone presque opaque : contraste stable derrière les informations de course.</summary>
+        public void Plate(Rect r, float alpha = 1f) => Card(r, new Color(Carbon.r, Carbon.g, Carbon.b, 0.86f * alpha), Mathf.Min(r.height * 0.3f, 18f * Scale));
 
         /// <summary>Repère oblique : parallélogramme penché vers la droite (pente <paramref name="slant"/>).</summary>
         public static void Slash(Rect r, Color color, float slant = 0.35f)
@@ -165,11 +167,11 @@ namespace TurboPattes.Game.UI
             GUI.matrix = m;
         }
 
-        /// <summary>Titre de bloc : repère oblique ocre puis texte (couleur au choix selon le fond).</summary>
+        /// <summary>Titre de bloc : repère oblique jaune signal puis texte (couleur au choix selon le fond).</summary>
         public void Caption(Rect r, string text, Color textColor, GUIStyle style = null)
         {
             float s = Scale;
-            Slash(new Rect(r.x + 4 * s, r.y + r.height * 0.2f, 7 * s, r.height * 0.6f), Ochre);
+            Slash(new Rect(r.x + 4 * s, r.y + r.height * 0.2f, 7 * s, r.height * 0.6f), Signal);
             Label(new Rect(r.x + 20 * s, r.y, r.width - 20 * s, r.height), text, style ?? Medium, textColor, TextAnchor.MiddleLeft);
         }
 
@@ -178,8 +180,8 @@ namespace TurboPattes.Game.UI
             QualitySettings.activeColorSpace == ColorSpace.Linear ? new Color(c.linear.r, c.linear.g, c.linear.b, c.a) : c;
 
         /// <summary>
-        /// Bouton en fiche à coin oblique. Action principale : vermillon, texte crème ; secondaire : crème, texte encre.
-        /// <paramref name="focused"/> (navigation clavier/manette) l'encadre d'encre et ajoute un repère oblique ocre.
+        /// Bouton en fiche à coin oblique. Action principale : rouge course, texte blanc ; secondaire : blanc piste, texte carbone.
+        /// <paramref name="focused"/> (navigation clavier/manette) l'encadre de carbone et ajoute un repère oblique jaune.
         /// </summary>
         public void Button(Rect r, string text, bool primary, bool focused = false, GUIStyle style = null, float alpha = 1f, bool disabled = false)
         {
@@ -187,16 +189,16 @@ namespace TurboPattes.Game.UI
             if (focused)
             {
                 float f = 4f * s;
-                CardShape(new Rect(r.x - f, r.y - f, r.width + 2 * f, r.height + 2 * f), Alpha(Ink, alpha), cut + f);
+                CardShape(new Rect(r.x - f, r.y - f, r.width + 2 * f, r.height + 2 * f), Alpha(Carbon, alpha), cut + f);
             }
-            var fill = disabled ? new Color(Cream.r, Cream.g, Cream.b, 0.45f) : primary ? Vermilion : Cream;
+            var fill = disabled ? new Color(Chalk.r, Chalk.g, Chalk.b, 0.45f) : primary ? Red : Chalk;
             Card(r, Alpha(fill, alpha), cut, focused ? 0f : 4f * s);
-            if (focused) Slash(new Rect(r.x + 10 * s, r.y + r.height * 0.22f, 7 * s, r.height * 0.56f), Alpha(primary ? Ochre : Vermilion, alpha));
-            var textColor = disabled ? Alpha(Ink, 0.45f) : primary ? Cream : Ink;
+            if (focused) Slash(new Rect(r.x + 10 * s, r.y + r.height * 0.22f, 7 * s, r.height * 0.56f), Alpha(primary ? Signal : Red, alpha));
+            var textColor = disabled ? Alpha(Carbon, 0.45f) : primary ? Chalk : Carbon;
             Label(r, text, style ?? Medium, Alpha(textColor, alpha), TextAnchor.MiddleCenter);
         }
 
-        /// <summary>Choix d'un sélecteur : surligné en vermillon quand il est retenu.</summary>
+        /// <summary>Choix d'un sélecteur : surligné en rouge quand il est retenu.</summary>
         public void Segment(Rect r, string text, bool selected, bool focused, bool disabled = false) =>
             Button(r, text, selected, focused, Small, 1f, disabled);
 

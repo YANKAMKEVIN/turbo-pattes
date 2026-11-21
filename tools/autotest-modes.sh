@@ -4,7 +4,7 @@
 out=${1:-/tmp/tp-modes}
 circuit=${2:-1}
 cup=${3:-1}
-app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes"
+app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid"
 rm -rf $out && mkdir -p $out
 echec=0
 

@@ -144,7 +144,7 @@ namespace TurboPattes.Game.App
             yield return new WaitForSeconds(0.5f);
             menu.TestSelect(4, 0, Difficulty.Hard, 1);
             yield return new WaitForSeconds(1.5f);
-            ScreenCapture.CaptureScreenshot(Shot("3_bruno"));
+            ScreenCapture.CaptureScreenshot(Shot("3_teo"));
             yield return new WaitForSeconds(0.3f);
             menu.TestStart();
             yield return new WaitForSeconds(7f);
@@ -232,7 +232,7 @@ namespace TurboPattes.Game.App
             var ranking = cup.Standings.Ranking();
             File.WriteAllText(Path.Combine(_autotestDir, "podium.log"),
                 $"{cup.Def.Name} courses={cup.Standings.Races}\n" +
-                string.Join("\n", Array.ConvertAll(ranking, id => $"  {Array.IndexOf(ranking, id) + 1}. {Kart.AnimalSpec.Roster[id].Name} {cup.Standings.Total(id)} pts")) + "\n");
+                string.Join("\n", Array.ConvertAll(ranking, id => $"  {Array.IndexOf(ranking, id) + 1}. {Kart.DriverSpec.Roster[id].Name} {cup.Standings.Total(id)} pts")) + "\n");
             yield return new WaitForSeconds(0.3f);
             Application.Quit();
         }
@@ -432,7 +432,7 @@ namespace TurboPattes.Game.App
             _shotDir = cup != null ? Path.Combine(_autotestDir, $"course{cup.Race + 1}") : _autotestDir;
             Directory.CreateDirectory(_shotDir);
             var log = new StreamWriter(Path.Combine(_shotDir, "autotest.log")) { AutoFlush = true };
-            log.WriteLine($"Turbo Pattes autotest {DateTime.Now:s} {Screen.width}x{Screen.height} circuit={_circuit.Name} " +
+            log.WriteLine($"{Brand.Title} autotest {DateTime.Now:s} {Screen.width}x{Screen.height} circuit={_circuit.Name} " +
                           $"longueur={_path.Length:0}m relief={_path.HasRelief} mode={_mode} musique={_race.Music.Name} karts={_race.Karts.Length} " +
                           $"difficulte={(_difficultyArg >= 0 ? GameSession.DifficultyNames[_difficultyArg] : "Normal")}" +
                           (cup != null ? $" coupe={cup.Def.Name} course={cup.Race + 1}" : "") +
@@ -504,7 +504,7 @@ namespace TurboPattes.Game.App
                                   $"lat={p.Lateral:0.0} y={p.Position.y:0.0}{(p.Airborne ? " (en l'air)" : "")} s={p.Laps.S:0} objet={p.Item} drift={p.Drift.Level} " +
                                   $"fps={1f / Mathf.Max(1e-4f, Time.smoothDeltaTime):0}");
                     foreach (var k in _race.Karts)
-                        if (!k.IsPlayer && Mathf.Abs(k.Lateral) > _race.Path.BarrierOffset) log.WriteLine($"  ANOMALIE {k.Spec.Name} hors barrière");
+                        if (!k.IsPlayer && Mathf.Abs(k.Lateral) > _race.Path.BarrierAt(k.Laps.S, k.Lateral < 0f ? -1 : 1)) log.WriteLine($"  ANOMALIE {k.Spec.Name} hors barrière");
                 }
                 if (_race.State == RaceManager.Phase.Results) break;
                 yield return null;
@@ -520,7 +520,7 @@ namespace TurboPattes.Game.App
             }
             log.WriteLine("Tours joueur : " + string.Join(", ", Array.ConvertAll(_race.LapTimes, x => x.ToString("0.0"))));
             var used = _race.Items.UseCounts;
-            log.WriteLine($"Objets utilises : carotte {used[1]} coco {used[2]} miel {used[3]} bouclier {used[4]} plume {used[5]} pelote {used[6]} ; " +
+            log.WriteLine($"Objets utilises : nitro {used[1]} pneu {used[2]} huile {used[3]} bouclier {used[4]} aileron {used[5]} drone {used[6]} aspiration {used[7]} ; " +
                           $"figures {string.Join(", ", Array.ConvertAll(_race.Karts, k => $"{k.Spec.Name} {k.Tricks}"))}" +
                           (_tutorial != null ? $" ; tutoriel {_tutorial.Shown} conseils" : ""));
             log.WriteLine($"Relief : hauteur max joueur {maxY:0.0} m ; sauts " +
@@ -534,7 +534,7 @@ namespace TurboPattes.Game.App
             {
                 var st = cup.Standings;
                 log.WriteLine($"Coupe {cup.Def.Name} apres course {cup.Race + 1} : " +
-                              string.Join(", ", Array.ConvertAll(st.Ranking(), id => $"{Kart.AnimalSpec.Roster[id].Name} {st.Total(id)} (+{st.LastPoints(id)})")));
+                              string.Join(", ", Array.ConvertAll(st.Ranking(), id => $"{Kart.DriverSpec.Roster[id].Name} {st.Total(id)} (+{st.LastPoints(id)})")));
                 log.Close();
                 // Course suivante (ou podium) : la scène se recharge, l'autotest reprend dans le nouveau KartApp.
                 cup.Next();

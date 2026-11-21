@@ -28,11 +28,14 @@ namespace TurboPattes.Core
     {
         public const float Interval = 0.1f;
         const int Stride = 5;
-        const string Header = "fantome2";
+        const string Header = "fantome3";
+        const string Header2 = "fantome2";
         const string OldHeader = "fantome1";
 
         readonly List<float> _data = new();
 
+        /// <summary>Pilote qui a roulé ce tour (numéro dans la liste des pilotes), -1 si inconnu (ancien fichier).</summary>
+        public int Driver { get; set; } = -1;
         /// <summary>Temps du tour (0 tant qu'il n'est pas fini).</summary>
         public float LapTime { get; set; }
         /// <summary>Temps intermédiaires (<see cref="LapSplits.Points"/>), vide si inconnus (ancien fichier).</summary>
@@ -75,7 +78,8 @@ namespace TurboPattes.Core
         public string Serialize()
         {
             var sb = new StringBuilder();
-            sb.Append(Header).Append(';').Append(LapTime.ToString("0.000", CultureInfo.InvariantCulture)).Append(';');
+            sb.Append(Header).Append(';').Append(Driver.ToString(CultureInfo.InvariantCulture)).Append(';')
+                .Append(LapTime.ToString("0.000", CultureInfo.InvariantCulture)).Append(';');
             for (int i = 0; i < Splits.Length; i++)
             {
                 if (i > 0) sb.Append(',');
@@ -95,9 +99,12 @@ namespace TurboPattes.Core
         {
             if (string.IsNullOrEmpty(text)) return null;
             string[] parts = text.Split(';');
-            // Version 1 : pas de temps intermédiaires.
-            if (parts.Length == 4 && parts[0] == OldHeader) parts = new[] { Header, parts[1], "", parts[2], parts[3] };
-            if (parts.Length != 5 || parts[0] != Header) return null;
+            // Version 1 : pas de temps intermédiaires ; versions 1 et 2 : pilote inconnu.
+            if (parts.Length == 4 && parts[0] == OldHeader) parts = new[] { Header, "-1", parts[1], "", parts[2], parts[3] };
+            else if (parts.Length == 5 && parts[0] == Header2) parts = new[] { Header, "-1", parts[1], parts[2], parts[3], parts[4] };
+            if (parts.Length != 6 || parts[0] != Header) return null;
+            if (!int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int driver) || driver < -1) return null;
+            parts = new[] { parts[0], parts[2], parts[3], parts[4], parts[5] };
             if (!float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float lapTime)) return null;
             var splits = new List<float>();
             if (parts[2].Length > 0)
@@ -109,7 +116,7 @@ namespace TurboPattes.Core
             if (!int.TryParse(parts[3], out int count) || count < 0) return null;
             string[] values = parts[4].Length == 0 ? Array.Empty<string>() : parts[4].Split(',');
             if (values.Length != count * Stride) return null;
-            var ghost = new GhostLap { LapTime = lapTime, Splits = splits.ToArray() };
+            var ghost = new GhostLap { LapTime = lapTime, Splits = splits.ToArray(), Driver = driver };
             foreach (string v in values)
             {
                 if (!float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out float x)) return null;
@@ -125,6 +132,32 @@ namespace TurboPattes.Core
         {
             float d = ((b - a) % 360f + 540f) % 360f - 180f;
             return a + d * u;
+        }
+    }
+
+    /// <summary>Fantôme du contre-la-montre : son propre record, celui d'un autre pilote (rival), ou aucun.</summary>
+    public enum GhostMode { Record, Rival, Off }
+
+    /// <summary>Choix du fantôme rival parmi les meilleurs tours enregistrés pilote par pilote.</summary>
+    public static class GhostPick
+    {
+        /// <summary>Libellés du sélecteur du menu, dans l'ordre de <see cref="GhostMode"/>.</summary>
+        public static readonly string[] Names = { "Record", "Rival", "Aucun" };
+
+        /// <summary>
+        /// Pilote dont on rejoue le fantôme en mode rival : le plus rapide des autres pilotes (meilleur tour &gt; 0),
+        /// -1 s'il n'y en a aucun (on n'a encore roulé ce circuit qu'avec son pilote).
+        /// </summary>
+        /// <param name="bestLaps">Meilleur tour de chaque pilote sur ce circuit (0 = aucun).</param>
+        public static int Rival(int player, IReadOnlyList<float> bestLaps)
+        {
+            int best = -1;
+            for (int d = 0; d < bestLaps.Count; d++)
+            {
+                if (d == player || bestLaps[d] <= 0f) continue;
+                if (best < 0 || bestLaps[d] < bestLaps[best]) best = d;
+            }
+            return best;
         }
     }
 

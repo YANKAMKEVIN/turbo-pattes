@@ -10,7 +10,9 @@ using UnityEngine.Rendering;
 namespace TurboPattes.Game.Items
 {
     /// <summary>
-    /// Bulles surprise à ramasser, objets lancés (noix de coco) et posés (pots de miel), et leurs effets.
+    /// Caisses objet à ramasser, objets lancés (pneu fou, drone) et posés (flaque d'huile), et leurs effets.
+    /// Habillage sport mécanique (docs/design/da-arcade-sportif.md, § 7) ; les noms de code (coco, miel, pelote)
+    /// restent ceux des mécaniques.
     /// </summary>
     public sealed class ItemSystem
     {
@@ -23,7 +25,7 @@ namespace TurboPattes.Game.Items
         const float YarnSpeed = 38f;
 
         sealed class Bubble { public Vector3 Pos; public Transform Go; public float Respawn; public float Phase; }
-        sealed class Coconut { public Vector3 Pos; public Vector3 Dir; public float Speed; public float Life; public KartMotor Owner; public float OwnerGrace; public int Hint; public Transform Go; }
+        sealed class Coconut { public Vector3 Pos; public Vector3 Dir; public float Speed; public float Life; public KartMotor Owner; public float OwnerGrace; public int Hint; public Transform Go; public float Spin; }
         sealed class Honey { public Vector3 Pos; public float Life; public KartMotor Owner; public float OwnerGrace; public Transform Go; }
         /// <summary>Pelote : avance le long de la piste (distance parcourue, comme les karts) vers sa cible.</summary>
         sealed class Yarn { public float Progress; public float Lateral; public float Life; public KartMotor Owner; public KartMotor Target; public Vector3 Pos; public Transform Go; }
@@ -35,7 +37,7 @@ namespace TurboPattes.Game.Items
         readonly List<Coconut> _coconuts = new();
         readonly List<Honey> _honeys = new();
         readonly List<Yarn> _yarns = new();
-        readonly Material _bubbleMat, _pawMat, _coconutMat, _coconutHair, _honeyMat, _potMat, _yarnMat, _yarnThread;
+        readonly Material _bubbleMat, _signMat, _tireMat, _rimMat, _oilMat, _canMat, _droneMat, _rotorMat, _eyeMat;
 
         /// <summary>Événements pour le son : ramassage, objet utilisé, kart touché, bouclier éclaté.</summary>
         public event Action<KartMotor> PickedUp, Used, KartHit, ShieldPopped;
@@ -48,14 +50,16 @@ namespace TurboPattes.Game.Items
             _rng = new System.Random(seed);
             _root = new GameObject("Items").transform;
             _root.SetParent(parent, false);
-            _bubbleMat = Mats.Transparent(new Color(0.7f, 0.9f, 1f, 0.38f));
-            _pawMat = Mats.Emissive(new Color(1f, 0.8f, 0.25f), new Color(1f, 0.6f, 0.1f) * 0.8f);
-            _coconutMat = Mats.Lit(new Color(0.42f, 0.26f, 0.14f), 0.15f);
-            _coconutHair = Mats.Lit(new Color(0.6f, 0.42f, 0.25f), 0.05f);
-            _honeyMat = Mats.Lit(new Color(1f, 0.68f, 0.08f), 0.9f);
-            _potMat = Mats.Lit(new Color(0.85f, 0.5f, 0.25f), 0.3f);
-            _yarnMat = Mats.Lit(new Color(0.95f, 0.42f, 0.62f), 0.1f);
-            _yarnThread = Mats.Lit(new Color(1f, 0.75f, 0.85f), 0.1f);
+            // Caisse objet : cube fumé translucide, chevrons jaune signal lumineux.
+            _bubbleMat = Mats.Transparent(new Color(0.35f, 0.4f, 0.48f, 0.42f));
+            _signMat = Mats.Emissive(new Color(0.95f, 0.76f, 0f), new Color(0.95f, 0.7f, 0f) * 0.9f);
+            _tireMat = Mats.Lit(new Color(0.07f, 0.07f, 0.08f), 0.25f);
+            _rimMat = Mats.Lit(new Color(0.72f, 0.74f, 0.78f), 0.85f, 0.85f);
+            _oilMat = Mats.Lit(new Color(0.03f, 0.03f, 0.04f), 0.97f, 0.2f);
+            _canMat = Mats.Lit(new Color(0.78f, 0.13f, 0.1f), 0.6f);
+            _droneMat = Mats.Lit(new Color(0.12f, 0.13f, 0.15f), 0.7f, 0.2f);
+            _rotorMat = Mats.Transparent(new Color(0.75f, 0.8f, 0.88f, 0.35f));
+            _eyeMat = Mats.Emissive(new Color(0.78f, 0.13f, 0.1f), new Color(1f, 0.15f, 0.1f) * 1.2f);
 
             if (bubbles)
             foreach (float row in circuit.ItemRows)
@@ -101,12 +105,13 @@ namespace TurboPattes.Game.Items
 
         Transform BuildBubble(Vector3 pos)
         {
-            var t = new GameObject("Bubble").transform;
+            var t = new GameObject("ItemCrate").transform;
             t.SetParent(_root, false);
             t.position = pos;
-            var shell = MeshKit.Prim(PrimitiveType.Sphere, t, Vector3.zero, Vector3.one * 1.7f, _bubbleMat);
+            // Caisse penchée sur une arête (elle tourne sur elle-même comme les anciennes bulles).
+            var shell = MeshKit.Prim(PrimitiveType.Cube, t, Vector3.zero, Vector3.one * 1.3f, _bubbleMat, Quaternion.Euler(0f, 0f, 45f) * Quaternion.Euler(35f, 0f, 0f));
             shell.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            TrackBuilder.PawSign(t, Vector3.zero, 0.85f, _pawMat);
+            TrackBuilder.ChevronSign(t, Vector3.zero, 0.75f, _signMat);
             return t;
         }
 
@@ -147,8 +152,9 @@ namespace TurboPattes.Game.Items
                 c.Hint = _path.Nearest(c.Pos, c.Hint);
                 float lat = _path.Lateral(c.Hint, c.Pos);
                 // La noix de coco roule au ras de la piste : côtes, descentes et tremplins.
-                c.Pos.y = _path.GroundHeight(_path.DistanceAlong(c.Hint, c.Pos), lat);
-                float limit = _path.BarrierOffset - 0.6f;
+                float cs = _path.DistanceAlong(c.Hint, c.Pos);
+                c.Pos.y = _path.GroundHeight(cs, lat);
+                float limit = _path.BarrierAt(cs, lat < 0f ? -1 : 1) - 0.6f;
                 if (Mathf.Abs(lat) > limit)
                 {
                     // Rebond sur la barrière.
@@ -157,7 +163,9 @@ namespace TurboPattes.Game.Items
                     c.Dir = Vector3.Reflect(c.Dir, n).normalized;
                 }
                 c.Go.position = c.Pos + Vector3.up * 0.55f;
-                c.Go.Rotate(Vector3.Cross(Vector3.up, c.Dir), c.Speed * dt / 0.55f * Mathf.Rad2Deg, Space.World);
+                // Le pneu roule sur sa bande, l'axe toujours en travers de sa direction (même après un rebond).
+                c.Spin += c.Speed * dt / 0.55f * Mathf.Rad2Deg;
+                c.Go.rotation = Quaternion.LookRotation(c.Dir) * Quaternion.Euler(c.Spin, 0f, 0f);
 
                 bool remove = c.Life <= 0f;
                 foreach (var k in karts)
@@ -191,7 +199,8 @@ namespace TurboPattes.Game.Items
                     y.Lateral = Mathf.MoveTowards(y.Lateral, y.Target.Lateral, 10f * dt);
                 y.Pos = _path.PointAt(Mathf.Repeat(y.Progress, _path.Length), y.Lateral);
                 y.Go.position = y.Pos + Vector3.up * 0.6f;
-                y.Go.rotation = Quaternion.LookRotation(_path.Tangents[_path.Nearest(y.Pos, y.Owner.TrackIndex)]) * Quaternion.Euler(Time.time * 600f, 0f, 0f);
+                // Le drone vole droit dans l'axe de la piste, avec un léger roulis.
+                y.Go.rotation = Quaternion.LookRotation(_path.Tangents[_path.Nearest(y.Pos, y.Owner.TrackIndex)]) * Quaternion.Euler(0f, 0f, Mathf.Sin(Time.time * 7f) * 6f);
                 bool remove = y.Life <= 0f || y.Target != null && y.Target.Finished;
                 foreach (var k in karts)
                 {
@@ -274,6 +283,10 @@ namespace TurboPattes.Game.Items
                 case ItemKind.Yarn:
                     SpawnYarn(k, karts);
                     break;
+                case ItemKind.Comet:
+                    if (k.Airborne) return false;
+                    k.StartComet();
+                    break;
             }
             UseCounts[(int)k.Item]++;
             k.Item = ItemKind.None;
@@ -283,10 +296,12 @@ namespace TurboPattes.Game.Items
 
         void SpawnCoconut(KartMotor k)
         {
-            var go = new GameObject("Coconut").transform;
+            // Pneu fou : slick debout, axe selon x local, jante métal des deux côtés.
+            var go = new GameObject("Tire").transform;
             go.SetParent(_root, false);
-            MeshKit.Prim(PrimitiveType.Sphere, go, Vector3.zero, Vector3.one * 1.1f, _coconutMat);
-            MeshKit.Prim(PrimitiveType.Sphere, go, new Vector3(0f, 0.2f, 0f), new Vector3(1.15f, 0.6f, 1.15f), _coconutHair);
+            MeshKit.Prim(PrimitiveType.Cylinder, go, Vector3.zero, new Vector3(1.1f, 0.22f, 1.1f), _tireMat, Quaternion.Euler(0f, 0f, 90f));
+            MeshKit.Prim(PrimitiveType.Cylinder, go, Vector3.zero, new Vector3(0.66f, 0.24f, 0.66f), _rimMat, Quaternion.Euler(0f, 0f, 90f));
+            MeshKit.Prim(PrimitiveType.Cube, go, Vector3.zero, new Vector3(0.5f, 0.6f, 0.08f), _tireMat);
             var c = new Coconut
             {
                 Pos = k.Position + k.Forward * 2.4f,
@@ -309,13 +324,16 @@ namespace TurboPattes.Game.Items
             if (karts != null)
                 foreach (var o in karts)
                     if (o != k && !o.Finished && o.Rank == k.Rank - 1) target = o;
-            var go = new GameObject("Yarn").transform;
+            // Drone traqueur : corps carbone, quatre bras, rotors fumés, œil rouge lumineux vers l'avant.
+            var go = new GameObject("Drone").transform;
             go.SetParent(_root, false);
-            MeshKit.Prim(PrimitiveType.Sphere, go, Vector3.zero, Vector3.one * 1.1f, _yarnMat);
-            for (int i = 0; i < 3; i++)
+            MeshKit.Prim(PrimitiveType.Sphere, go, Vector3.zero, new Vector3(0.7f, 0.32f, 0.9f), _droneMat);
+            MeshKit.Prim(PrimitiveType.Sphere, go, new Vector3(0f, 0f, 0.4f), new Vector3(0.18f, 0.14f, 0.12f), _eyeMat);
+            foreach (var corner in new[] { new Vector3(-1f, 0f, 1f), new Vector3(1f, 0f, 1f), new Vector3(-1f, 0f, -1f), new Vector3(1f, 0f, -1f) })
             {
-                var band = MeshKit.Prim(PrimitiveType.Cylinder, go, Vector3.zero, new Vector3(1.14f, 0.02f, 1.14f), _yarnThread);
-                band.transform.localRotation = Quaternion.Euler(i * 60f, i * 35f, 90f);
+                var tip = corner * 0.55f;
+                MeshKit.Prim(PrimitiveType.Cube, go, tip * 0.5f, new Vector3(0.09f, 0.06f, 0.78f), _droneMat, Quaternion.LookRotation(corner));
+                MeshKit.Prim(PrimitiveType.Cylinder, go, tip + Vector3.up * 0.08f, new Vector3(0.5f, 0.01f, 0.5f), _rotorMat);
             }
             var y = new Yarn
             {
@@ -347,12 +365,13 @@ namespace TurboPattes.Game.Items
 
         void SpawnHoney(KartMotor k)
         {
-            var go = new GameObject("Honey").transform;
+            // Flaque d'huile : nappe noire luisante et bidon rouge couché à côté.
+            var go = new GameObject("OilSlick").transform;
             go.SetParent(_root, false);
-            var puddle = MeshKit.Prim(PrimitiveType.Cylinder, go, new Vector3(0f, 0.05f, 0f), new Vector3(3.2f, 0.03f, 2.6f), _honeyMat);
+            var puddle = MeshKit.Prim(PrimitiveType.Cylinder, go, new Vector3(0f, 0.05f, 0f), new Vector3(3.2f, 0.03f, 2.6f), _oilMat);
             puddle.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
-            MeshKit.Prim(PrimitiveType.Sphere, go, new Vector3(0.4f, 0.35f, 0.2f), new Vector3(0.7f, 0.65f, 0.7f), _potMat);
-            MeshKit.Prim(PrimitiveType.Cylinder, go, new Vector3(0.4f, 0.65f, 0.2f), new Vector3(0.45f, 0.06f, 0.45f), _honeyMat);
+            MeshKit.Prim(PrimitiveType.Cylinder, go, new Vector3(0.9f, 0.28f, 0.3f), new Vector3(0.5f, 0.35f, 0.5f), _canMat, Quaternion.Euler(0f, 30f, 90f));
+            MeshKit.Prim(PrimitiveType.Cylinder, go, new Vector3(0.55f, 0.28f, 0.1f), new Vector3(0.12f, 0.08f, 0.12f), _rimMat, Quaternion.Euler(0f, 30f, 90f));
             var pos = k.Position - k.Forward * 2.8f;
             int i = _path.Nearest(pos, k.TrackIndex);
             float lat = _path.Lateral(i, pos);

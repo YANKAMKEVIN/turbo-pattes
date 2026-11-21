@@ -35,19 +35,19 @@ namespace TurboPattes.Core
         public static float PushShare(float massA, float massB) => massB / (massA + massB);
     }
 
-    /// <summary>Caractère des huit pilotes, dans l'ordre de la grille de choix.</summary>
+    /// <summary>Caractère des huit pilotes, dans l'ordre de la grille de choix (identités dans <see cref="Roster"/>, au même index).</summary>
     public static class Drivers
     {
         public static readonly DriverStats[] Stats =
         {
-            new(3, 3, 3, 3), // Roxy, renarde : équilibrée
-            new(3, 2, 2, 5), // Bambou, panda : lourd, inébranlable
-            new(2, 4, 4, 2), // Flip, grenouille : agile
-            new(2, 5, 3, 2), // Lili, lapine : démarrages fulgurants
-            new(4, 1, 2, 5), // Bruno, ours : pointe et poids, lent à lancer
-            new(3, 3, 4, 2), // Mimi, chatte : précise
-            new(4, 3, 2, 3), // Pingo, pingouin : glisse vite
-            new(3, 2, 3, 4), // Rosa, cochonne : solide
+            new(3, 3, 3, 3), // Alex Moreau : équilibré
+            new(3, 2, 2, 5), // Viktor Brandt : lourd, inébranlable
+            new(2, 4, 4, 2), // Lina Okafor : agile
+            new(2, 5, 3, 2), // Sami Haddad : démarrages fulgurants
+            new(4, 1, 2, 5), // Teo Ferraz : pointe et poids, lent à lancer
+            new(3, 3, 4, 2), // Hana Mori : précise
+            new(4, 3, 2, 3), // Nora Lindqvist : glisse vite
+            new(3, 2, 3, 4), // Inès Duval : solide
         };
 
         public static DriverStats For(int index) => index >= 0 && index < Stats.Length ? Stats[index] : Stats[0];

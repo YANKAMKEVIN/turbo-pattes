@@ -84,7 +84,7 @@ namespace TurboPattes.Game.Race
             Items = new ItemSystem(circuit, path, transform, seed, bubbles: !Solo);
             LapTimes = new float[laps];
 
-            var roster = AnimalSpec.Roster;
+            var roster = DriverSpec.Roster;
             var karts = new List<KartMotor>();
             var ai = new List<AiDriver>();
             var baseScale = new List<float>();
@@ -94,7 +94,7 @@ namespace TurboPattes.Game.Race
             for (int slot = 0; slot < roster.Length; slot++)
             {
                 if (Solo && slot != playerSlot) continue;
-                // Le joueur pilote l'animal choisi ; les autres se répartissent le reste de la grille.
+                // Le joueur pilote le pilote choisi ; les autres se répartissent le reste de la grille.
                 int other = slot < playerSlot ? slot : slot - 1;
                 int specIndex = grid != null && !Solo ? grid[slot] : slot == playerSlot ? pilot : (other < pilot ? other : other + 1);
                 var spec = roster[specIndex];
@@ -122,6 +122,7 @@ namespace TurboPattes.Game.Race
                 kart.Landed += k => { if (k.IsPlayer && k.Vertical.LandingSpeed > 4f) { _sound.Bump(); App.Haptics.Pulse(45); _cam.Shake(Mathf.Clamp(k.Vertical.LandingSpeed / 20f, 0.15f, 0.5f)); } };
             }
             Karts = karts.ToArray();
+            foreach (var k in Karts) k.Racers = Karts.Length;
             _clocks = Array.ConvertAll(Karts, _ => new ProgressClock());
             _ai = ai.ToArray();
             _baseScale = baseScale.ToArray();
@@ -355,8 +356,8 @@ namespace TurboPattes.Game.Race
             _wrongWayTime = wrong ? _wrongWayTime + dt : 0f;
         }
 
-        /// <summary>Numéro du pilote dans <see cref="AnimalSpec.Roster"/> (sert aux points de la coupe).</summary>
-        public static int SpecIndex(KartMotor k) => Array.IndexOf(AnimalSpec.Roster, k.Spec);
+        /// <summary>Numéro du pilote dans <see cref="DriverSpec.Roster"/> (sert aux points de la coupe).</summary>
+        public static int SpecIndex(KartMotor k) => Array.IndexOf(DriverSpec.Roster, k.Spec);
 
         public void ShowBanner(string text, float seconds)
         {

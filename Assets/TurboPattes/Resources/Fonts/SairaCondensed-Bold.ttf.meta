@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 891c24400cbe4e9c8371c2eb70ce878f
+guid: 60e2b2c222d24efc9ec499df131626db
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -8,9 +8,9 @@ TrueTypeFontImporter:
   characterSpacing: 0
   characterPadding: 1
   includeFontData: 1
-  fontName: Saira
+  fontName: Saira Condensed
   fontNames:
-  - Saira
+  - Saira Condensed
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0

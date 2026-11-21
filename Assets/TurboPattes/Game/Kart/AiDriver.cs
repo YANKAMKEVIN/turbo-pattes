@@ -66,6 +66,9 @@ namespace TurboPattes.Game.Kart
 
             // Viser plus près quand ça tourne, sinon la corde passe dans l'herbe.
             float look = Mathf.Lerp(7f + Mathf.Max(0f, speed) * 0.45f, 5f + Mathf.Max(0f, speed) * 0.22f, Mathf.Clamp01(turnAhead / 70f));
+            // Raccourci : sous turbo (qui annule le ralentissement hors piste), couper par le sable et son tremplin.
+            foreach (var sc in path.Shortcuts)
+                if (k.BoostTime > 0.4f && sc.Amount(path.Wrap(s + look)) >= 1f) lane = sc.Side * (sc.KickInner + 2.5f);
             var target = path.PointAt(s + look, lane);
             Vector3 to = target - k.Position;
             to.y = 0f; // seul compte le cap : une cible en haut d'une côte ne doit pas fausser le volant
@@ -76,6 +79,8 @@ namespace TurboPattes.Game.Kart
             // Vitesse de passage selon la courbure à venir.
             float sharp = path.TurnBetween(s + 5f, s + 30f);
             float cornerSpeed = k.TopSpeed * Mathf.Lerp(1f, 0.62f + 0.1f * _skill, Mathf.Clamp01((sharp - 30f) / 80f));
+            // Virage relevé : on peut le passer plus vite.
+            cornerSpeed = Mathf.Min(k.TopSpeed, cornerSpeed * Banking.CornerSpeedRatio(path.BankAngle(s + 15f)));
             if (speed > cornerSpeed + 2f && !_drifting) { input.Throttle = 0f; input.Brake = 0.4f; }
 
             // Drift dans les grandes courbes.
@@ -122,7 +127,7 @@ namespace TurboPattes.Game.Kart
             {
                 case ItemKind.Carrot:
                     // Sur une ligne droite, ou pour sortir vite de l'herbe.
-                    use = k.Path.TurnBetween(k.Laps.S, k.Laps.S + 50f) < 25f || k.Offroad && k.ForwardSpeed < 14f;
+                    use = k.Path.TurnBetween(k.Laps.S, k.Laps.S + 50f) < 25f || k.Offroad && k.ForwardSpeed < 14f || ShortcutAhead();
                     break;
                 case ItemKind.Shield:
                     // Gardé pour parer un projectile ou quand quelqu'un colle derrière.
@@ -142,9 +147,25 @@ namespace TurboPattes.Game.Kart
                 case ItemKind.Coconut:
                     use = AnyoneAhead(karts, 40f) || _itemDelay < -10f;
                     break;
+                case ItemKind.Comet:
+                    // Rattrapage : tout de suite, sauf en l'air.
+                    use = !k.Airborne;
+                    break;
             }
             if (use) _itemDelay = Rand(1f, 3f);
             return use;
+        }
+
+        /// <summary>Entrée d'un raccourci 10 à 30 m devant : bon moment pour la carotte.</summary>
+        bool ShortcutAhead()
+        {
+            var path = _kart.Path;
+            foreach (var sc in path.Shortcuts)
+            {
+                float ahead = path.Wrap(sc.CenterS - sc.HalfLength - _kart.Laps.S);
+                if (ahead > 10f && ahead < 30f) return true;
+            }
+            return false;
         }
 
         bool AnyoneBehind(KartMotor[] karts, float range)

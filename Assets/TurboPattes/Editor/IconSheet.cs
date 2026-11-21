@@ -13,7 +13,7 @@ namespace TurboPattes.EditorTools
     /// </summary>
     public static class IconSheet
     {
-        [MenuItem("Turbo Pattes/Exporter la planche d'icônes")]
+        [MenuItem(TurboPattes.Core.Brand.Title + "/Exporter la planche d'icônes")]
         public static void Export()
         {
             string output = "docs/icones.png";
@@ -23,9 +23,9 @@ namespace TurboPattes.EditorTools
 
             const int cell = 160, cols = 6;
             var icons = new System.Collections.Generic.List<(Texture2D tex, Color bg)>();
-            foreach (ItemKind k in new[] { ItemKind.Carrot, ItemKind.Coconut, ItemKind.Honey, ItemKind.Shield, ItemKind.Feather, ItemKind.Yarn })
+            foreach (ItemKind k in new[] { ItemKind.Carrot, ItemKind.Coconut, ItemKind.Honey, ItemKind.Shield, ItemKind.Feather, ItemKind.Yarn, ItemKind.Comet })
                 icons.Add((Icons.Item(k), new Color(0.12f, 0.15f, 0.25f)));
-            foreach (var spec in AnimalSpec.Roster) icons.Add((Icons.Portrait(spec), spec.Kart));
+            foreach (var spec in DriverSpec.Roster) icons.Add((Icons.Portrait(spec), spec.Kart));
 
             int rows = (icons.Count + cols - 1) / cols;
             var sheet = new Texture2D(cols * cell, rows * cell, TextureFormat.RGBA32, false);

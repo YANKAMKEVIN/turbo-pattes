@@ -1,10 +1,10 @@
-# Turbo Pattes — état du projet
+# Turbo Grid — état du projet
 
-Jeu de karting arcade original (nom de travail « Turbo Pattes ») : pilotes animaux cartoon, drift qui charge un turbo,
+Jeu de karting arcade original **Turbo Grid** (nom choisi par Kevin le 2026-11-21 ; nom de travail « Turbo Pattes », gardé par le dépôt et l'identifiant) : pilotes humains en direction « arcade sportif », drift qui charge un turbo,
 objets ramassés sur la piste, 8 pilotes, 3 tours. Codes du genre, mais personnages, circuits, objets et interface
 propres au jeu (pas de reprise de Mario Kart ni d'aucun autre jeu existant).
 
-Dernière mise à jour : 2026-11-01.
+Dernière mise à jour : 2026-11-21.
 
 Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). Pousser après chaque tâche.
 
@@ -14,15 +14,17 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 |---|---|
 | Moteur | Unity 6000.6.3f1 + URP 17 + Input System (configuration reprise de `~/dev/check`) |
 | Plateformes | Mobile Android **et** PC/manette dès le départ (iOS plus tard) |
-| Univers | Animaux pilotes, **tous publics (8-50 ans), pas « bébé »** |
-| Direction artistique (2026-11-01) | **« Atelier plein gaz »** : port méditerranéen, rendu peint façon affiche de sport, pilotes athlétiques en combinaison + casque, karts artisanaux en tubes soudés. Palette `#24302D` `#D94D3F` `#E9B949` `#3C8F91` `#F2E7CE`, police Saira (OFL). Fiche : `docs/da/directions-v2/directions.md`, planche `direction-3.png`. Un peu plus coloré et moins réaliste que la planche (accessible comme les grands jeux de kart). Les DA « Club des Pattes » (`docs/da/maquettes-codex`) et l'UI actuelle sont rejetées : trop enfantines. |
+| Univers | ~~Animaux pilotes~~ → **pilotes humains** (décision du 2026-11-21), **tous publics (8-50 ans), pas « bébé »** |
+| Direction artistique (2026-11-21) | **« Arcade sportif »** : karts et circuits façon sport mécanique, couleurs franches mais sobres (carbone `#14171B`, blanc piste `#F2F4F6`, rouge course `#C8211B`, jaune signal `#F2C200`, bleu télémétrie `#1A62C0`), police Saira Condensed (OFL), HUD épuré, métal et carbone. Référence : `docs/design/da-arcade-sportif.md`. Remplace « Atelier plein gaz », jugée trop enfant. Branche `claude/da-sport`. **Validée par Kevin le 21/11** (palette, pilotes, objets, circuits) ; restent la police et l'accroche. |
+| ~~Direction artistique (2026-11-01)~~ | *Remplacée le 2026-11-21.* **« Atelier plein gaz »** : port méditerranéen, rendu peint façon affiche de sport, pilotes athlétiques en combinaison + casque, karts artisanaux en tubes soudés. Palette `#24302D` `#D94D3F` `#E9B949` `#3C8F91` `#F2E7CE`, police Saira (OFL). Fiche : `docs/da/directions-v2/directions.md`, planche `direction-3.png`. Un peu plus coloré et moins réaliste que la planche (accessible comme les grands jeux de kart). Les DA « Club des Pattes » (`docs/da/maquettes-codex`) et l'UI actuelle sont rejetées : trop enfantines. |
 | Première étape | Prototype jouable : conduite, drift/turbo, un circuit, IA |
-| Identifiant | `com.kevinyankam.turbopattes`, écran en paysage |
+| Nom du jeu (2026-11-21) | **Turbo Grid** : constante `Brand.Title` (logo, nom de l'application `productName`, menus de l'éditeur). Marque et disponibilité sur les stores à vérifier. |
+| Identifiant | `com.kevinyankam.turbopattes`, écran en paysage. **Gardé malgré le nouveau nom** : le changer créerait une nouvelle application sur le store. Le dépôt et les espaces de noms `TurboPattes.*` gardent aussi l'ancien nom. |
 
 ## Contenu du prototype
 
-- **Circuit 1** « Prairie des Pattes » (~1,1 km, plat, rayon mini ~15 m) : spline fermée, bitume, vibreurs, murets, portique de départ, tribune, arbres, collines, nuages. Tout est généré par code.
-- **Circuit 2** « Canyon Caramel » (~1,18 km, rayon mini ~16 m) : un huit dans un désert de roches rousses. Départ, passage sous le pont, boucle ouest qui ondule (bosse à 5 m, creux, remontée), retour **sur le pont à 8 m** au-dessus du premier passage, plateau, **tremplin** (rampe de 10 m, +1,5 m) au sommet d'une longue descente vers la ligne (~0,9 s de vol). Décor : sable, talus sous la piste surélevée, mesas à strates, cheminées de fée, cactus, rochers, muret terre cuite, ambiance chaude (soleil, brouillard).
+- **Circuit 1** « Circuit des Prés » (ex-« Prairie des Pattes ») (~1,1 km, plat, rayon mini ~15 m) : spline fermée, bitume, vibreurs, murets, portique de départ, tribune, arbres, collines, nuages. Tout est généré par code.
+- **Circuit 2** « Canyon Rouge » (ex-« Canyon Caramel ») (~1,18 km, rayon mini ~16 m) : un huit dans un désert de roches rousses. Départ, passage sous le pont, boucle ouest qui ondule (bosse à 5 m, creux, remontée), retour **sur le pont à 8 m** au-dessus du premier passage, plateau, **tremplin** (rampe de 10 m, +1,5 m) au sommet d'une longue descente vers la ligne (~0,9 s de vol). Décor : sable, talus sous la piste surélevée, mesas à strates, cheminées de fée, cactus, rochers, muret terre cuite, ambiance chaude (soleil, brouillard).
 - **Circuits 3 à 10** (tracés générés puis vérifiés : rayon mini 16 à 58 m, pente ≤ 8 %, ≥ 8 m de dénivelé aux croisements) :
   « Jungle Papaye » (arbres géants, ruines, 2 tremplins), « Lagon Coco » (îlots de sable, eau, palmiers, voiliers, pont-ponton),
   « Récif Bulle » (sous la mer : coraux, algues, bulles, poissons, brouillard bleu), « Route des Nuages » (piste suspendue entre 30 et 50 m
@@ -31,16 +33,16 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
   « Volcan Grondant » (montée à 14 m, coulées et mares de lave, volcan fumant), « Ville Néon » (huit de nuit avec échangeur, tours
   aux fenêtres allumées, lampadaires, néons). Ambiance par thème dans `Track/ThemeStyle` (ciel procédural, brouillard, lumière, sol, murets, eau).
 - **Relief** : hauteur par point de contrôle (`Circuit.Heights`), reliée par une cubique monotone sans dépassement (`Core/HeightProfile`, avec les tremplins par-dessus, seulement sur bitume + vibreurs). `KartMotor` suit le sol, les côtes freinent et les descentes poussent (45 % de la gravité), il décolle quand le sol se dérobe plus vite que la gravité (`Core/VerticalMotion`, g = 24 m/s²), volant réduit en l'air, tassement et son à la réception, tangage selon la pente. Au croisement, la recherche du tronçon le plus proche tient compte de la hauteur (`Core/TrackProjection`) : tours, IA, objets et chocs entre karts ne confondent pas le pont et la route dessous.
-- **Pilotes** (8, modèles en primitives) : Roxy (renarde, joueuse), Bambou (panda), Flip (grenouille), Lili (lapine), Bruno (ours), Mimi (chatte), Pingo (pingouin), Rosa (cochonne). **Caractère** (`Core/DriverStats`) : vitesse, accélération, adhérence, poids de 1 à 5, même total pour tous ; effets de quelques pour cent (pointe ±3 %, accélération ±16 %, braquage ±12 %, le plus lourd est moins bousculé dans les chocs). Jauges affichées sous le nom dans le choix du pilote.
+- **Pilotes** (8 humains depuis le 2026-11-21, modèles en primitives, `Core/Roster`) : Alex Moreau n° 7 (joueur par défaut, ex-Roxy), Viktor Brandt n° 12 (ex-Bambou), Lina Okafor n° 23 (ex-Flip), Sami Haddad n° 31 (ex-Lili), Teo Ferraz n° 5 (ex-Bruno), Hana Mori n° 18 (ex-Mimi), Nora Lindqvist n° 27 (ex-Pingo), Inès Duval n° 64 (ex-Rosa). **Caractère** (`Core/DriverStats`) : vitesse, accélération, adhérence, poids de 1 à 5, même total pour tous ; effets de quelques pour cent (pointe ±3 %, accélération ±16 %, braquage ±12 %, le plus lourd est moins bousculé dans les chocs). Jauges affichées sous le nom dans le choix du pilote.
 - **Conduite** arcade sans moteur physique (`KartMotor`) : saut + drift à 3 niveaux (étincelles jaunes, vertes, roses), turbo au lâcher, **figure en l'air** (DRIFT pendant un saut : tonneau, petit turbo si elle est finie avant l'atterrissage, `Core/AirTrick` ; l'IA en fait aussi), poussière et secousse de caméra aux réceptions et aux chocs, vibrations sur téléphone, hors-piste lent, rebond sur les murets, chocs entre karts, super départ (accélérer dans la dernière seconde du compte à rebours), tapis turbo.
-- **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier, **plume planante** (grand bond plané avec élan, passe par-dessus coco, pelote et miel), **pelote de laine** (file le long de la piste vers le kart juste devant ; jamais tirée par le premier). Tirage selon la place (`ItemRoll`). L'IA garde son bouclier pour parer un projectile, saute à la plume par-dessus le miel, lance la pelote quand quelqu'un est devant.
+- **Objets** (depuis le 2026-11-21 : caisses objet, et noms sport mécanique, voir la refonte plus bas) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier, **plume planante** (grand bond plané avec élan, passe par-dessus coco, pelote et miel), **pelote de laine** (file le long de la piste vers le kart juste devant ; jamais tirée par le premier). Tirage selon la place (`ItemRoll`). L'IA garde son bouclier pour parer un projectile, saute à la plume par-dessus le miel, lance la pelote quand quelqu'un est devant.
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
 - **Commandes** : clavier (flèches/WASD/ZQSD, Espace = drift, E = objet, R = rejouer), manette (stick, RT/A, LT/B, RB = drift, X/Y = objet, Start), tactile (glisser à gauche pour tourner, boutons DRIFT / OBJET / FREIN, accélération auto).
 - **Menus** (IMGUI, outils communs dans `UI/UiKit`) : écran titre sur fond du circuit survolé, choix du pilote (kart sur plateau tournant, cartes des 8 pilotes, flèches), mode Course / Chrono / Coupe, circuit (sélecteur < nom n/10 >, la piste est reconstruite derrière le menu), tours 1/3/5, difficulté Facile/Normal/Difficile (vitesse des IA), « C'est parti ! ». Choix mémorisés (PlayerPrefs, `App/GameSession`). Pause (bouton ⏸ tactile, Échap/P, Start) : Reprendre / Recommencer / Menu. Résultats : Rejouer / Menu. Souris, tactile, clavier (flèches + Entrée) et manette (croix + A/B).
 - **Icônes dessinées par code** (`Visuals/IconCanvas` + `Visuals/Icons`, aucun fichier image) : 4 objets (carotte, noix de coco, pot de miel, bulle) et 8 portraits de pilotes, sur les cartes du menu, le classement, les résultats et l'emplacement d'objet. Planche de contrôle : `docs/icones.png`.
 - **Musique composée et jouée par code, une par circuit** : 11 partitions originales notées dans `Core/Tune.cs` (menu + 10 circuits, 16 mesures chacune, 120 à 156 BPM), chacune avec sa tonalité, son accompagnement (`SongStyle` : galop western pour le Canyon, marimba et congas pour la Jungle, calypso au tambour d'acier pour le Lagon, échos et bulles pour le Récif, flûte et clochettes pour les Nuages, synthé en doubles croches pour l'Espace, grelots pour la Banquise, guitare saturée et double grosse caisse pour le Volcan, disco pour la Ville Néon) et son timbre de mélodie (`LeadVoice`). Tests : mesures complètes, notes et accords dans la tonalité, tessiture, fin de boucle sur la tonique ou la quinte, un style différent par circuit. Synthétiseur `Audio/MusicSynth` (50 à 170 ms par morceau sur Mac). `Audio/Jukebox` survit aux rechargements de scène : musique du menu, silence pendant le compte à rebours (le morceau du circuit est calculé à ce moment-là), musique du circuit au « PARTEZ ! », plus basse en pause et à l'arrivée ; un seul morceau de circuit gardé en mémoire.
 - **Contre-la-montre** (mode « Chrono ») : **écart avec le meilleur tour** aux quarts de tour et à la ligne (vert/rouge, `Core/LapSplits`, temps intermédiaires sauvegardés avec le fantôme) ; **médailles** bronze/argent/or par circuit d'après le meilleur tour (`Core/Medals`, référence = tour lancé de l'IA), affichées aux résultats et dans le menu ; le joueur seul, sans bulles d'objets ; tour en cours, meilleur tour et record affichés ; records par circuit (temps total par nombre de tours, meilleur tour) dans PlayerPrefs (`GameSession.BestTime/BestLap`). **Fantôme** du meilleur tour (`Core/GhostLap` : une pose tous les 0,1 s, interpolée ; `Race/GhostRunner`) : kart translucide qui rejoue ce tour en même temps que le tour en cours, sauvegardé dans `fantome-N.txt` (stockage de l'appli) quand le record tombe, « Record du tour ! » en course. Résultats : temps des tours (meilleur surligné), total, ancien record.
-- **Coupes** (mode « Coupe ») : Coupe Pâquerette (Prairie, Canyon, Jungle, Lagon), Coupe Coquillage (Récif, Banquise, Nuages, Espace), Coupe Braise (Volcan, Ville Néon, Canyon, Espace). Points selon la place 10-8-6-5-4-3-2-1, classement cumulé (`Core/Cup` : égalité départagée par le nombre de victoires, de 2es places…, puis la dernière course). Après chaque course : place, points gagnés et classement cumulé, « Course suivante » ; après la 4e : **podium** sur la piste (trois marches, karts, vainqueur qui sautille, confettis, classement complet). Coupe en cours dans `GameSession.Cup` (perdue en revenant au menu). **Grille** : à partir de la 2e course, le dernier du classement part en tête. **Trophées** or/argent/bronze mémorisés ; une coupe s'ouvre après un podium dans la précédente (« Coupe fermée » sinon). Fanfare au podium (`Songs.Podium`), jingle à l'arrivée (`Songs.Finish`). Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
+- **Coupes** (mode « Coupe ») : Coupe Asphalte, ex-Pâquerette (Prairie, Canyon, Jungle, Lagon), Coupe Horizon, ex-Coquillage (Récif, Banquise, Nuages, Espace), Coupe Braise (Volcan, Ville Néon, Canyon, Espace). Points selon la place 10-8-6-5-4-3-2-1, classement cumulé (`Core/Cup` : égalité départagée par le nombre de victoires, de 2es places…, puis la dernière course). Après chaque course : place, points gagnés et classement cumulé, « Course suivante » ; après la 4e : **podium** sur la piste (trois marches, karts, vainqueur qui sautille, confettis, classement complet). Coupe en cours dans `GameSession.Cup` (perdue en revenant au menu). **Grille** : à partir de la 2e course, le dernier du classement part en tête. **Trophées** or/argent/bronze mémorisés ; une coupe s'ouvre après un podium dans la précédente (« Coupe fermée » sinon). Fanfare au podium (`Songs.Podium`), jingle à l'arrivée (`Songs.Finish`). Sons d'interface (déplacement, valider, retour) dans les menus et la pause.
 - **Réglages** (`UI/SettingsScreen`, depuis le titre — bouton, Tab ou Y — et la pause) : volume musique, volume effets, sensibilité tactile, vibrations, qualité (Auto ou imposée). La course se met en pause toute seule quand l'appli passe en arrière-plan.
 - **Tutoriel** à la première course (`UI/Tutorial`) : super départ, direction, drift, objet, figure, chacun au moment où il sert ; `-tp-tutorial` le force.
 - **Icône de l'application** dessinée par code (`Editor/AppIcon`, patte crème sur dégradé orange, icône adaptative Android) ; version 0.2.0.
@@ -80,7 +82,7 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 # Course automatique (le joueur est piloté par l'IA), captures + journal dans le dossier :
 # -tp-circuit 1 (Prairie, par défaut) ou 2 (Canyon : en plus, vues fixes du pont et du tremplin, captures saut/pont/dessous,
 # nombre de sauts par kart et alerte si un kart passe sous la piste). Dossier relatif = stockage de l'appli (Android).
-~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1 -tp-circuit 2
+~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid" -tp-autotest /tmp/tp-autotest -tp-laps 1 -tp-circuit 2
 # Les 10 circuits d'affilée (1 tour chacun) : résumé OK/ECHEC, fluidité, sauts ; échoue si course non finie, anomalie ou < 30 i/s
 # (tools/autotest-difficultes.sh : les mêmes dans les 3 difficultés, option -tp-difficulty 1|2|3)
 ~/dev/turbo-pattes/tools/autotest-tous.sh /tmp/tp-tous 1
@@ -92,8 +94,8 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.MusicExport.Export -tp-out Builds/Musique -logFile -
 # Planche PNG de toutes les icônes (objets + portraits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
-# Parcours des menus (titre, pilote, choix de Bruno + Canyon, course avec un pot de miel en main, pause) avec captures :
-~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-menutest /tmp/tp-menutest
+# Parcours des menus (titre, pilote, choix de Teo (ex-Bruno) + Canyon, course avec un pot de miel en main, pause) avec captures :
+~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid" -tp-menutest /tmp/tp-menutest
 # Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
 ~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
 ~/Library/Android/sdk/platform-tools/adb shell am start -n com.kevinyankam.turbopattes/com.unity3d.player.UnityPlayerGameActivity -e unity "-tp-diag"
@@ -101,6 +103,17 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ```
 
 ## Vérifications faites (2026-11-01)
+
+- **Branche `claude/da-sport`, nom « Turbo Grid » (2026-11-21, conteneur Linux sans Unity)** : `Brand.Title`, `productName`
+  (ProjectSettings et `BuildScript.ConfigurePlayer`), menus de l'éditeur tirés de `Brand.Title`, exécutable Mac des
+  scripts `tools/autotest-*.sh` (`TurboPattes.app/Contents/MacOS/Turbo Grid`). 188 tests NUnit verts (188 avant, test
+  du titre mis à jour). Unity non exécuté. **À faire sur Mac** : relancer « Turbo Grid/Configurer le projet », rebuilder
+  avant les autotests (l'ancien exécutable s'appelle encore « Turbo Pattes »), vérifier le logo TURBO / GRID. Les
+  préférences et fantômes Mac enregistrés sous « Turbo Pattes » ne sont pas repris (dossier lié au nom du produit).
+
+- **Branche `claude/da-sport` (2026-11-21, conteneur Linux sans Unity)** : refonte « arcade sportif » (interface, pilotes humains, karts, objets, décors). 188 tests NUnit verts (164 avant). Game/ compilé contre les assemblies de référence UnityEngine 2021.3 (NuGet) avec des stubs, sans nouvelle erreur ; Editor/ vérifié en syntaxe (Roslyn). Rien n'a été vu à l'écran : voir « À faire sur Mac » dans la refonte.
+
+- **Branche `claude/suite` (2026-11-21, conteneur Linux sans Unity)** : raccourci de la Prairie, virage relevé des Nuages et lave animée, comète, fantôme rival, réglages restylés, pilotes affinés et animations de fin. 164 tests NUnit verts (121 avant). Code Unity **ni compilé ni exécuté** : seule sa syntaxe a été vérifiée (analyseur Roslyn). À faire sur Mac : compiler, `autotest-tous.sh`, `autotest-modes.sh`, `-tp-menutest`, et regarder la Prairie (sable, tremplin), les Nuages (relevé), le Volcan (lave), l'écran des réglages et le podium.
 
 - **20 étapes (réglages, pilotes, objets, figures, médailles, trophées…)** : 89 tests NUnit verts (dont 20 nouveaux : qualité adaptative, caractère des pilotes, figures, plume et pelote, médailles, temps intermédiaires, trophées, grille). Mac : `autotest-tous.sh` 10/10 (42 à 55 i/s), `autotest-modes.sh` OK (chrono : 8 écarts affichés, médaille d'argent, temps intermédiaires sauvegardés ; coupe complète avec grille inversée), **`autotest-difficultes.sh` 30/30** (pilote automatique 1er partout en Facile, 1er à 3e en Normal, 2e à 6e en Difficile). Les IA utilisent plume et pelote et font 1 à 3 figures par course. `-tp-menutest` : réglages et jauges des pilotes. Captures : `docs/capture-reglages-pilotes-tutoriel.png`.
   - **Galaxy A17** : course sur la Jungle avec tutoriel (4 conseils, 38 à 56 i/s), contre-la-montre avec l'ancien fantôme relu (format 1) et écart « +1,68 » affiché à la ligne. Captures : `docs/capture-a17-tutoriel-ecart.png`. Les autres sessions (KeRush, Kanto, Shonen Clash) reprennent parfois le téléphone en plein test : relancer si le journal est incomplet.
@@ -141,7 +154,49 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 - Brouillard : la scène enregistrée a le brouillard activé pour que ses variantes de shader ne soient pas retirées du build.
 - Hérités de Check/KevChess : « Strip Unused Post Processing Variants » désactivé (sinon écran noir Android) ; Mac = Mono seulement ; un seul éditeur Unity par dossier.
 
-## Refonte DA « Atelier plein gaz » (prioritaire)
+## Refonte DA « arcade sportif » (branche `claude/da-sport`, prioritaire)
+
+Référence : `docs/design/da-arcade-sportif.md`, **validée par Kevin le 21/11** (palette, pilotes, objets, circuits) ;
+nom du jeu choisi le même jour : **Turbo Grid** (`Brand.Title`). Restent des valeurs par défaut : police, accroche. Code Unity **ni compilé ni exécuté** dans le conteneur Linux : Game/ vérifié contre les
+assemblies de référence UnityEngine (NuGet) avec des stubs, Editor/ en syntaxe seulement (Roslyn).
+
+1. **Thème et interface** : `Core/Brand` (titre affiché `Brand.Title`, une seule constante ; accroche ; palette
+   `Palette` ; couples texte/fond `Palette.TextPairs` testés au contraste WCAG ; polices `Typography`), Saira Condensed
+   Bold/SemiBold (OFL) dans `Resources/Fonts`, chiffres fixes recalculés, `UiKit` aux tokens sport (`Carbon`, `Chalk`,
+   `Red`, `Signal`, `Telemetry`, `Graphite`, `Steel`) pour tous les écrans (titre, pilote, circuit, réglages, pause,
+   résultats, podium, HUD) ; logo du titre tiré de `Brand.Title`, emblème damier + chevrons à la place de la patte ;
+   libellés du HUD en capitales.
+2. **Pilotes humains** : `Core/Roster` (prénom, nom, code à trois lettres, numéro, caractère affiché, couleurs d'équipe ;
+   même index que `Drivers.Stats`, caractères de jeu inchangés et testés), `Kart/DriverSpec` (ex-`AnimalSpec`) ;
+   `KartFactory.BuildDriver` : bassin, cuisses et tibias vers le pédalier, buste en combinaison avec bande, col
+   carbone, bras gantés sur le volant, casque intégral (bande, visière fumée, mentonnière, becquet) ; portraits
+   = casque de trois quarts ; animations de fin gardées, amplitude des bras réduite de 20 % ; classement du HUD en
+   tour de chronométrage (couleur d'équipe, code, numéro). Les autotests cherchent maintenant « Alex » dans le journal.
+3. **Karts** : plancher et pare-chocs carbone, nez enveloppant avec bande, panneau frontal incliné, pontons latéraux
+   arrondis avec liseré, baquet carbone, moteur métal sur le côté droit, colonne de direction, becquet bas à dérives ;
+   slicks et jantes métal ; numéro de course sur plaque blanche (chiffres à sept segments `Core/SevenSegment`, testé,
+   `Icons.NumberPlate`) sur le panneau frontal, les deux pontons et le pare-chocs arrière ; bouclier en enveloppe fumée.
+4. **Objets** (même mécanique, `Core/ItemCatalog` : nom affiché, description, mécanique testée par identifiant) :
+   carotte → **Nitro**, noix de coco → **Pneu fou**, pot de miel → **Flaque d'huile**, bulle → **Bouclier carbone**,
+   plume → **Aileron**, pelote → **Drone traqueur**, comète → **Aspiration**. Les identifiants `ItemKind` sont gardés.
+   Icônes redessinées par code (bouteille, pneu, bidon et flaque, écu carbone, aile, quadrirotor, chevrons) ; en piste :
+   pneu qui roule sur sa bande (axe recalé après chaque rebond), nappe d'huile et bidon couché, drone à rotors,
+   caisses objet fumées à chevrons jaunes (`TrackBuilder.ChevronSign`) à la place des bulles à patte. Journal
+   d'autotest : « nitro / pneu / huile / bouclier / aileron / drone / aspiration ».
+5. **Circuits et décors** : portique de départ carbone à cinq feux rouges et panneaux sponsors sur les piliers ;
+   panneaux sponsors fictifs sur les murets de la ligne droite (texte en police pixel `Core/PixelFont`, testée,
+   `ProceduralTextures.Banner` ; sponsors inventés `Core/Sponsors` : VELTRA, KORVEX, ORLAN, TAVIK, MIRALTO) ; piles
+   de pneus à l'extérieur des virages serrés (sur le sol) ; tribune à toiture graphite, public aux couleurs des
+   équipes, bandeau sponsor ; glissières aux couleurs sport par thème (`ThemeStyle`), vibreurs au rouge course,
+   tapis turbo jaune signal ; haies à la place des massifs de fleurs (Prés), postes de commissaires à la place des
+   bonshommes de neige (Banquise) ; icône de l'application : chevrons rouges et damier sur carbone.
+   Noms puérils remplacés : Prairie des Pattes → **Circuit des Prés**, Canyon Caramel → **Canyon Rouge**, Jungle
+   Papaye → **Jungle Émeraude**, Lagon Coco → **Lagon Turquoise**, Récif Bulle → **Récif Profond** ; Coupe Pâquerette →
+   **Coupe Asphalte**, Coupe Coquillage → **Coupe Horizon**. Noms courts, tracés et musiques inchangés.
+   **À faire sur Mac** : compiler, `-tp-menutest`, `autotest-tous.sh`, `autotest-modes.sh`, planche `IconSheet`, puis
+   régénérer `docs/icones.png` et l'icône (`AppIcon.Apply`) ; regarder pilotes, numéros, panneaux et feux de départ.
+
+## Refonte DA « Atelier plein gaz » (remplacée le 2026-11-21, gardée pour l'historique)
 
 Toute l'apparence actuelle (pilotes en primitives, karts en blocs, UI IMGUI arrondie) est à remplacer. Grandes étapes :
 
@@ -159,19 +214,21 @@ dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms
 2. ~~Qualité adaptative qui baisse et remonte (`Core/QualityGovernor`, sans va-et-vient), réglage manuel~~ (fait).
 3. ~~Fusion du décor~~ (fait).
 4. Test de ressenti par Kevin (S24 + manette) : vitesse, drift, côtes, saut, IA.
-5. ~~Écran de réglages~~ (fait) ; à restyler avec la DA « Atelier ».
-6. ~~Dix circuits~~ (fait) ; à venir : virages relevés, boucles, passages anti-gravité, décors animés (lave, vagues, nuages).
+5. ~~Écran de réglages~~ (fait) ; ~~restylé avec la DA « Atelier »~~ (branche `claude/suite`, **non vu dans Unity**) : sections Son / Commandes / Affichage en titres ocre dans la marge, jauges en dix crans obliques avec la valeur en chiffres fixes, bascules Droitier/Gaucher et Oui/Non en deux segments touchables, rappel des commandes en pied d'écran (`Core/SettingsRows`, testé). À vérifier à l'œil sur Mac et au doigt sur téléphone.
+6. ~~Dix circuits~~ (fait). Première tranche des virages relevés et du décor animé (branche `claude/suite`, **non exécutée dans Unity**) :
+   `Core/Banking` (testé) incline la piste autour de sa ligne médiane (entrée et sortie douces sur 20 m) ; la Route des Nuages relève de 12° son virage le plus serré (`Circuit.Banks`). Route, vibreurs, murets, tablier et `PointAt` suivent l'inclinaison, le kart prend le roulis, glisse moins en drift (`Banking.SlideFactor`) et l'IA y passe plus vite (`Banking.CornerSpeedRatio`). Réservé aux tronçons portés (piste suspendue, ponts) : le terrain ne suit pas encore. La lave du Volcan palpite (`Core/DecorWaves.LavaGlow`, `Track/DecorMotion` posé après la fusion du décor).
+   Reste : **boucles** (la piste devra quitter le plan : tangentes et « droite » 3D, caméra et gravité qui suivent la normale du sol, `TrackProjection` en 3D) ; **passages anti-gravité** (mêmes besoins, plus une normale de piste par échantillon et un repère kart lié au sol) ; **vagues** du Lagon (sommets du plan d'eau déplacés par un `Mesh` dynamique ou un décalage de texture) et **nuages** qui dérivent sur la Route des Nuages (déplacer les groupes de nuages avant la fusion, donc hors `MeshKit.Combine`) ; relevés sur terrain (talus qui suit l'inclinaison).
 7. ~~Une musique par circuit~~ (fait) ; à faire : que Kevin les écoute (export WAV) et dise lesquelles retoucher.
-8. ~~Plume planante et pelote de laine~~ (fait) ; idées : objet rare pour les derniers.
-9. Raccourcis risqués (sable lent mais court, second tremplin).
+8. ~~Plume planante et pelote de laine~~ (fait). ~~Objet rare pour les derniers~~ (branche `claude/suite`, **non exécuté dans Unity**) : la **comète**, tirée seulement dans le dernier quart du peloton (≥ 4 pilotes, 7 % pour le dernier, hors roulette) : 3,5 s de turbo en pilote automatique sur la ligne médiane, intouchable, elle fait tourner les karts percutés (`ItemKind.Comet`, `CometRun`, `ItemRoll.CometWeight`, testés ; icône dessinée par code). À régler au ressenti : durée, rareté.
+9. ~~Raccourcis risqués~~ (première tranche, branche `claude/suite`, **non exécutée dans Unity**) : `Core/Shortcut` (testé) ; sur la Prairie, dans le grand virage à gauche du nord-est, le muret intérieur recule de 9 m et laisse une bande de sable (vitesse 0,5 contre 0,55 dans l'herbe) avec un petit tremplin rayé (8 m, +1,2 m) : perdant sans turbo, gagnant avec la carotte. L'IA coupe sous turbo et garde sa carotte pour l'entrée. À faire : vérifier dans Unity (autotest Prairie), régler les valeurs au ressenti, en poser sur d'autres circuits (`Circuit.Shortcuts`).
 10. ~~Poussière, secousse, figure en l'air = turbo~~ (fait).
-11. ~~Contre-la-montre, fantôme, écarts en direct, médailles~~ (fait) ; idée : fantôme d'un autre pilote.
+11. ~~Contre-la-montre, fantôme, écarts en direct, médailles~~ (fait). ~~Fantôme d'un autre pilote~~ (branche `claude/suite`, **non exécuté dans Unity**) : en Chrono, la ligne « Difficulté » du menu devient « Fantôme : Record / Rival / Aucun ». Chaque pilote garde son meilleur tour et son fantôme (`fantome-<circuit>-p<pilote>.txt`) ; en « Rival », on court contre le plus rapide des autres pilotes (`GhostPick.Rival`), avec son kart et ses temps intermédiaires, annoncé par un bandeau ; sans autre pilote, retour au record. Format `fantome3` (pilote enregistré), anciens fichiers toujours lus (testé).
 12. ~~Coupes, déblocage, trophées, grille inversée~~ (fait).
-13. ~~Podium, fanfare, jingle d'arrivée~~ (fait) ; à enrichir : animations de victoire (avec les nouveaux pilotes Blender).
-14. ~~Caractère des pilotes~~ (fait) ; animations de victoire/défaite avec la refonte des pilotes.
-15. Modèles de pilotes plus fins, toujours générés par code.
+13. ~~Podium, fanfare, jingle d'arrivée~~ (fait) ; ~~animations de victoire~~ (première tranche, branche `claude/suite`, **non exécutée dans Unity**) : sur le podium, les trois premiers lèvent les bras et saluent (décalés), le peloton au pied fête ou baisse la tête selon sa place.
+14. ~~Caractère des pilotes~~ (fait) ; ~~animations de victoire/défaite~~ (première tranche, **non exécutée**) : `Core/DriverPoses` (testé) calcule la posture depuis l'arrivée — victoire (bras levés qui saluent, petits sauts, regard vers le ciel) pour les 3 premiers, défaite (bras qui lâchent le volant, tête basse secouée, buste tassé) pour la seconde moitié du peloton ; jouée à l'arrivée de chaque kart et sur le podium (`KartFactory.Pose`).
+15. Modèles de pilotes plus fins, toujours générés par code : première tranche (**non vue dans Unity**) : casque ouvert aux couleurs du kart (coque au-dessus des yeux, oreilles qui dépassent, liseré, visière ; bandeau gardé pour la grenouille), col de combinaison, manches de combinaison et gants, épaules et tête articulées. Reste : silhouettes plus athlétiques (buste, bassin, jambes visibles), museaux et mains modelés en maillages générés (`MeshKit`) plutôt qu'en primitives, numéro et livrée par pilote, animations de conduite (se pencher dans les virages, regarder derrière) ; validation de Roxy par Kevin avant les 7 autres.
 16. ~~Tutoriel à la première course~~ (fait).
 17. ~~Autotest de tous les circuits dans les 3 difficultés~~ (fait : `tools/autotest-difficultes.sh`).
 18. Tester manette réelle, multi-touch (tourner + drift) et bouton OBJET sur téléphone.
 19. Version iOS (simulateur puis iPhone).
-20. Publication : ~~icône par code, version 0.2.0~~ (fait) ; reste captures boutique, nom définitif, AAB signé (clé à créer avec Kevin).
+20. Publication : ~~icône par code, version 0.2.0~~ (fait) ; ~~nom définitif~~ (**Turbo Grid**, 21/11 ; marque à vérifier) ; reste captures boutique, AAB signé (clé à créer avec Kevin).
