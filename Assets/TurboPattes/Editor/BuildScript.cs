@@ -24,7 +24,7 @@ namespace TurboPattes.EditorTools
         const string ResourcesDir = "Assets/TurboPattes/Resources";
         const string BundleId = "com.kevinyankam.turbopattes";
 
-        [MenuItem("Turbo Pattes/Configurer le projet")]
+        [MenuItem(TurboPattes.Core.Brand.Title + "/Configurer le projet")]
         public static void Setup()
         {
             ConfigureInputHandling();
@@ -37,7 +37,7 @@ namespace TurboPattes.EditorTools
             Debug.Log("[TurboPattes] Projet configuré");
         }
 
-        [MenuItem("Turbo Pattes/Build Android (APK)")]
+        [MenuItem(TurboPattes.Core.Brand.Title + "/Build Android (APK)")]
         public static void BuildAndroid()
         {
             if (!RequireActiveTarget(BuildTarget.Android, "Android")) return;
@@ -49,7 +49,7 @@ namespace TurboPattes.EditorTools
             Build(BuildTarget.Android, "Builds/Android/TurboPattes.apk");
         }
 
-        [MenuItem("Turbo Pattes/Build macOS")]
+        [MenuItem(TurboPattes.Core.Brand.Title + "/Build macOS")]
         public static void BuildMac()
         {
             if (!RequireActiveTarget(BuildTarget.StandaloneOSX, "OSXUniversal")) return;
@@ -189,7 +189,7 @@ namespace TurboPattes.EditorTools
         static void ConfigurePlayer()
         {
             PlayerSettings.companyName = "Kevin Yankam";
-            PlayerSettings.productName = "Turbo Pattes";
+            PlayerSettings.productName = TurboPattes.Core.Brand.Title;
             PlayerSettings.bundleVersion = "0.2.0";
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, BundleId);
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, BundleId);

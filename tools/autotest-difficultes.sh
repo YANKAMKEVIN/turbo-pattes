@@ -2,7 +2,7 @@
 # Les 10 circuits dans les 3 difficultés (Mac, 1 tour chacun) : échoue si une course ne finit pas, si une anomalie
 # ou une exception est signalée, ou si la fluidité moyenne passe sous 30 i/s. Usage : tools/autotest-difficultes.sh [dossier]
 out=${1:-/tmp/tp-difficultes}
-app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes"
+app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid"
 rm -rf $out && mkdir -p $out
 noms=(Facile Normal Difficile)
 echec=0

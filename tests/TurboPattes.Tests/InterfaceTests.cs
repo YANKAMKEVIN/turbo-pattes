@@ -42,7 +42,8 @@ namespace TurboPattes.Tests
         [Test]
         public void Titre_UneSeuleConstanteCoupeeEnDeuxLignesPourLeLogo()
         {
-            Assert.That(Brand.LogoLines(), Is.EqualTo(new[] { "TURBO", "PATTES" }));
+            Assert.That(Brand.Title, Is.EqualTo("Turbo Grid"));
+            Assert.That(Brand.LogoLines(), Is.EqualTo(new[] { "TURBO", "GRID" }));
             Assert.That(Brand.LogoLines("Apex Kart"), Is.EqualTo(new[] { "APEX", "KART" }));
             Assert.That(Brand.LogoLines("Ligne Rouge Karting"), Is.EqualTo(new[] { "LIGNE ROUGE", "KARTING" }));
             Assert.That(Brand.LogoLines("Kartix"), Is.EqualTo(new[] { "KARTIX", "" }));

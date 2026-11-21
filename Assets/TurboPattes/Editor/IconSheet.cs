@@ -13,7 +13,7 @@ namespace TurboPattes.EditorTools
     /// </summary>
     public static class IconSheet
     {
-        [MenuItem("Turbo Pattes/Exporter la planche d'icônes")]
+        [MenuItem(TurboPattes.Core.Brand.Title + "/Exporter la planche d'icônes")]
         public static void Export()
         {
             string output = "docs/icones.png";

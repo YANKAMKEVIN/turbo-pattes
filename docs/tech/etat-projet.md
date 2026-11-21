@@ -1,6 +1,6 @@
-# Turbo Pattes — état du projet
+# Turbo Grid — état du projet
 
-Jeu de karting arcade original (nom de travail « Turbo Pattes », nom définitif à choisir) : pilotes humains en direction « arcade sportif », drift qui charge un turbo,
+Jeu de karting arcade original **Turbo Grid** (nom choisi par Kevin le 2026-11-21 ; nom de travail « Turbo Pattes », gardé par le dépôt et l'identifiant) : pilotes humains en direction « arcade sportif », drift qui charge un turbo,
 objets ramassés sur la piste, 8 pilotes, 3 tours. Codes du genre, mais personnages, circuits, objets et interface
 propres au jeu (pas de reprise de Mario Kart ni d'aucun autre jeu existant).
 
@@ -18,7 +18,8 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 | Direction artistique (2026-11-21) | **« Arcade sportif »** : karts et circuits façon sport mécanique, couleurs franches mais sobres (carbone `#14171B`, blanc piste `#F2F4F6`, rouge course `#C8211B`, jaune signal `#F2C200`, bleu télémétrie `#1A62C0`), police Saira Condensed (OFL), HUD épuré, métal et carbone. Référence : `docs/design/da-arcade-sportif.md`. Remplace « Atelier plein gaz », jugée trop enfant. Branche `claude/da-sport`. |
 | ~~Direction artistique (2026-11-01)~~ | *Remplacée le 2026-11-21.* **« Atelier plein gaz »** : port méditerranéen, rendu peint façon affiche de sport, pilotes athlétiques en combinaison + casque, karts artisanaux en tubes soudés. Palette `#24302D` `#D94D3F` `#E9B949` `#3C8F91` `#F2E7CE`, police Saira (OFL). Fiche : `docs/da/directions-v2/directions.md`, planche `direction-3.png`. Un peu plus coloré et moins réaliste que la planche (accessible comme les grands jeux de kart). Les DA « Club des Pattes » (`docs/da/maquettes-codex`) et l'UI actuelle sont rejetées : trop enfantines. |
 | Première étape | Prototype jouable : conduite, drift/turbo, un circuit, IA |
-| Identifiant | `com.kevinyankam.turbopattes`, écran en paysage |
+| Nom du jeu (2026-11-21) | **Turbo Grid** : constante `Brand.Title` (logo, nom de l'application `productName`, menus de l'éditeur). Marque et disponibilité sur les stores à vérifier. |
+| Identifiant | `com.kevinyankam.turbopattes`, écran en paysage. **Gardé malgré le nouveau nom** : le changer créerait une nouvelle application sur le store. Le dépôt et les espaces de noms `TurboPattes.*` gardent aussi l'ancien nom. |
 
 ## Contenu du prototype
 
@@ -81,7 +82,7 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 # Course automatique (le joueur est piloté par l'IA), captures + journal dans le dossier :
 # -tp-circuit 1 (Prairie, par défaut) ou 2 (Canyon : en plus, vues fixes du pont et du tremplin, captures saut/pont/dessous,
 # nombre de sauts par kart et alerte si un kart passe sous la piste). Dossier relatif = stockage de l'appli (Android).
-~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-autotest /tmp/tp-autotest -tp-laps 1 -tp-circuit 2
+~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid" -tp-autotest /tmp/tp-autotest -tp-laps 1 -tp-circuit 2
 # Les 10 circuits d'affilée (1 tour chacun) : résumé OK/ECHEC, fluidité, sauts ; échoue si course non finie, anomalie ou < 30 i/s
 # (tools/autotest-difficultes.sh : les mêmes dans les 3 difficultés, option -tp-difficulty 1|2|3)
 ~/dev/turbo-pattes/tools/autotest-tous.sh /tmp/tp-tous 1
@@ -94,7 +95,7 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 # Planche PNG de toutes les icônes (objets + portraits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
 # Parcours des menus (titre, pilote, choix de Teo (ex-Bruno) + Canyon, course avec un pot de miel en main, pause) avec captures :
-~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-menutest /tmp/tp-menutest
+~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid" -tp-menutest /tmp/tp-menutest
 # Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
 ~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
 ~/Library/Android/sdk/platform-tools/adb shell am start -n com.kevinyankam.turbopattes/com.unity3d.player.UnityPlayerGameActivity -e unity "-tp-diag"
@@ -102,6 +103,13 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ```
 
 ## Vérifications faites (2026-11-01)
+
+- **Branche `claude/da-sport`, nom « Turbo Grid » (2026-11-21, conteneur Linux sans Unity)** : `Brand.Title`, `productName`
+  (ProjectSettings et `BuildScript.ConfigurePlayer`), menus de l'éditeur tirés de `Brand.Title`, exécutable Mac des
+  scripts `tools/autotest-*.sh` (`TurboPattes.app/Contents/MacOS/Turbo Grid`). 188 tests NUnit verts (188 avant, test
+  du titre mis à jour). Unity non exécuté. **À faire sur Mac** : relancer « Turbo Grid/Configurer le projet », rebuilder
+  avant les autotests (l'ancien exécutable s'appelle encore « Turbo Pattes »), vérifier le logo TURBO / GRID. Les
+  préférences et fantômes Mac enregistrés sous « Turbo Pattes » ne sont pas repris (dossier lié au nom du produit).
 
 - **Branche `claude/da-sport` (2026-11-21, conteneur Linux sans Unity)** : refonte « arcade sportif » (interface, pilotes humains, karts, objets, décors). 188 tests NUnit verts (164 avant). Game/ compilé contre les assemblies de référence UnityEngine 2021.3 (NuGet) avec des stubs, sans nouvelle erreur ; Editor/ vérifié en syntaxe (Roslyn). Rien n'a été vu à l'écran : voir « À faire sur Mac » dans la refonte.
 
@@ -148,8 +156,8 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 
 ## Refonte DA « arcade sportif » (branche `claude/da-sport`, prioritaire)
 
-Référence : `docs/design/da-arcade-sportif.md` (valeurs par défaut à valider par Kevin : nom du jeu, palette, noms des
-pilotes et des objets, police). Code Unity **ni compilé ni exécuté** dans le conteneur Linux : Game/ vérifié contre les
+Référence : `docs/design/da-arcade-sportif.md` (valeurs par défaut à valider par Kevin : palette, noms des pilotes et
+des objets, police ; nom du jeu choisi le 21/11 : **Turbo Grid**, `Brand.Title`). Code Unity **ni compilé ni exécuté** dans le conteneur Linux : Game/ vérifié contre les
 assemblies de référence UnityEngine (NuGet) avec des stubs, Editor/ en syntaxe seulement (Roslyn).
 
 1. **Thème et interface** : `Core/Brand` (titre affiché `Brand.Title`, une seule constante ; accroche ; palette
@@ -223,4 +231,4 @@ dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms
 17. ~~Autotest de tous les circuits dans les 3 difficultés~~ (fait : `tools/autotest-difficultes.sh`).
 18. Tester manette réelle, multi-touch (tourner + drift) et bouton OBJET sur téléphone.
 19. Version iOS (simulateur puis iPhone).
-20. Publication : ~~icône par code, version 0.2.0~~ (fait) ; reste captures boutique, nom définitif, AAB signé (clé à créer avec Kevin).
+20. Publication : ~~icône par code, version 0.2.0~~ (fait) ; ~~nom définitif~~ (**Turbo Grid**, 21/11 ; marque à vérifier) ; reste captures boutique, AAB signé (clé à créer avec Kevin).

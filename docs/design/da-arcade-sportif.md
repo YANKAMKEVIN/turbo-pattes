@@ -1,5 +1,7 @@
 # Direction artistique « Arcade sportif »
 
+> Nom du jeu choisi par Kevin le 21/11/2026 : **Turbo Grid** (§ 9).
+
 Décision de Kevin du 2026-11-21 : le design actuel est jugé **trop enfant**. Il est remplacé par une direction
 **arcade sportif** : karts et circuits façon sport mécanique, couleurs franches mais sobres, typographie racing,
 HUD épuré, matières métal et carbone. Les **pilotes animaux deviennent des pilotes humains**. Tout est concerné :
@@ -23,7 +25,7 @@ de jeu, mécanique de chaque objet, tracés des circuits. La géométrie (pilote
    texte, chiffres à chasse fixe, contraste mesuré (§ 2.3).
 4. **Adultes crédibles** : pilotes en combinaison, casque intégral, gants, proportions adultes ; pas de gros yeux, pas
    de joues roses, pas de sourire dessiné.
-5. **Le nom du jeu est provisoire** (§ 8) : il n'apparaît qu'à un seul endroit du code.
+5. **Le nom du jeu, Turbo Grid** (§ 9), n'apparaît qu'à un seul endroit du code (`Brand.Title`).
 
 ## 2. Couleurs
 
@@ -182,15 +184,21 @@ Coupes : « Coupe Pâquerette » → **Coupe Asphalte**, « Coupe Coquillage » 
 inchangée. Les noms courts (Prairie, Canyon…) et les musiques ne changent pas (les musiques n'ont pas encore été
 écoutées par Kevin).
 
-## 9. Nom du jeu
+## 9. Nom du jeu : **Turbo Grid** (choisi par Kevin le 21/11)
 
-« Turbo Pattes » ne colle plus à des pilotes humains. Le nom **n'est pas changé** dans le dépôt, le projet Unity ni
-l'identifiant Android ; le titre affiché vient d'une seule constante, `Brand.Title` (le logo coupe le titre en deux
-lignes). Trois propositions pour Kevin (disponibilité des marques à vérifier) :
+« Turbo Pattes » ne collait plus à des pilotes humains. Parmi les trois propositions (Apex Kart, Ligne Rouge, Turbo
+Grid), Kevin a retenu **Turbo Grid** : il garde « Turbo » et la mémoire du nom de travail, et évoque la grille de départ.
 
-1. **Apex Kart** — court, international, dit la trajectoire idéale.
-2. **Ligne Rouge** — le compte-tours à fond, francophone, se décline en « Ligne Rouge Karting ».
-3. **Turbo Grid** — garde « Turbo » et la mémoire du nom actuel, évoque la grille de départ.
+- Titre affiché : une seule constante, `Brand.Title` (le logo la coupe en « TURBO » / « GRID »). Le nom de
+  l'application (`productName`, posé aussi par `BuildScript.ConfigurePlayer`) et les menus de l'éditeur en dépendent ;
+  l'exécutable Mac devient `TurboPattes.app/Contents/MacOS/Turbo Grid` (scripts `tools/autotest-*.sh` à jour).
+- **Inchangés volontairement** : l'identifiant de paquet `com.kevinyankam.turbopattes` (le changer créerait une
+  nouvelle application sur le store, sans les installations ni les avis), le nom du dépôt, le projet Unity, les
+  espaces de noms `TurboPattes.*` et les fichiers `TurboPattes.app` / `TurboPattes.apk`.
+- Sur Mac et PC, Unity range les préférences et sauvegardes sous l'éditeur et le nom du produit : les réglages, chronos
+  et fantômes enregistrés sous « Turbo Pattes » ne seront pas retrouvés par le build « Turbo Grid » (Android n'est pas
+  concerné : le dossier dépend de l'identifiant de paquet).
+- Reste à vérifier : disponibilité de la marque « Turbo Grid » et du nom sur les stores.
 
 Accroche par défaut sous le logo : « Championnat de karting arcade ».
 
@@ -206,8 +214,9 @@ Accroche par défaut sous le logo : « Championnat de karting arcade ».
 
 ## À valider par Kevin
 
-- Le nom du jeu (§ 9) et l'accroche.
+- ~~Le nom du jeu (§ 9)~~ : **Turbo Grid**, choisi le 21/11 (marque et disponibilité sur les stores à vérifier).
 - La palette (§ 2) et les couleurs d'équipe.
 - Les noms, numéros et codes des pilotes (§ 6).
 - Les noms des objets (§ 7), des circuits et des coupes (§ 8), les sponsors fictifs.
+- L'accroche (§ 9).
 - La police Saira Condensed (§ 3).

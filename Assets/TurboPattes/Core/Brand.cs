@@ -3,13 +3,14 @@ using System;
 namespace TurboPattes.Core
 {
     /// <summary>
-    /// Nom affiché du jeu : le seul endroit à modifier quand Kevin aura choisi le nom définitif
-    /// (propositions dans docs/design/da-arcade-sportif.md). Le dépôt, le projet Unity et l'identifiant
-    /// Android gardent « Turbo Pattes ».
+    /// Nom affiché du jeu, choisi par Kevin le 2026-11-21 : « Turbo Grid » (docs/design/da-arcade-sportif.md, § 9).
+    /// Seul endroit à modifier : logo, nom de l'application (BuildScript) et menus de l'éditeur en dépendent.
+    /// Le dépôt, les espaces de noms et l'identifiant Android gardent « turbopattes » (changer l'identifiant
+    /// créerait une nouvelle application sur le store).
     /// </summary>
     public static class Brand
     {
-        public const string Title = "Turbo Pattes";
+        public const string Title = "Turbo Grid";
         public const string Tagline = "Championnat de karting arcade";
 
         /// <summary>

@@ -3,7 +3,7 @@
 # ou si la fluidité moyenne passe sous 30 i/s. Usage : tools/autotest-tous.sh [dossier] [tours]
 out=${1:-/tmp/tp-autotest-tous}
 laps=${2:-1}
-app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes"
+app=~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid"
 rm -rf $out && mkdir -p $out
 echec=0
 for n in {1..10}; do

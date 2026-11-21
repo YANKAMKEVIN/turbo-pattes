@@ -432,7 +432,7 @@ namespace TurboPattes.Game.App
             _shotDir = cup != null ? Path.Combine(_autotestDir, $"course{cup.Race + 1}") : _autotestDir;
             Directory.CreateDirectory(_shotDir);
             var log = new StreamWriter(Path.Combine(_shotDir, "autotest.log")) { AutoFlush = true };
-            log.WriteLine($"Turbo Pattes autotest {DateTime.Now:s} {Screen.width}x{Screen.height} circuit={_circuit.Name} " +
+            log.WriteLine($"{Brand.Title} autotest {DateTime.Now:s} {Screen.width}x{Screen.height} circuit={_circuit.Name} " +
                           $"longueur={_path.Length:0}m relief={_path.HasRelief} mode={_mode} musique={_race.Music.Name} karts={_race.Karts.Length} " +
                           $"difficulte={(_difficultyArg >= 0 ? GameSession.DifficultyNames[_difficultyArg] : "Normal")}" +
                           (cup != null ? $" coupe={cup.Def.Name} course={cup.Race + 1}" : "") +

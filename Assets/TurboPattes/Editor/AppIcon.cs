@@ -25,7 +25,7 @@ namespace TurboPattes.EditorTools
         static readonly Color Steel = new Color(0.541f, 0.576f, 0.62f);    // #8A939E
         static readonly Color Shade = new Color(0f, 0f, 0f);
 
-        [MenuItem("Turbo Pattes/Icône de l'application")]
+        [MenuItem(TurboPattes.Core.Brand.Title + "/Icône de l'application")]
         public static void Apply()
         {
             Directory.CreateDirectory(Dir);
