@@ -31,6 +31,7 @@ namespace TurboPattes.Game.Visuals
                 case ItemKind.Honey: Honey(c); break;
                 case ItemKind.Feather: Feather(c); break;
                 case ItemKind.Yarn: Yarn(c); break;
+                case ItemKind.Comet: Comet(c); break;
                 default: Shield(c); break;
             }
             return ItemCache[kind] = c.ToTexture("Item" + kind);
@@ -147,6 +148,23 @@ namespace TurboPattes.Game.Visuals
             c.Fill(Intersect(Ring(0.75f, 0.35f, 0.3f, 0.018f), ball), thread, 0f, 0f);
             c.Fill(Intersect(Ring(0.75f, 0.35f, 0.21f, 0.018f), ball), thread, 0f, 0f);
             c.Fill(Intersect(Ring(0.47f, 0.52f, 0.24f, 0.025f), Circle(0.28f, 0.3f, 0.2f)), new Color(1f, 1f, 1f, 0.55f), 0f, 0f);
+        }
+
+        static void Comet(IconCanvas c)
+        {
+            // Étoile dorée qui file vers le haut à droite, traînée de trois flammèches vermillon et ocre.
+            c.Fill(Capsule(0.18f, 0.84f, 0.5f, 0.52f, 0.07f), new Color(0.85f, 0.3f, 0.25f, 0.85f), 0f, 0.4f);
+            c.Fill(Capsule(0.12f, 0.66f, 0.46f, 0.46f, 0.045f), new Color(0.91f, 0.73f, 0.29f, 0.85f), 0f, 0.4f);
+            c.Fill(Capsule(0.36f, 0.9f, 0.56f, 0.58f, 0.045f), new Color(0.91f, 0.73f, 0.29f, 0.85f), 0f, 0.4f);
+            var star = new float[20];
+            for (int i = 0; i < 10; i++)
+            {
+                float a = -Mathf.PI * 0.5f + i * Mathf.PI / 5f, r = i % 2 == 0 ? 0.26f : 0.115f;
+                star[2 * i] = 0.62f + Mathf.Cos(a) * r;
+                star[2 * i + 1] = 0.4f + Mathf.Sin(a) * r;
+            }
+            c.Fill(Polygon(0.015f, star), new Color(1f, 0.85f, 0.25f));
+            c.Fill(Circle(0.56f, 0.34f, 0.05f), new Color(1f, 1f, 1f, 0.75f), 0f, 0f);
         }
 
         static void Shield(IconCanvas c)

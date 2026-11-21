@@ -147,6 +147,10 @@ namespace TurboPattes.Game.Kart
                 case ItemKind.Coconut:
                     use = AnyoneAhead(karts, 40f) || _itemDelay < -10f;
                     break;
+                case ItemKind.Comet:
+                    // Rattrapage : tout de suite, sauf en l'air.
+                    use = !k.Airborne;
+                    break;
             }
             if (use) _itemDelay = Rand(1f, 3f);
             return use;

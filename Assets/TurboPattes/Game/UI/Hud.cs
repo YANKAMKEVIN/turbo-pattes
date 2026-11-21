@@ -49,7 +49,7 @@ namespace TurboPattes.Game.UI
         Rect _mapRect;
         MapFit _mapFit;
         int[] _mapDots;
-        static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier", "Plume planante", "Pelote de laine" };
+        static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier", "Plume planante", "Pelote de laine", "Comète" };
         static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Réglages", "Menu" };
         static readonly string[] ResultChoices = { "Rejouer", "Menu" };
         static readonly string[] CupChoices = { "Course suivante", "Menu" };

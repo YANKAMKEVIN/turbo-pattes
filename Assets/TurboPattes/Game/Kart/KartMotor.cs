@@ -70,6 +70,8 @@ namespace TurboPattes.Game.Kart
         public float SpinTime { get; private set; }
         public float ShieldTime { get; set; }
         public float HopTime { get; private set; }
+        /// <summary>Temps restant de la comète (pilote automatique en turbo, intouchable).</summary>
+        public float CometTime { get; private set; }
         public bool Finished { get; set; }
         public float FinishTime { get; set; }
         public int Rank { get; set; }
@@ -133,6 +135,11 @@ namespace TurboPattes.Game.Kart
         {
             if (Finished) input = AutoPilotInput();
             else if (!ControlsEnabled) input = default;
+            else if (CometTime > 0f)
+            {
+                CometTime -= dt;
+                input = CometInput();
+            }
 
             Vector3 fwd = Forward, right = Right;
             float vF = Vector3.Dot(Velocity, fwd);
@@ -240,6 +247,25 @@ namespace TurboPattes.Game.Kart
             return new KartInput { Steer = Mathf.Clamp(angle / 25f, -1f, 1f), Throttle = ForwardSpeed < TopSpeed * 0.6f ? 1f : 0f };
         }
 
+        /// <summary>Comète : file sur la ligne médiane, plein gaz, en visant loin devant.</summary>
+        KartInput CometInput()
+        {
+            float s = Laps.S + 12f + Mathf.Max(0f, ForwardSpeed) * 0.35f;
+            var to = Path.PointAt(s, 0f) - Position;
+            to.y = 0f;
+            float angle = Vector3.SignedAngle(Forward, to, Vector3.up);
+            return new KartInput { Steer = Mathf.Clamp(angle / 20f, -1f, 1f), Throttle = 1f };
+        }
+
+        /// <summary>Objet rare : la comète (turbo, bouclier et pilote automatique pendant <see cref="CometRun.Duration"/> s).</summary>
+        public void StartComet()
+        {
+            CometTime = CometRun.Duration;
+            ShieldTime = Mathf.Max(ShieldTime, CometRun.Duration);
+            Drift.Cancel();
+            GiveBoost(CometRun.Duration);
+        }
+
         void ResolveBarriers(float dt)
         {
             TrackIndex = Path.Nearest(Position, TrackIndex);
@@ -334,6 +360,7 @@ namespace TurboPattes.Game.Kart
         /// <summary>Touché par un objet : le bouclier absorbe, sinon tête-à-queue.</summary>
         public bool Hit(float spinSeconds)
         {
+            if (CometTime > 0f) return false;
             if (ShieldTime > 0f)
             {
                 ShieldTime = 0f;
@@ -357,6 +384,9 @@ namespace TurboPattes.Game.Kart
             float dist = d.magnitude;
             const float min = Radius * 2f;
             if (dist >= min || dist < 1e-4f) return;
+            // La comète renverse ceux qu'elle percute.
+            if (a.CometTime > 0f && b.CometTime <= 0f) b.Hit(CometRun.SpinOnHit);
+            else if (b.CometTime > 0f && a.CometTime <= 0f) a.Hit(CometRun.SpinOnHit);
             Vector3 n = d / dist;
             // Le plus lourd est moins déplacé.
             float push = min - dist, shareA = DriverStats.PushShare(a.Stats.Mass, b.Stats.Mass);

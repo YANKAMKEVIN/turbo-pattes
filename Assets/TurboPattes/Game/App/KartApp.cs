@@ -520,7 +520,7 @@ namespace TurboPattes.Game.App
             }
             log.WriteLine("Tours joueur : " + string.Join(", ", Array.ConvertAll(_race.LapTimes, x => x.ToString("0.0"))));
             var used = _race.Items.UseCounts;
-            log.WriteLine($"Objets utilises : carotte {used[1]} coco {used[2]} miel {used[3]} bouclier {used[4]} plume {used[5]} pelote {used[6]} ; " +
+            log.WriteLine($"Objets utilises : carotte {used[1]} coco {used[2]} miel {used[3]} bouclier {used[4]} plume {used[5]} pelote {used[6]} comete {used[7]} ; " +
                           $"figures {string.Join(", ", Array.ConvertAll(_race.Karts, k => $"{k.Spec.Name} {k.Tricks}"))}" +
                           (_tutorial != null ? $" ; tutoriel {_tutorial.Shown} conseils" : ""));
             log.WriteLine($"Relief : hauteur max joueur {maxY:0.0} m ; sauts " +

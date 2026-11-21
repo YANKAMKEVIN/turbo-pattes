@@ -275,6 +275,10 @@ namespace TurboPattes.Game.Items
                 case ItemKind.Yarn:
                     SpawnYarn(k, karts);
                     break;
+                case ItemKind.Comet:
+                    if (k.Airborne) return false;
+                    k.StartComet();
+                    break;
             }
             UseCounts[(int)k.Item]++;
             k.Item = ItemKind.None;
