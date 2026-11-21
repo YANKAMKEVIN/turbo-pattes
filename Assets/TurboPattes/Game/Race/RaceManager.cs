@@ -122,6 +122,7 @@ namespace TurboPattes.Game.Race
                 kart.Landed += k => { if (k.IsPlayer && k.Vertical.LandingSpeed > 4f) { _sound.Bump(); App.Haptics.Pulse(45); _cam.Shake(Mathf.Clamp(k.Vertical.LandingSpeed / 20f, 0.15f, 0.5f)); } };
             }
             Karts = karts.ToArray();
+            foreach (var k in Karts) k.Racers = Karts.Length;
             _clocks = Array.ConvertAll(Karts, _ => new ProgressClock());
             _ai = ai.ToArray();
             _baseScale = baseScale.ToArray();

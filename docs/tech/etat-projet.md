@@ -4,7 +4,7 @@ Jeu de karting arcade original (nom de travail « Turbo Pattes ») : pilotes ani
 objets ramassés sur la piste, 8 pilotes, 3 tours. Codes du genre, mais personnages, circuits, objets et interface
 propres au jeu (pas de reprise de Mario Kart ni d'aucun autre jeu existant).
 
-Dernière mise à jour : 2026-11-01.
+Dernière mise à jour : 2026-11-21.
 
 Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). Pousser après chaque tâche.
 
@@ -102,6 +102,8 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 
 ## Vérifications faites (2026-11-01)
 
+- **Branche `claude/suite` (2026-11-21, conteneur Linux sans Unity)** : raccourci de la Prairie, virage relevé des Nuages et lave animée, comète, fantôme rival, réglages restylés, pilotes affinés et animations de fin. 164 tests NUnit verts (121 avant). Code Unity **ni compilé ni exécuté** : seule sa syntaxe a été vérifiée (analyseur Roslyn). À faire sur Mac : compiler, `autotest-tous.sh`, `autotest-modes.sh`, `-tp-menutest`, et regarder la Prairie (sable, tremplin), les Nuages (relevé), le Volcan (lave), l'écran des réglages et le podium.
+
 - **20 étapes (réglages, pilotes, objets, figures, médailles, trophées…)** : 89 tests NUnit verts (dont 20 nouveaux : qualité adaptative, caractère des pilotes, figures, plume et pelote, médailles, temps intermédiaires, trophées, grille). Mac : `autotest-tous.sh` 10/10 (42 à 55 i/s), `autotest-modes.sh` OK (chrono : 8 écarts affichés, médaille d'argent, temps intermédiaires sauvegardés ; coupe complète avec grille inversée), **`autotest-difficultes.sh` 30/30** (pilote automatique 1er partout en Facile, 1er à 3e en Normal, 2e à 6e en Difficile). Les IA utilisent plume et pelote et font 1 à 3 figures par course. `-tp-menutest` : réglages et jauges des pilotes. Captures : `docs/capture-reglages-pilotes-tutoriel.png`.
   - **Galaxy A17** : course sur la Jungle avec tutoriel (4 conseils, 38 à 56 i/s), contre-la-montre avec l'ancien fantôme relu (format 1) et écart « +1,68 » affiché à la ligne. Captures : `docs/capture-a17-tutoriel-ecart.png`. Les autres sessions (KeRush, Kanto, Shonen Clash) reprennent parfois le téléphone en plein test : relancer si le journal est incomplet.
   - Non vérifié : vibrations ressenties à la main, réglages manipulés au doigt sur le téléphone, icône sur l'écran d'accueil du téléphone.
@@ -169,9 +171,9 @@ dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms
 10. ~~Poussière, secousse, figure en l'air = turbo~~ (fait).
 11. ~~Contre-la-montre, fantôme, écarts en direct, médailles~~ (fait). ~~Fantôme d'un autre pilote~~ (branche `claude/suite`, **non exécuté dans Unity**) : en Chrono, la ligne « Difficulté » du menu devient « Fantôme : Record / Rival / Aucun ». Chaque pilote garde son meilleur tour et son fantôme (`fantome-<circuit>-p<pilote>.txt`) ; en « Rival », on court contre le plus rapide des autres pilotes (`GhostPick.Rival`), avec son kart et ses temps intermédiaires, annoncé par un bandeau ; sans autre pilote, retour au record. Format `fantome3` (pilote enregistré), anciens fichiers toujours lus (testé).
 12. ~~Coupes, déblocage, trophées, grille inversée~~ (fait).
-13. ~~Podium, fanfare, jingle d'arrivée~~ (fait) ; à enrichir : animations de victoire (avec les nouveaux pilotes Blender).
-14. ~~Caractère des pilotes~~ (fait) ; animations de victoire/défaite avec la refonte des pilotes.
-15. Modèles de pilotes plus fins, toujours générés par code.
+13. ~~Podium, fanfare, jingle d'arrivée~~ (fait) ; ~~animations de victoire~~ (première tranche, branche `claude/suite`, **non exécutée dans Unity**) : sur le podium, les trois premiers lèvent les bras et saluent (décalés), le peloton au pied fête ou baisse la tête selon sa place.
+14. ~~Caractère des pilotes~~ (fait) ; ~~animations de victoire/défaite~~ (première tranche, **non exécutée**) : `Core/DriverPoses` (testé) calcule la posture depuis l'arrivée — victoire (bras levés qui saluent, petits sauts, regard vers le ciel) pour les 3 premiers, défaite (bras qui lâchent le volant, tête basse secouée, buste tassé) pour la seconde moitié du peloton ; jouée à l'arrivée de chaque kart et sur le podium (`KartFactory.Pose`).
+15. Modèles de pilotes plus fins, toujours générés par code : première tranche (**non vue dans Unity**) : casque ouvert aux couleurs du kart (coque au-dessus des yeux, oreilles qui dépassent, liseré, visière ; bandeau gardé pour la grenouille), col de combinaison, manches de combinaison et gants, épaules et tête articulées. Reste : silhouettes plus athlétiques (buste, bassin, jambes visibles), museaux et mains modelés en maillages générés (`MeshKit`) plutôt qu'en primitives, numéro et livrée par pilote, animations de conduite (se pencher dans les virages, regarder derrière) ; validation de Roxy par Kevin avant les 7 autres.
 16. ~~Tutoriel à la première course~~ (fait).
 17. ~~Autotest de tous les circuits dans les 3 difficultés~~ (fait : `tools/autotest-difficultes.sh`).
 18. Tester manette réelle, multi-touch (tourner + drift) et bouton OBJET sur téléphone.

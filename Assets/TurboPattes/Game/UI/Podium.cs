@@ -27,6 +27,9 @@ namespace TurboPattes.Game.UI
         Camera _cam;
         Transform _stage;
         readonly Transform[] _karts = new Transform[3];
+        readonly KartRig[] _rigs = new KartRig[3];
+        /// <summary>Le reste du peloton au pied du podium, avec sa place (animation de fin selon la place).</summary>
+        readonly System.Collections.Generic.List<(KartRig rig, int rank)> _others = new();
         Transform[] _confetti;
         Vector3[] _confettiSpin;
         float _time;
@@ -63,6 +66,7 @@ namespace TurboPattes.Game.UI
                 rig.Root.localPosition = new Vector3(BlockX[i], h, 0f);
                 rig.Root.localRotation = Quaternion.Euler(0f, 180f + (i == 0 ? 0f : i == 1 ? 18f : -18f), 0f);
                 _karts[i] = rig.Root;
+                _rigs[i] = rig;
             }
             // Le reste du peloton au pied du podium.
             for (int r = 3; r < _ranking.Length; r++)
@@ -72,6 +76,7 @@ namespace TurboPattes.Game.UI
                 float x = (r - 3 - (_ranking.Length - 4) * 0.5f) * 3.1f;
                 rig.Root.localPosition = new Vector3(x, 0f, -5.5f);
                 rig.Root.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                _others.Add((rig, r));
             }
             BuildConfetti();
 
@@ -111,9 +116,11 @@ namespace TurboPattes.Game.UI
                 c.localPosition = p;
                 c.localRotation *= Quaternion.Euler(_confettiSpin[i] * dt);
             }
-            // Le vainqueur sautille.
+            // Le vainqueur sautille ; les trois du podium lèvent les bras (décalés), le peloton fête ou baisse la tête.
             float hop = Mathf.Abs(Mathf.Sin(_time * 3f)) * 0.35f;
             _karts[0].localPosition = new Vector3(BlockX[0], BlockHeights[0] + hop, 0f);
+            for (int i = 0; i < 3; i++) KartFactory.Pose(_rigs[i], DriverPoses.Victory(Mathf.Max(0f, _time - i * 0.25f)));
+            foreach (var (rig, rank) in _others) KartFactory.Pose(rig, DriverPoses.Pose(DriverPoses.For(rank, _ranking.Length), _time));
 
             var kb = Keyboard.current;
             var pad = Gamepad.current;

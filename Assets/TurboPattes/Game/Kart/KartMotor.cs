@@ -75,6 +75,10 @@ namespace TurboPattes.Game.Kart
         public bool Finished { get; set; }
         public float FinishTime { get; set; }
         public int Rank { get; set; }
+        /// <summary>Nombre de pilotes de la course (animation de fin : victoire ou défaite selon la place).</summary>
+        public int Racers { get; set; } = 8;
+        /// <summary>Temps depuis l'arrivée, pour l'animation du pilote.</summary>
+        float _celebration;
 
         public ItemKind Item { get; set; }
         /// <summary>Temps restant de la roulette d'objet (l'objet n'est utilisable qu'à 0).</summary>
@@ -436,6 +440,13 @@ namespace TurboPattes.Game.Kart
                 Rig.Wheels[i].localRotation = Quaternion.Euler(_wheelAngle, 0f, 0f);
             foreach (var p in Rig.FrontPivots)
                 p.localRotation = Quaternion.Euler(0f, _steerVisual * 28f + _driftVisual * 0.5f, 0f);
+
+            // Arrivée : le pilote fête sa place (podium) ou baisse la tête (seconde moitié du peloton).
+            if (Finished)
+            {
+                _celebration += dt;
+                KartFactory.Pose(Rig, DriverPoses.Pose(DriverPoses.For(Rank, Racers), _celebration));
+            }
 
             Rig.Shield.SetActive(ShieldTime > 0f);
             if (ShieldTime > 0f)

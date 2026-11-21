@@ -1,3 +1,4 @@
+using TurboPattes.Core;
 using TurboPattes.Game.Visuals;
 using UnityEngine;
 
@@ -12,6 +13,11 @@ namespace TurboPattes.Game.Kart
         public Transform[] Wheels;
         public Transform[] FrontPivots;
         public Transform Driver;
+        /// <summary>Position de repos du pilote dans la caisse (le saut de victoire part de là).</summary>
+        public Vector3 DriverRest;
+        /// <summary>Tête et épaules (gauche, droite) du pilote, pour les animations de fin de course.</summary>
+        public Transform Head;
+        public Transform[] Shoulders;
         public Transform[] Exhausts;
         public GameObject Shield;
     }
@@ -89,7 +95,8 @@ namespace TurboPattes.Game.Kart
                 rig.Wheels[i] = wheel;
             }
 
-            rig.Driver = BuildDriver(spec, body);
+            rig.Driver = BuildDriver(spec, body, rig);
+            rig.DriverRest = rig.Driver.localPosition;
 
             // Bulle bouclier (masquée par défaut).
             rig.Shield = MeshKit.Prim(PrimitiveType.Sphere, root, new Vector3(0, 0.9f, 0), new Vector3(3.4f, 2.6f, 3.6f),
@@ -99,7 +106,18 @@ namespace TurboPattes.Game.Kart
             return rig;
         }
 
-        static Transform BuildDriver(AnimalSpec spec, Transform body)
+        /// <summary>Applique une posture (<see cref="DriverPoses"/>) au pilote ; <see cref="DriverPose.Rest"/> le remet au volant.</summary>
+        public static void Pose(KartRig rig, DriverPose pose)
+        {
+            if (rig.Head == null || rig.Shoulders == null) return;
+            rig.Driver.localPosition = rig.DriverRest + Vector3.up * pose.Bounce;
+            rig.Head.localRotation = Quaternion.Euler(pose.HeadPitch, 0f, pose.HeadRoll);
+            // Lever : rotation vers le haut autour de l'axe des épaules ; écarter : vers l'extérieur de chaque côté.
+            for (int i = 0; i < rig.Shoulders.Length; i++)
+                rig.Shoulders[i].localRotation = Quaternion.Euler(-pose.ArmLift, 0f, (i == 0 ? 1f : -1f) * pose.ArmSpread);
+        }
+
+        static Transform BuildDriver(AnimalSpec spec, Transform body, KartRig rig)
         {
             var d = new GameObject("Driver").transform;
             d.SetParent(body, false);
@@ -116,12 +134,30 @@ namespace TurboPattes.Game.Kart
             MeshKit.Prim(PrimitiveType.Sphere, d, new Vector3(0, 0.38f, 0), new Vector3(0.78f, 0.75f, 0.62f), torsoMat);
             if (spec.Kind == AnimalKind.Penguin)
                 MeshKit.Prim(PrimitiveType.Sphere, d, new Vector3(0, 0.36f, 0.12f), new Vector3(0.6f, 0.62f, 0.45f), white);
-            MeshKit.Prim(PrimitiveType.Capsule, d, new Vector3(-0.3f, 0.42f, 0.33f), new Vector3(0.17f, 0.24f, 0.17f), fur, Quaternion.Euler(70, 0, 15));
-            MeshKit.Prim(PrimitiveType.Capsule, d, new Vector3(0.3f, 0.42f, 0.33f), new Vector3(0.17f, 0.24f, 0.17f), fur, Quaternion.Euler(70, 0, -15));
+            // Col de la combinaison.
+            MeshKit.Prim(PrimitiveType.Cylinder, d, new Vector3(0, 0.71f, 0.02f), new Vector3(0.44f, 0.04f, 0.4f), Mats.Lit(spec.Kart, 0.4f));
+            // Bras : manches de combinaison et gants, accrochés à une épaule qui pivote (animations de fin de course).
+            var sleeve = torsoMat;
+            var glove = Mats.Lit(new Color(0.16f, 0.16f, 0.18f), 0.35f);
+            rig.Shoulders = new Transform[2];
+            for (int i = 0; i < 2; i++)
+            {
+                float x = i == 0 ? -0.3f : 0.3f;
+                var rot = Quaternion.Euler(70, 0, i == 0 ? 15 : -15);
+                // Même bras qu'avant (capsule centrée en (±0,3 ; 0,42 ; 0,33)), mais pendu à son extrémité côté buste.
+                Vector3 axis = rot * Vector3.up, center = new Vector3(x, 0.42f, 0.33f);
+                var shoulder = new GameObject(i == 0 ? "ShoulderL" : "ShoulderR").transform;
+                shoulder.SetParent(d, false);
+                shoulder.localPosition = center - axis * 0.24f;
+                MeshKit.Prim(PrimitiveType.Capsule, shoulder, axis * 0.24f, new Vector3(0.17f, 0.24f, 0.17f), sleeve, rot);
+                MeshKit.Prim(PrimitiveType.Sphere, shoulder, axis * 0.5f, new Vector3(0.17f, 0.15f, 0.17f), glove);
+                rig.Shoulders[i] = shoulder;
+            }
 
             var head = new GameObject("Head").transform;
             head.SetParent(d, false);
             head.localPosition = new Vector3(0, 1.0f, 0.02f);
+            rig.Head = head;
             MeshKit.Prim(PrimitiveType.Sphere, head, Vector3.zero, new Vector3(0.82f, 0.76f, 0.76f), fur);
 
             // Yeux (sauf grenouille : globes sur le dessus)
@@ -189,9 +225,21 @@ namespace TurboPattes.Game.Kart
                     break;
             }
 
-            // Casque-bandeau aux couleurs du kart
-            MeshKit.Prim(PrimitiveType.Cylinder, head, new Vector3(0, 0.2f, -0.02f), new Vector3(0.84f, 0.05f, 0.8f),
-                Mats.Lit(spec.Kart, 0.5f), Quaternion.Euler(-8, 0, 0));
+            if (spec.Kind == AnimalKind.Frog)
+            {
+                // Les yeux de la grenouille sont sur le dessus : simple bandeau aux couleurs du kart.
+                MeshKit.Prim(PrimitiveType.Cylinder, head, new Vector3(0, 0.2f, -0.02f), new Vector3(0.84f, 0.05f, 0.8f),
+                    Mats.Lit(spec.Kart, 0.5f), Quaternion.Euler(-8, 0, 0));
+            }
+            else
+            {
+                // Casque ouvert aux couleurs du kart : coque au-dessus des yeux, oreilles qui dépassent, liseré et visière.
+                MeshKit.Shape(MeshKit.Hemisphere, head, new Vector3(0, 0.15f, -0.01f), new Vector3(0.9f, 0.7f, 0.86f), Mats.Lit(spec.Kart, 0.6f, 0.1f),
+                    null, "Helmet");
+                MeshKit.Prim(PrimitiveType.Cylinder, head, new Vector3(0, 0.15f, -0.01f), new Vector3(0.92f, 0.025f, 0.88f), Mats.Lit(spec.KartTrim, 0.5f));
+                MeshKit.Prim(PrimitiveType.Cube, head, new Vector3(0, 0.18f, 0.37f), new Vector3(0.5f, 0.06f, 0.1f),
+                    Mats.Lit(new Color(0.08f, 0.1f, 0.12f), 0.85f), Quaternion.Euler(-12, 0, 0), "Visor");
+            }
             return d;
         }
 
@@ -214,7 +262,7 @@ namespace TurboPattes.Game.Kart
         static void RoundEars(Transform head, Material mat, float size)
         {
             foreach (float x in new[] { -0.3f, 0.3f })
-                MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x, 0.3f, -0.04f), new Vector3(size, size, size * 0.6f), mat);
+                MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x * 1.07f, 0.38f, -0.04f), new Vector3(size, size, size * 0.6f), mat);
         }
     }
 }
