@@ -43,6 +43,11 @@ namespace TurboPattes.Game.Track
         public (int control, float length, float rise)[] Kickers;
         /// <summary>Ponts : tronçon porté par des piles (pas de talus dessous), centré sur un point de contrôle.</summary>
         public (int control, float halfLength)[] Bridges;
+        /// <summary>
+        /// Raccourcis risqués (<see cref="Core.Shortcut"/>) : virage centré sur un point de contrôle, demi-longueur de la zone,
+        /// côté intérieur (-1 gauche, +1 droite) et recul du muret (m). Un petit tremplin est posé dans le sable.
+        /// </summary>
+        public (int control, float halfLength, int side, float extra)[] Shortcuts;
 
         /// <summary>Gravité relative (espace : sauts plus longs).</summary>
         public float Gravity = 1f;
@@ -76,6 +81,9 @@ namespace TurboPattes.Game.Track
             },
             ItemRows = new[] { 0.09f, 0.37f, 0.52f, 0.83f },
             Boosts = new[] { (0.055f, -3.5f), (0.495f, 3f), (0.74f, -2.5f) },
+            // Grand virage à gauche du nord-est (rayon ~34 m) : bande de sable à l'intérieur, muret reculé à 21 m
+            // (au moins 42 m des autres tronçons, vérifié).
+            Shortcuts = new[] { (17, 35f, -1, 9f) },
         };
     
         /// <summary>

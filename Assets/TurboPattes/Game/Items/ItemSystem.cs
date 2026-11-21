@@ -147,8 +147,9 @@ namespace TurboPattes.Game.Items
                 c.Hint = _path.Nearest(c.Pos, c.Hint);
                 float lat = _path.Lateral(c.Hint, c.Pos);
                 // La noix de coco roule au ras de la piste : côtes, descentes et tremplins.
-                c.Pos.y = _path.GroundHeight(_path.DistanceAlong(c.Hint, c.Pos), lat);
-                float limit = _path.BarrierOffset - 0.6f;
+                float cs = _path.DistanceAlong(c.Hint, c.Pos);
+                c.Pos.y = _path.GroundHeight(cs, lat);
+                float limit = _path.BarrierAt(cs, lat < 0f ? -1 : 1) - 0.6f;
                 if (Mathf.Abs(lat) > limit)
                 {
                     // Rebond sur la barrière.

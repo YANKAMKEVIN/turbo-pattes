@@ -57,6 +57,8 @@ namespace TurboPattes.Game.Kart
         public int TrackIndex { get; private set; }
         public float Lateral { get; private set; }
         public bool Offroad { get; private set; }
+        /// <summary>Dans le sable d'un raccourci : plus lent que l'herbe, sauf sous turbo ou en l'air.</summary>
+        public bool InSand { get; private set; }
         public readonly DriftCharge Drift = new();
         public readonly VerticalMotion Vertical = new();
         public bool Airborne => !Vertical.Grounded;
@@ -134,7 +136,7 @@ namespace TurboPattes.Game.Kart
             float vF = Vector3.Dot(Velocity, fwd);
             float vR = Vector3.Dot(Velocity, right);
             // Les pilotes adhérents perdent un peu moins hors piste.
-            float top = TopSpeed * (Offroad && BoostTime <= 0f ? OffroadFactor + (Stats.Grip - 3) * 0.03f : 1f);
+            float top = TopSpeed * (Offroad && BoostTime <= 0f ? (InSand ? Shortcut.SandFactor : OffroadFactor) + (Stats.Grip - 3) * 0.03f : 1f);
             float accelMul = 1f;
             if (BoostTime > 0f)
             {
@@ -239,7 +241,8 @@ namespace TurboPattes.Game.Kart
         {
             TrackIndex = Path.Nearest(Position, TrackIndex);
             float lat = Path.Lateral(TrackIndex, Position);
-            float limit = Path.BarrierOffset - Radius * 0.8f;
+            // Le muret intérieur recule dans les raccourcis.
+            float limit = Path.BarrierAt(Path.DistanceAlong(TrackIndex, Position), lat < 0f ? -1 : 1) - Radius * 0.8f;
             if (Mathf.Abs(lat) > limit)
             {
                 float side = Mathf.Sign(lat);
@@ -266,6 +269,7 @@ namespace TurboPattes.Game.Kart
             Lateral = lat;
             Offroad = Mathf.Abs(lat) > Path.HalfWidth + Path.CurbWidth;
             float s = Path.DistanceAlong(TrackIndex, Position);
+            InSand = Offroad && Path.InSand(s, lat);
             Laps.Update(s);
             FollowGround(s, lat, dt);
         }

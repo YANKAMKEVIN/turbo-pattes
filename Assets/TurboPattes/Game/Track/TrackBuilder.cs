@@ -21,6 +21,7 @@ namespace TurboPattes.Game.Track
             if (!float.IsNaN(style.WaterLevel)) BuildWater(path, style, root);
             BuildRoad(path, root, style.RoadTint);
             BuildCurbs(path, root);
+            BuildShortcuts(path, root);
             BuildBarriers(path, root, style);
             if (path.HasRelief)
             {
@@ -143,10 +144,12 @@ namespace TurboPattes.Game.Track
                 {
                     int k = i % n;
                     float d = i == n ? path.Length : path.Dist[k];
+                    // Recul du muret dans un raccourci (0 ailleurs).
+                    float extra = path.BarrierAt(path.Dist[k], side) - path.BarrierOffset;
                     for (int j = 0; j < 4; j++)
                     {
                         var basePoint = new Vector3(path.Points[k].x, path.BaseHeights[k], path.Points[k].z);
-                        v.Add(basePoint + path.Rights[k] * (offs[j] * side) + Vector3.up * ys[j]);
+                        v.Add(basePoint + path.Rights[k] * ((offs[j] + extra) * side) + Vector3.up * ys[j]);
                         uv.Add(new Vector2(d / 6f, vs[j]));
                     }
                 }
@@ -164,6 +167,42 @@ namespace TurboPattes.Game.Track
                 mesh.RecalculateNormals();
                 mesh.RecalculateBounds();
                 MeshKit.MeshObject(side > 0 ? "BarrierRight" : "BarrierLeft", mesh, mat, root);
+            }
+        }
+
+        /// <summary>
+        /// Raccourcis : bande de sable entre les vibreurs et le muret reculé, et petit tremplin rayé posé dans le sable
+        /// (flancs, dessus, face avant au bord).
+        /// </summary>
+        static void BuildShortcuts(TrackPath path, Transform root)
+        {
+            if (path.Shortcuts.Count == 0) return;
+            var sand = Mats.Textured(ProceduralTextures.Sand, Color.white, Vector2.one, 0.05f);
+            var stripes = Mats.Textured(ProceduralTextures.Chevrons, Color.white, Vector2.one, 0.3f);
+            float edge = path.HalfWidth + path.CurbWidth;
+            foreach (var sc in path.Shortcuts)
+            {
+                var zone = new GameObject("Shortcut").transform;
+                zone.SetParent(root, false);
+                int side = sc.Side;
+                float reach = sc.HalfLength + Core.Shortcut.Fade;
+                int i0 = path.IndexAt(sc.CenterS - reach), i1 = path.IndexAt(sc.CenterS + reach);
+                if (i1 < i0) i1 += path.Count;
+                MeshKit.MeshObject("Sand", Strip(path, i0, i1,
+                    k => (BaseAt(path, k, side * edge, 0.03f), BaseAt(path, k, side * path.BarrierAt(path.Dist[k], side), 0.03f)), 8f, "Sand"), sand, zone, false);
+                if (!sc.HasKicker) continue;
+
+                // Tremplin : la hauteur suit exactement Shortcut.Kick (celle que roulent les karts).
+                int k0 = path.IndexAt(sc.KickLipS - sc.KickLength), k1 = path.IndexAt(sc.KickLipS - 0.01f);
+                if (k1 < k0) k1 += path.Count;
+                Vector3 Top(int k, float lat) => BaseAt(path, k, side * lat, 0.03f + sc.Kick(path.Dist[k], side * lat, out _));
+                MeshKit.MeshObject("SandKickerTop", Strip(path, k0, k1, k => (Top(k, sc.KickInner), Top(k, sc.KickOuter)), 3f, "SandKickerTop"), stripes, zone);
+                foreach (float lat in new[] { sc.KickInner, sc.KickOuter })
+                    MeshKit.MeshObject("SandKickerSide", Strip(path, k0, k1, k => (BaseAt(path, k, side * lat, 0f), Top(k, lat)), 3f, "SandKickerSide"), stripes, zone);
+                path.Sample(sc.KickLipS, out var lip, out var t, out var r);
+                float mid = (sc.KickInner + sc.KickOuter) * 0.5f;
+                MeshKit.Prim(PrimitiveType.Cube, zone, lip + r * (side * mid) + Vector3.up * (sc.KickRise * 0.5f) - t * 0.15f,
+                    new Vector3(sc.KickOuter - sc.KickInner, sc.KickRise, 0.3f), stripes, Quaternion.LookRotation(t), "SandKickerLip");
             }
         }
 
@@ -250,7 +289,7 @@ namespace TurboPattes.Game.Track
                 var pos = c + new Vector3(Rand(rng, -260, 260), 0, Rand(rng, -220, 220));
                 int i = path.Nearest(pos, -1);
                 float d = Vector3.Distance(new Vector3(pos.x, 0, pos.z), path.Points[i]);
-                if (d < path.BarrierOffset + 5f) continue;
+                if (d < Mathf.Max(path.BarrierAt(path.Dist[i], -1), path.BarrierAt(path.Dist[i], 1)) + 5f) continue;
                 placed++;
                 var tree = new GameObject("Tree").transform;
                 tree.SetParent(decor, false);
@@ -281,7 +320,7 @@ namespace TurboPattes.Game.Track
             {
                 float s = Rand(rng, 0, path.Length);
                 int side = rng.NextDouble() < 0.5 ? 1 : -1;
-                var pos = path.PointAt(s, side * (path.BarrierOffset + Rand(rng, 1.6f, 4f)));
+                var pos = path.PointAt(s, side * (path.BarrierAt(s, side) + Rand(rng, 1.6f, 4f)));
                 int i = path.Nearest(pos, -1);
                 if (Vector3.Distance(pos, path.Points[i]) < path.BarrierOffset + 1.2f) continue;
                 var f = MeshKit.Prim(PrimitiveType.Sphere, decor, pos + Vector3.up * 0.25f, new Vector3(0.7f, 0.5f, 0.7f), flowers[rng.Next(flowers.Length)]);

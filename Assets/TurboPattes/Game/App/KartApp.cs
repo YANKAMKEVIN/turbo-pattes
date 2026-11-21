@@ -504,7 +504,7 @@ namespace TurboPattes.Game.App
                                   $"lat={p.Lateral:0.0} y={p.Position.y:0.0}{(p.Airborne ? " (en l'air)" : "")} s={p.Laps.S:0} objet={p.Item} drift={p.Drift.Level} " +
                                   $"fps={1f / Mathf.Max(1e-4f, Time.smoothDeltaTime):0}");
                     foreach (var k in _race.Karts)
-                        if (!k.IsPlayer && Mathf.Abs(k.Lateral) > _race.Path.BarrierOffset) log.WriteLine($"  ANOMALIE {k.Spec.Name} hors barrière");
+                        if (!k.IsPlayer && Mathf.Abs(k.Lateral) > _race.Path.BarrierAt(k.Laps.S, k.Lateral < 0f ? -1 : 1)) log.WriteLine($"  ANOMALIE {k.Spec.Name} hors barrière");
                 }
                 if (_race.State == RaceManager.Phase.Results) break;
                 yield return null;

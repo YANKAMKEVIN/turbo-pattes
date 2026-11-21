@@ -163,7 +163,7 @@ dans l'esprit des grands jeux de karting, mais avec des tracés, décors et noms
 6. ~~Dix circuits~~ (fait) ; à venir : virages relevés, boucles, passages anti-gravité, décors animés (lave, vagues, nuages).
 7. ~~Une musique par circuit~~ (fait) ; à faire : que Kevin les écoute (export WAV) et dise lesquelles retoucher.
 8. ~~Plume planante et pelote de laine~~ (fait) ; idées : objet rare pour les derniers.
-9. Raccourcis risqués (sable lent mais court, second tremplin).
+9. ~~Raccourcis risqués~~ (première tranche, branche `claude/suite`, **non exécutée dans Unity**) : `Core/Shortcut` (testé) ; sur la Prairie, dans le grand virage à gauche du nord-est, le muret intérieur recule de 9 m et laisse une bande de sable (vitesse 0,5 contre 0,55 dans l'herbe) avec un petit tremplin rayé (8 m, +1,2 m) : perdant sans turbo, gagnant avec la carotte. L'IA coupe sous turbo et garde sa carotte pour l'entrée. À faire : vérifier dans Unity (autotest Prairie), régler les valeurs au ressenti, en poser sur d'autres circuits (`Circuit.Shortcuts`).
 10. ~~Poussière, secousse, figure en l'air = turbo~~ (fait).
 11. ~~Contre-la-montre, fantôme, écarts en direct, médailles~~ (fait) ; idée : fantôme d'un autre pilote.
 12. ~~Coupes, déblocage, trophées, grille inversée~~ (fait).

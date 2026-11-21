@@ -35,6 +35,8 @@ namespace TurboPattes.Game.Track
         public readonly float Gravity = 1f;
         /// <summary>Piste suspendue (ciel, espace) : pas de sol dessous.</summary>
         public readonly bool Floating;
+        /// <summary>Raccourcis risqués (muret reculé, sable, petit tremplin).</summary>
+        public readonly List<Shortcut> Shortcuts = new();
         readonly TrackProjection _projection;
 
         public int Count => Points.Length;
@@ -99,6 +101,14 @@ namespace TurboPattes.Game.Track
                 }
             }
 
+            foreach (var (c, half, side, extra) in relief?.Shortcuts ?? new (int, float, int, float)[0])
+            {
+                // Tremplin dans le sable : rampe de 8 m qui finit 5 m avant le milieu du virage, dans une bande de 5 m
+                // qui commence 2 m après les vibreurs.
+                float center = Dist[c * samplesPerSegment], inner = halfWidth + curbWidth + 2f;
+                Shortcuts.Add(new Shortcut(center, half, side, extra, Length, center - 5f, 8f, 1.2f, inner, inner + 5f));
+            }
+
             var xs = new float[count];
             var ys = new float[count];
             var zs = new float[count];
@@ -119,10 +129,40 @@ namespace TurboPattes.Game.Track
         public bool OnRamp(float lateral) => Mathf.Abs(lateral) <= HalfWidth + CurbWidth;
 
         /// <summary>Hauteur du sol à la distance <paramref name="s"/> et au décalage <paramref name="lateral"/>.</summary>
-        public float GroundHeight(float s, float lateral) => Profile?.Height(s, OnRamp(lateral)) ?? 0f;
+        public float GroundHeight(float s, float lateral)
+        {
+            float h = Profile?.Height(s, OnRamp(lateral)) ?? 0f;
+            foreach (var sc in Shortcuts) h += sc.Kick(s, lateral, out _);
+            return h;
+        }
 
         /// <summary>Pente du sol (dh/ds, dans le sens de la course).</summary>
-        public float GroundSlope(float s, float lateral) => Profile?.Slope(s, OnRamp(lateral)) ?? 0f;
+        public float GroundSlope(float s, float lateral)
+        {
+            float slope = Profile?.Slope(s, OnRamp(lateral)) ?? 0f;
+            foreach (var sc in Shortcuts)
+            {
+                sc.Kick(s, lateral, out float k);
+                slope += k;
+            }
+            return slope;
+        }
+
+        /// <summary>Distance du muret à la ligne médiane du côté <paramref name="side"/> (-1 gauche, +1 droite) : reculé dans les raccourcis.</summary>
+        public float BarrierAt(float s, int side)
+        {
+            float offset = BarrierOffset;
+            foreach (var sc in Shortcuts) offset = Mathf.Max(offset, sc.BarrierOffset(Wrap(s), side, BarrierOffset));
+            return offset;
+        }
+
+        /// <summary>Dans le sable d'un raccourci (au-delà des vibreurs) ?</summary>
+        public bool InSand(float s, float lateral)
+        {
+            foreach (var sc in Shortcuts)
+                if (sc.InSand(Wrap(s), lateral, HalfWidth + CurbWidth)) return true;
+            return false;
+        }
 
         static Vector2 CatmullRom(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t)
         {
