@@ -16,7 +16,7 @@ namespace TurboPattes.Game.Kart
         public int Number;
         /// <summary>Casque et carénage du kart.</summary>
         public Color Kart;
-        /// <summary>Bande du casque, liseré et jantes.</summary>
+        /// <summary>Bande du casque et liserés du carénage.</summary>
         public Color KartTrim;
         public Color Suit;
 

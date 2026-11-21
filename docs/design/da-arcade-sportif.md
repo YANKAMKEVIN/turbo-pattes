@@ -44,7 +44,7 @@ textes sur fond sombre.
 
 ### 2.2 Couleurs d'équipe (une par pilote)
 
-Couleur principale (casque, carrosserie du kart) et couleur secondaire (bande du casque, liseré, jantes). Huit
+Couleur principale (casque, carénage du kart) et couleur secondaire (bande du casque, liserés du carénage). Huit
 couleurs franches, toutes différentes, choisies pour se distinguer de dos à 30 m :
 
 | N° | Pilote | Principale | Secondaire |
@@ -97,11 +97,11 @@ d'alerte (rouge). Les commandes tactiles restent des disques carbone translucide
 
 - **Carénage** : nez avant enveloppant, pontons latéraux, panneau frontal porte-numéro, spoiler arrière bas ;
   plancher et pare-chocs en **carbone** (gris très sombre brillant), échappements et axes en **métal**.
-- **Livrée** : couleur principale de l'équipe sur le carénage, couleur secondaire en bande longitudinale et sur les
-  jantes, liseré carbone.
-- **Numéro** : plaque blanche à chiffres carbone sur le nez et les pontons, dessinée par code (chiffres à segments,
+- **Livrée** : couleur principale de l'équipe sur le carénage (nez, panneau frontal, pontons, becquet), couleur
+  secondaire en bande longitudinale et en liserés sur les pontons et le becquet.
+- **Numéro** : plaque blanche à chiffres carbone sur le panneau frontal, les pontons et le pare-chocs arrière, dessinée par code (chiffres à segments,
   `Icons.NumberPlate`).
-- **Roues** : pneus slicks noirs, jantes métal à cinq branches suggérées, pas de couleurs vives sur les roues.
+- **Roues** : pneus slicks noirs, jantes métal avec une branche sombre qui montre la rotation, pas de couleurs vives sur les roues.
 
 ## 6. Pilotes humains
 

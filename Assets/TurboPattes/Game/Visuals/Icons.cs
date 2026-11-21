@@ -70,6 +70,39 @@ namespace TurboPattes.Game.Visuals
 
         static Color UiColor(Rgb c) => new(c.R, c.G, c.B);
 
+        static readonly Dictionary<(int, Color, Color), Texture2D> PlateCache = new();
+
+        /// <summary>
+        /// Plaque de numéro de course carrée (fond <paramref name="plate"/> sur toute la texture, sans transparence,
+        /// chiffres <paramref name="ink"/> à sept segments, <see cref="SevenSegment"/>), pour le nez, les pontons et l'arrière du kart.
+        /// </summary>
+        public static Texture2D NumberPlate(int number, Color plate, Color ink)
+        {
+            var key = (number, plate, ink);
+            if (PlateCache.TryGetValue(key, out var tex)) return tex;
+            var c = new IconCanvas(128);
+            c.Fill(Polygon(0f, -0.1f, -0.1f, 1.1f, -0.1f, 1.1f, 1.1f, -0.1f, 1.1f), plate, 0f, 0f);
+            string text = Mathf.Clamp(number, 0, 99).ToString();
+            // Case d'un chiffre : 0,26 de large, 0,56 de haut, chiffres légèrement penchés (italique de course).
+            const float cw = 0.26f, ch = 0.56f, gap = 0.1f, slant = 0.1f, stroke = 0.045f;
+            float total = text.Length * cw + (text.Length - 1) * gap;
+            float x0 = 0.5f - total * 0.5f, y0 = 0.5f - ch * 0.5f;
+            for (int k = 0; k < text.Length; k++)
+            {
+                var on = SevenSegment.Segments(text[k]);
+                float left = x0 + k * (cw + gap);
+                for (int i = 0; i < 7; i++)
+                {
+                    if (!on[i]) continue;
+                    var (ax, ay, bx, by) = SevenSegment.Stroke(i);
+                    float pay = y0 + ay * ch * 0.5f, pby = y0 + by * ch * 0.5f;
+                    float pax = left + ax * cw + (0.5f - (pay - y0) / ch) * slant, pbx = left + bx * cw + (0.5f - (pby - y0) / ch) * slant;
+                    c.Fill(Capsule(pax, pay, pbx, pby, stroke), ink, 0f, 0f);
+                }
+            }
+            return PlateCache[key] = c.ToTexture("Plate" + number);
+        }
+
         public static Texture2D Portrait(DriverSpec spec)
         {
             if (PortraitCache.TryGetValue(spec, out var tex)) return tex;

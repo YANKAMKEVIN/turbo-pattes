@@ -162,6 +162,10 @@ assemblies de référence UnityEngine (NuGet) avec des stubs, Editor/ en syntaxe
    carbone, bras gantés sur le volant, casque intégral (bande, visière fumée, mentonnière, becquet) ; portraits
    = casque de trois quarts ; animations de fin gardées, amplitude des bras réduite de 20 % ; classement du HUD en
    tour de chronométrage (couleur d'équipe, code, numéro). Les autotests cherchent maintenant « Alex » dans le journal.
+3. **Karts** : plancher et pare-chocs carbone, nez enveloppant avec bande, panneau frontal incliné, pontons latéraux
+   arrondis avec liseré, baquet carbone, moteur métal sur le côté droit, colonne de direction, becquet bas à dérives ;
+   slicks et jantes métal ; numéro de course sur plaque blanche (chiffres à sept segments `Core/SevenSegment`, testé,
+   `Icons.NumberPlate`) sur le panneau frontal, les deux pontons et le pare-chocs arrière ; bouclier en enveloppe fumée.
 
 ## Refonte DA « Atelier plein gaz » (remplacée le 2026-11-21, gardée pour l'historique)
 

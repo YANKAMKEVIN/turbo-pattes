@@ -78,3 +78,42 @@ namespace TurboPattes.Tests
         }
     }
 }
+
+namespace TurboPattes.Tests
+{
+    public class NumberPlateTests
+    {
+        [TestCase('0', 6)]
+        [TestCase('1', 2)]
+        [TestCase('4', 4)]
+        [TestCase('7', 3)]
+        [TestCase('8', 7)]
+        public void SeptSegments_NombreDeSegmentsAllumes(char digit, int lit)
+        {
+            Assert.That(System.Linq.Enumerable.Count(SevenSegment.Segments(digit), on => on), Is.EqualTo(lit));
+        }
+
+        [Test]
+        public void SeptSegments_ChiffresTousDifferentsEtNumerosDesPilotesDessinables()
+        {
+            var seen = new System.Collections.Generic.HashSet<string>();
+            for (char c = '0'; c <= '9'; c++) Assert.That(seen.Add(string.Join(",", SevenSegment.Segments(c))), Is.True, c.ToString());
+            Assert.That(SevenSegment.Segments('x'), Has.All.False);
+            foreach (var p in Roster.All)
+                foreach (char c in p.Number.ToString())
+                    Assert.That(SevenSegment.Segments(c), Has.Some.True);
+        }
+
+        [Test]
+        public void SeptSegments_TraitsDansLaCase()
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                var (x0, y0, x1, y1) = SevenSegment.Stroke(i);
+                foreach (float x in new[] { x0, x1 }) Assert.That(x, Is.InRange(0f, 1f));
+                foreach (float y in new[] { y0, y1 }) Assert.That(y, Is.InRange(0f, 2f));
+                Assert.That(x0 == x1 || y0 == y1, Is.True, "segment droit");
+            }
+        }
+    }
+}

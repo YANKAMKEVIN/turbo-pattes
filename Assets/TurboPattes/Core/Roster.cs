@@ -17,7 +17,7 @@ namespace TurboPattes.Core
         public string Trait;
         /// <summary>Couleur principale : casque, carénage du kart.</summary>
         public Rgb Primary;
-        /// <summary>Couleur secondaire : bande du casque, liseré, jantes.</summary>
+        /// <summary>Couleur secondaire : bande du casque, liserés du carénage.</summary>
         public Rgb Secondary;
         /// <summary>Combinaison : la couleur principale, ou carbone quand elle est trop claire pour une combinaison.</summary>
         public Rgb Suit;
