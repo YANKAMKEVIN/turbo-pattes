@@ -92,6 +92,13 @@ namespace TurboPattes.Game.App
             set => Save("tp.mode", (int)value);
         }
 
+        /// <summary>Fantôme du contre-la-montre : son record, le meilleur tour d'un autre pilote, ou aucun.</summary>
+        public static GhostMode GhostMode
+        {
+            get => (GhostMode)Mathf.Clamp(Load("tp.ghost", 0), 0, 2);
+            set => Save("tp.ghost", (int)value);
+        }
+
         /// <summary>Coupe choisie dans le menu (index dans <see cref="Cups.All"/>).</summary>
         public static int CupChoice
         {
@@ -192,13 +199,40 @@ namespace TurboPattes.Game.App
             catch (IOException e) { Debug.LogWarning($"[TurboPattes] Fantôme non sauvegardé : {e.Message}"); }
         }
 
-        /// <summary>Efface records et fantôme d'un circuit (autotest).</summary>
+        /// <summary>Meilleur tour de ce pilote sur ce circuit (0 = aucun) : son fantôme sert de rival aux autres pilotes.</summary>
+        public static float DriverBestLap(int circuit, int driver) => LoadF($"tp.bestlap.{circuit}.p{driver}");
+        public static void SetDriverBestLap(int circuit, int driver, float t) => SaveF($"tp.bestlap.{circuit}.p{driver}", t);
+
+        static string DriverGhostPath(int circuit, int driver) => Path.Combine(Application.persistentDataPath, $"fantome-{circuit + 1}-p{driver + 1}.txt");
+
+        public static GhostLap LoadDriverGhost(int circuit, int driver)
+        {
+            try
+            {
+                string path = DriverGhostPath(circuit, driver);
+                return File.Exists(path) ? GhostLap.Parse(File.ReadAllText(path)) : null;
+            }
+            catch (IOException) { return null; }
+        }
+
+        public static void SaveDriverGhost(int circuit, int driver, GhostLap ghost)
+        {
+            try { File.WriteAllText(DriverGhostPath(circuit, driver), ghost.Serialize()); }
+            catch (IOException e) { Debug.LogWarning($"[TurboPattes] Fantôme du pilote non sauvegardé : {e.Message}"); }
+        }
+
+        /// <summary>Efface records et fantômes d'un circuit (autotest).</summary>
         public static void ClearRecords(int circuit)
         {
             PlayerPrefs.DeleteKey($"tp.bestlap.{circuit}");
             for (int laps = 1; laps <= 9; laps++) PlayerPrefs.DeleteKey($"tp.best.{circuit}.{laps}");
+            for (int d = 0; d < Kart.AnimalSpec.Roster.Length; d++) PlayerPrefs.DeleteKey($"tp.bestlap.{circuit}.p{d}");
             PlayerPrefs.Save();
-            try { File.Delete(GhostPath(circuit)); }
+            try
+            {
+                File.Delete(GhostPath(circuit));
+                for (int d = 0; d < Kart.AnimalSpec.Roster.Length; d++) File.Delete(DriverGhostPath(circuit, d));
+            }
             catch (IOException) { }
         }
 

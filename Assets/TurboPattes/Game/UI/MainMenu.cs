@@ -35,6 +35,8 @@ namespace TurboPattes.Game.UI
         string[] _circuitNames;
         Difficulty _difficulty;
         GameMode _mode;
+        /// <summary>Contre-la-montre : la ligne « Difficulté » devient le choix du fantôme.</summary>
+        GhostMode _ghostMode;
 
         Camera _cam;
         TrackPath _path;
@@ -58,6 +60,7 @@ namespace TurboPattes.Game.UI
             _laps = Array.IndexOf(GameSession.LapChoices, GameSession.Laps);
             if (_laps < 0) _laps = 1;
             _difficulty = GameSession.Difficulty;
+            _ghostMode = GameSession.GhostMode;
             _circuit = circuit;
             _shownTrack = circuit;
             _mode = GameSession.Mode;
@@ -289,8 +292,6 @@ namespace TurboPattes.Game.UI
             if (dy != 0)
             {
                 _row = (Row)Mathf.Clamp((int)_row + dy, 0, (int)Row.Start);
-                // Pas de difficulté en contre-la-montre : la ligne est sautée.
-                if (_row == Row.Difficulty && _mode == GameMode.TimeTrial) _row += dy;
                 Jukebox.Instance.Move();
             }
             if (dx != 0)
@@ -301,7 +302,12 @@ namespace TurboPattes.Game.UI
                     case Row.Mode: ChangeMode((GameMode)Mathf.Clamp((int)_mode + dx, 0, 2)); break;
                     case Row.Circuit: if (_mode == GameMode.Cup) ChangeCup(_cup + dx); else ChangeCircuit(_circuit + dx); break;
                     case Row.Laps: _laps = Mathf.Clamp(_laps + dx, 0, 2); Jukebox.Instance.Move(); break;
-                    case Row.Difficulty: _difficulty = (Difficulty)Mathf.Clamp((int)_difficulty + dx, 0, 2); Jukebox.Instance.Move(); break;
+                    case Row.Difficulty:
+                        // En contre-la-montre, pas de difficulté : on choisit le fantôme.
+                        if (_mode == GameMode.TimeTrial) _ghostMode = (GhostMode)Mathf.Clamp((int)_ghostMode + dx, 0, 2);
+                        else _difficulty = (Difficulty)Mathf.Clamp((int)_difficulty + dx, 0, 2);
+                        Jukebox.Instance.Move();
+                        break;
                 }
             }
 
@@ -322,7 +328,13 @@ namespace TurboPattes.Game.UI
             {
                 if (l.ModeButtons[i].Contains(p)) { ChangeMode((GameMode)i); _row = Row.Mode; }
                 if (l.LapButtons[i].Contains(p)) { _laps = i; _row = Row.Laps; Jukebox.Instance.Move(); }
-                if (l.DifficultyButtons[i].Contains(p) && _mode != GameMode.TimeTrial) { _difficulty = (Difficulty)i; _row = Row.Difficulty; Jukebox.Instance.Move(); }
+                if (l.DifficultyButtons[i].Contains(p))
+                {
+                    if (_mode == GameMode.TimeTrial) _ghostMode = (GhostMode)i;
+                    else _difficulty = (Difficulty)i;
+                    _row = Row.Difficulty;
+                    Jukebox.Instance.Move();
+                }
             }
         }
 
@@ -419,6 +431,7 @@ namespace TurboPattes.Game.UI
             GameSession.Circuit = _circuit;
             GameSession.Laps = GameSession.LapChoices[_laps];
             GameSession.Difficulty = _difficulty;
+            GameSession.GhostMode = _ghostMode;
             GameSession.Mode = _mode;
             GameSession.CupChoice = _cup;
             GameSession.Cup = _mode == GameMode.Cup ? new CupRun { CupIndex = _cup, Player = _pilot } : null;
@@ -592,12 +605,12 @@ namespace TurboPattes.Game.UI
                 _ui.Label(new Rect(l.CircuitButtons[0].x, l.CircuitButtons[0].yMax + 2 * s, l.Go.width, 26 * s), info, _ui.Small,
                     UiKit.Vermilion, TextAnchor.MiddleCenter);
             Caption(l.LapButtons[0], "Tours");
-            Caption(l.DifficultyButtons[0], "Difficulté", chrono ? 0.35f : 1f);
+            Caption(l.DifficultyButtons[0], chrono ? "Fantôme" : "Difficulté");
             for (int i = 0; i < 3; i++)
             {
                 Segment(l.ModeButtons[i], GameSession.ModeNames[i], i == (int)_mode, _row == Row.Mode && i == (int)_mode);
                 Segment(l.LapButtons[i], GameSession.LapChoices[i].ToString(), i == _laps, _row == Row.Laps && i == _laps);
-                if (chrono) _ui.Segment(l.DifficultyButtons[i], GameSession.DifficultyNames[i], false, false, disabled: true);
+                if (chrono) Segment(l.DifficultyButtons[i], GhostPick.Names[i], i == (int)_ghostMode, _row == Row.Difficulty && i == (int)_ghostMode);
                 else Segment(l.DifficultyButtons[i], GameSession.DifficultyNames[i], i == (int)_difficulty, _row == Row.Difficulty && i == (int)_difficulty);
             }
 
