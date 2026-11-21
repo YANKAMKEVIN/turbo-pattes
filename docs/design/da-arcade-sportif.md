@@ -1,14 +1,15 @@
 # Direction artistique « Arcade sportif »
 
-> Nom du jeu choisi par Kevin le 21/11/2026 : **Turbo Grid** (§ 9).
+> **Validée par Kevin le 21/11/2026** : palette (§ 2), pilotes (§ 6), objets (§ 7) et circuits (§ 8). Nom du jeu
+> choisi le même jour : **Turbo Grid** (§ 9).
 
 Décision de Kevin du 2026-11-21 : le design actuel est jugé **trop enfant**. Il est remplacé par une direction
 **arcade sportif** : karts et circuits façon sport mécanique, couleurs franches mais sobres, typographie racing,
 HUD épuré, matières métal et carbone. Les **pilotes animaux deviennent des pilotes humains**. Tout est concerné :
 menus et HUD, pilotes, circuits et décors, karts et objets.
 
-Ce document est la **référence** de la refonte. Chaque valeur est une **valeur par défaut** que Kevin validera ;
-toutes sont regroupées dans du code de données testé (`Core/Brand.cs`, `Core/Roster.cs`, `Core/ItemCatalog.cs`),
+Ce document est la **référence** de la refonte. La palette, les pilotes, les objets et les circuits sont **validés
+par Kevin le 21/11** ; les autres valeurs (police, accroche) restent des valeurs par défaut. Toutes sont regroupées dans du code de données testé (`Core/Brand.cs`, `Core/Roster.cs`, `Core/ItemCatalog.cs`),
 pour qu'un changement de décision ne touche qu'un seul fichier.
 
 Ce qui ne change pas : physique, équilibrage, caractère des pilotes (`Core/DriverStats`), contenu des modes, règles
@@ -27,7 +28,7 @@ de jeu, mécanique de chaque objet, tracés des circuits. La géométrie (pilote
    de joues roses, pas de sourire dessiné.
 5. **Le nom du jeu, Turbo Grid** (§ 9), n'apparaît qu'à un seul endroit du code (`Brand.Title`).
 
-## 2. Couleurs
+## 2. Couleurs — validé le 21/11
 
 ### 2.1 Tokens d'interface (`Core/Brand.cs`, classe `Palette`)
 
@@ -105,7 +106,7 @@ d'alerte (rouge). Les commandes tactiles restent des disques carbone translucide
   `Icons.NumberPlate`).
 - **Roues** : pneus slicks noirs, jantes métal avec une branche sombre qui montre la rotation, pas de couleurs vives sur les roues.
 
-## 6. Pilotes humains
+## 6. Pilotes humains — validé le 21/11
 
 Huit pilotes, **mêmes caractères de jeu** qu'avant, dans le même ordre (le n° 0 reste le pilote par défaut) :
 
@@ -138,7 +139,7 @@ salue, petits sauts, tête vers le ciel ; défaite = mains qui lâchent le volan
 tassé. Elles s'appliquent au nouveau squelette (épaules et tête articulées) ; l'amplitude est réduite de 20 % sur les
 bras pour rester crédible sur des proportions adultes.
 
-## 7. Objets : même mécanique, habillage sport mécanique
+## 7. Objets : même mécanique, habillage sport mécanique — validé le 21/11
 
 | Identifiant (code) | Avant | **Après** | Mécanique (inchangée) |
 |---|---|---|---|
@@ -155,7 +156,7 @@ qu'aucune règle ne bouge (tirage, IA, sauvegardes). Seuls l'affichage (`ItemCat
 
 Bulles d'objets → **caisses objet** : cube translucide qui tourne, chevron jaune lumineux au centre.
 
-## 8. Circuits et décors
+## 8. Circuits et décors — validé le 21/11
 
 - **Vibreurs** rouge et blanc (déjà présents), **glissières** acier à bandes blanches et rouges selon le thème,
   **piles de pneus** aux points de freinage, **tribune** couverte graphite avec public aux couleurs des équipes,
@@ -215,8 +216,8 @@ Accroche par défaut sous le logo : « Championnat de karting arcade ».
 ## À valider par Kevin
 
 - ~~Le nom du jeu (§ 9)~~ : **Turbo Grid**, choisi le 21/11 (marque et disponibilité sur les stores à vérifier).
-- La palette (§ 2) et les couleurs d'équipe.
-- Les noms, numéros et codes des pilotes (§ 6).
-- Les noms des objets (§ 7), des circuits et des coupes (§ 8), les sponsors fictifs.
+- ~~La palette (§ 2) et les couleurs d'équipe~~ : validées le 21/11.
+- ~~Les noms, numéros et codes des pilotes (§ 6)~~ : validés le 21/11.
+- ~~Les noms des objets (§ 7), des circuits et des coupes (§ 8), les sponsors fictifs~~ : validés le 21/11.
 - L'accroche (§ 9).
 - La police Saira Condensed (§ 3).
