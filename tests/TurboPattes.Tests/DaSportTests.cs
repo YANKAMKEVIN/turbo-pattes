@@ -117,3 +117,60 @@ namespace TurboPattes.Tests
         }
     }
 }
+
+namespace TurboPattes.Tests
+{
+    public class ItemCatalogTests
+    {
+        static readonly ItemKind[] Kinds = { ItemKind.Carrot, ItemKind.Coconut, ItemKind.Honey, ItemKind.Shield, ItemKind.Feather, ItemKind.Yarn, ItemKind.Comet };
+
+        [Test]
+        public void ChaqueObjet_UnNomUniqueEtUneDescription()
+        {
+            Assert.That(Kinds.Length, Is.EqualTo(Enum.GetValues(typeof(ItemKind)).Length - 1), "tous les objets sauf None");
+            foreach (var k in Kinds)
+            {
+                Assert.That(ItemCatalog.Name(k), Is.Not.Empty, k.ToString());
+                Assert.That(ItemCatalog.Description(k), Is.Not.Empty, k.ToString());
+            }
+            Assert.That(Kinds.Select(ItemCatalog.Name).Distinct().Count(), Is.EqualTo(Kinds.Length));
+            Assert.That(ItemCatalog.Name(ItemKind.None), Is.Empty);
+        }
+
+        [Test]
+        public void ChaqueObjet_GardeSaMecanique()
+        {
+            // Avant la refonte : carotte = turbo, coco = projectile qui rebondit, miel = piège posé, bulle = bouclier,
+            // plume = bond plané, pelote = projectile guidé par la piste, comète = objet rare en pilote automatique.
+            Assert.That(ItemCatalog.Mechanic(ItemKind.Carrot), Is.EqualTo(ItemMechanic.InstantBoost));
+            Assert.That(ItemCatalog.Mechanic(ItemKind.Coconut), Is.EqualTo(ItemMechanic.StraightBouncer));
+            Assert.That(ItemCatalog.Mechanic(ItemKind.Honey), Is.EqualTo(ItemMechanic.DroppedTrap));
+            Assert.That(ItemCatalog.Mechanic(ItemKind.Shield), Is.EqualTo(ItemMechanic.TimedShield));
+            Assert.That(ItemCatalog.Mechanic(ItemKind.Feather), Is.EqualTo(ItemMechanic.GlideLeap));
+            Assert.That(ItemCatalog.Mechanic(ItemKind.Yarn), Is.EqualTo(ItemMechanic.TrackHoming));
+            Assert.That(ItemCatalog.Mechanic(ItemKind.Comet), Is.EqualTo(ItemMechanic.RareAutopilot));
+            Assert.That(Kinds.Select(ItemCatalog.Mechanic).Distinct().Count(), Is.EqualTo(Kinds.Length), "une mécanique par objet");
+        }
+
+        [Test]
+        public void Tirage_InchangeParLaRefonte()
+        {
+            // Mêmes réglages qu'avant : la comète (aspiration) reste réservée au dernier quart, hors roulette.
+            Assert.That(ItemRoll.KindCount, Is.EqualTo(6));
+            Assert.That(CometRun.Duration, Is.EqualTo(3.5f));
+            Assert.That(ItemRoll.CometWeight(7, 8), Is.EqualTo(ItemRoll.CometMaxWeight));
+            Assert.That(ItemRoll.CometWeight(0, 8), Is.EqualTo(0f));
+            Assert.That(ItemRoll.Pick(0, 8, 0.0), Is.EqualTo(ItemKind.Carrot));
+            Assert.That(ItemRoll.Pick(0, 8, 0.999), Is.EqualTo(ItemKind.Feather), "le premier ne tire jamais le drone");
+        }
+
+        [Test]
+        public void Noms_PlusAucunObjetEnfantin()
+        {
+            string[] old = { "carotte", "coco", "miel", "bulle", "plume", "pelote", "comète" };
+            foreach (var k in Kinds)
+                foreach (var o in old)
+                    Assert.That(ItemCatalog.Name(k).ToLowerInvariant(), Does.Not.Contain(o));
+        }
+    }
+}

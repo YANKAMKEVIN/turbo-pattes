@@ -236,6 +236,22 @@ namespace TurboPattes.Game.Track
                 PawSign(arch, new Vector3(px, 7.3f, -0.4f), 1.1f, gold);
         }
 
+        /// <summary>Emblème de deux chevrons « » » dans le plan local XY (caisses objet, portique de départ).</summary>
+        public static Transform ChevronSign(Transform parent, Vector3 localPos, float size, Material mat)
+        {
+            var sign = new GameObject("Chevrons").transform;
+            sign.SetParent(parent, false);
+            sign.localPosition = localPos;
+            sign.localScale = Vector3.one * size;
+            foreach (float x in new[] { -0.28f, 0.22f })
+            {
+                // Chaque chevron : deux barres penchées qui se rejoignent à droite.
+                MeshKit.Prim(PrimitiveType.Cube, sign, new Vector3(x, 0.17f, 0f), new Vector3(0.18f, 0.48f, 0.18f), mat, Quaternion.Euler(0f, 0f, 40f));
+                MeshKit.Prim(PrimitiveType.Cube, sign, new Vector3(x, -0.17f, 0f), new Vector3(0.18f, 0.48f, 0.18f), mat, Quaternion.Euler(0f, 0f, -40f));
+            }
+            return sign;
+        }
+
         /// <summary>Emblème de patte (coussinet + 4 doigts) dans le plan local XY.</summary>
         public static Transform PawSign(Transform parent, Vector3 localPos, float size, Material mat)
         {

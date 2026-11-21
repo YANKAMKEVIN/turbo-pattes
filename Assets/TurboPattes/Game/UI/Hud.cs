@@ -49,7 +49,6 @@ namespace TurboPattes.Game.UI
         Rect _mapRect;
         MapFit _mapFit;
         int[] _mapDots;
-        static readonly string[] ItemNames = { "", "Carotte turbo", "Noix de coco", "Pot de miel", "Bulle bouclier", "Plume planante", "Pelote de laine", "Comète" };
         static readonly string[] PauseChoices = { "Reprendre", "Recommencer", "Réglages", "Menu" };
         static readonly string[] ResultChoices = { "Rejouer", "Menu" };
         static readonly string[] CupChoices = { "Course suivante", "Menu" };
@@ -440,7 +439,7 @@ namespace TurboPattes.Game.UI
             {
                 var tag = new Rect(c.x - 100 * _scale, c.y + r + 8 * _scale, 200 * _scale, 28 * _scale);
                 _ui.Plate(tag);
-                Label(tag, ItemNames[(int)kind], _small, UiKit.Chalk, TextAnchor.MiddleCenter);
+                Label(tag, ItemCatalog.Name(kind).ToUpperInvariant(), _small, UiKit.Chalk, TextAnchor.MiddleCenter);
             }
         }
 

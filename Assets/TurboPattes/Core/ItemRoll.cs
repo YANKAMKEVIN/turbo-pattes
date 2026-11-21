@@ -5,20 +5,20 @@ namespace TurboPattes.Core
     public enum ItemKind
     {
         None,
-        /// <summary>Carotte turbo : accélération immédiate.</summary>
+        /// <summary>Nitro (ex-carotte turbo) : accélération immédiate. Habillage : <see cref="ItemCatalog"/>.</summary>
         Carrot,
-        /// <summary>Noix de coco : roule tout droit, rebondit sur les barrières, fait tourner le kart touché.</summary>
+        /// <summary>Pneu fou (ex-noix de coco) : roule tout droit, rebondit sur les barrières, fait tourner le kart touché.</summary>
         Coconut,
-        /// <summary>Pot de miel : flaque posée derrière soi.</summary>
+        /// <summary>Flaque d'huile (ex-pot de miel) : flaque posée derrière soi.</summary>
         Honey,
-        /// <summary>Bulle bouclier : absorbe un coup pendant quelques secondes.</summary>
+        /// <summary>Bouclier carbone (ex-bulle bouclier) : absorbe un coup pendant quelques secondes.</summary>
         Shield,
-        /// <summary>Plume planante : grand bond plané, par-dessus les objets au sol, avec un petit élan.</summary>
+        /// <summary>Aileron (ex-plume planante) : grand bond plané, par-dessus les objets au sol, avec un petit élan.</summary>
         Feather,
-        /// <summary>Pelote de laine : file le long de la piste vers le kart juste devant et le fait tourner.</summary>
+        /// <summary>Drone traqueur (ex-pelote de laine) : file le long de la piste vers le kart juste devant et le fait tourner.</summary>
         Yarn,
         /// <summary>
-        /// Comète (objet rare, réservé aux derniers) : pendant <see cref="CometRun.Duration"/> s, le kart file en turbo
+        /// Aspiration (ex-comète, objet rare, réservé aux derniers) : pendant <see cref="CometRun.Duration"/> s, le kart file en turbo
         /// sur la ligne médiane, pilote automatique, intouchable, et fait tourner ceux qu'il percute.
         /// </summary>
         Comet,
