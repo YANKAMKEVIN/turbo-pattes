@@ -22,10 +22,10 @@ namespace TurboPattes.Game.Kart
         public GameObject Shield;
     }
 
-    /// <summary>Construit un kart et son pilote animal à partir de primitives. Avant = +z.</summary>
+    /// <summary>Construit un kart et son pilote humain à partir de primitives générées par code. Avant = +z.</summary>
     public static class KartFactory
     {
-        public static KartRig Build(AnimalSpec spec, Transform parent)
+        public static KartRig Build(DriverSpec spec, Transform parent)
         {
             var rig = new KartRig();
             var root = new GameObject("Kart_" + spec.Name).transform;
@@ -106,6 +106,12 @@ namespace TurboPattes.Game.Kart
             return rig;
         }
 
+        /// <summary>
+        /// Amplitude des bras dans les postures de fin de course : réduite de 20 % pour rester crédible sur des
+        /// proportions adultes (docs/design/da-arcade-sportif.md, § 6).
+        /// </summary>
+        const float ArmAmplitude = 0.8f;
+
         /// <summary>Applique une posture (<see cref="DriverPoses"/>) au pilote ; <see cref="DriverPose.Rest"/> le remet au volant.</summary>
         public static void Pose(KartRig rig, DriverPose pose)
         {
@@ -114,155 +120,89 @@ namespace TurboPattes.Game.Kart
             rig.Head.localRotation = Quaternion.Euler(pose.HeadPitch, 0f, pose.HeadRoll);
             // Lever : rotation vers le haut autour de l'axe des épaules ; écarter : vers l'extérieur de chaque côté.
             for (int i = 0; i < rig.Shoulders.Length; i++)
-                rig.Shoulders[i].localRotation = Quaternion.Euler(-pose.ArmLift, 0f, (i == 0 ? 1f : -1f) * pose.ArmSpread);
+                rig.Shoulders[i].localRotation = Quaternion.Euler(-pose.ArmLift * ArmAmplitude, 0f, (i == 0 ? 1f : -1f) * pose.ArmSpread * ArmAmplitude);
         }
 
-        static Transform BuildDriver(AnimalSpec spec, Transform body, KartRig rig)
+        /// <summary>
+        /// Pilote humain assis dans le baquet, proportions adultes : bassin, jambes vers le pédalier, buste en
+        /// combinaison (bande de la couleur secondaire), col, bras gantés posés sur le volant et casque intégral à la
+        /// couleur de l'équipe (bande, visière fumée, petit becquet). Le visage n'est jamais visible.
+        /// Repère local du pilote : origine au fond du baquet, avant = +z, volant vers (0 ; 0,35 ; 0,6).
+        /// </summary>
+        static Transform BuildDriver(DriverSpec spec, Transform body, KartRig rig)
         {
             var d = new GameObject("Driver").transform;
             d.SetParent(body, false);
             d.localPosition = new Vector3(0, 0.6f, -0.25f);
 
-            var fur = Mats.Lit(spec.Fur, 0.2f);
-            var accent = Mats.Lit(spec.Accent, 0.2f);
-            var white = Mats.Lit(Color.white, 0.6f);
-            var black = Mats.Lit(new Color(0.05f, 0.05f, 0.07f), 0.8f);
-            var pinkInner = Mats.Lit(new Color(1f, 0.65f, 0.7f), 0.2f);
+            var suit = Mats.Lit(spec.Suit, 0.3f);
+            var stripe = Mats.Lit(spec.KartTrim, 0.35f);
+            var carbon = Mats.Lit(new Color(0.08f, 0.09f, 0.1f), 0.55f);
+            var helmet = Mats.Lit(spec.Kart, 0.8f, 0.1f);
+            var helmetStripe = Mats.Lit(spec.KartTrim, 0.8f, 0.1f);
+            var visor = Mats.Lit(new Color(0.05f, 0.06f, 0.08f), 0.95f, 0.4f);
 
-            // Corps et bras vers le volant
-            var torsoMat = spec.Kind == AnimalKind.Penguin ? fur : Mats.Lit(spec.KartTrim == Color.white ? spec.Kart : spec.KartTrim, 0.3f);
-            MeshKit.Prim(PrimitiveType.Sphere, d, new Vector3(0, 0.38f, 0), new Vector3(0.78f, 0.75f, 0.62f), torsoMat);
-            if (spec.Kind == AnimalKind.Penguin)
-                MeshKit.Prim(PrimitiveType.Sphere, d, new Vector3(0, 0.36f, 0.12f), new Vector3(0.6f, 0.62f, 0.45f), white);
-            // Col de la combinaison.
-            MeshKit.Prim(PrimitiveType.Cylinder, d, new Vector3(0, 0.71f, 0.02f), new Vector3(0.44f, 0.04f, 0.4f), Mats.Lit(spec.Kart, 0.4f));
-            // Bras : manches de combinaison et gants, accrochés à une épaule qui pivote (animations de fin de course).
-            var sleeve = torsoMat;
-            var glove = Mats.Lit(new Color(0.16f, 0.16f, 0.18f), 0.35f);
+            // Bassin et jambes : cuisses qui remontent vers les genoux, tibias qui redescendent vers le pédalier.
+            MeshKit.Prim(PrimitiveType.Sphere, d, new Vector3(0, 0.08f, -0.14f), new Vector3(0.44f, 0.22f, 0.36f), suit, null, "Pelvis");
+            foreach (float side in new[] { -1f, 1f })
+            {
+                var hip = new Vector3(side * 0.12f, 0.08f, -0.06f);
+                var knee = new Vector3(side * 0.15f, 0.26f, 0.36f);
+                var foot = new Vector3(side * 0.13f, 0.06f, 0.76f);
+                Limb(d, hip, knee, 0.15f, suit, "Thigh");
+                Limb(d, knee, foot, 0.12f, suit, "Shin");
+                MeshKit.Prim(PrimitiveType.Sphere, d, foot + new Vector3(0, 0.02f, 0.04f), new Vector3(0.11f, 0.1f, 0.2f), carbon, null, "Boot");
+            }
+
+            // Buste légèrement renversé contre le dossier, bande verticale de la couleur secondaire sur la poitrine.
+            var lean = Quaternion.Euler(-12, 0, 0);
+            MeshKit.Prim(PrimitiveType.Capsule, d, new Vector3(0, 0.4f, -0.2f), new Vector3(0.46f, 0.3f, 0.3f), suit, lean, "Torso");
+            MeshKit.Prim(PrimitiveType.Cube, d, new Vector3(0, 0.42f, -0.05f), new Vector3(0.12f, 0.46f, 0.02f), stripe, lean, "SuitStripe");
+            // Col montant de la combinaison (protège-nuque carbone).
+            MeshKit.Prim(PrimitiveType.Cylinder, d, new Vector3(0, 0.72f, -0.22f), new Vector3(0.24f, 0.05f, 0.24f), carbon, null, "Collar");
+
+            // Bras : épaule qui pivote (animations de fin de course), bras tendu vers le volant, gant carbone.
             rig.Shoulders = new Transform[2];
             for (int i = 0; i < 2; i++)
             {
-                float x = i == 0 ? -0.3f : 0.3f;
-                var rot = Quaternion.Euler(70, 0, i == 0 ? 15 : -15);
-                // Même bras qu'avant (capsule centrée en (±0,3 ; 0,42 ; 0,33)), mais pendu à son extrémité côté buste.
-                Vector3 axis = rot * Vector3.up, center = new Vector3(x, 0.42f, 0.33f);
+                float side = i == 0 ? -1f : 1f;
                 var shoulder = new GameObject(i == 0 ? "ShoulderL" : "ShoulderR").transform;
                 shoulder.SetParent(d, false);
-                shoulder.localPosition = center - axis * 0.24f;
-                MeshKit.Prim(PrimitiveType.Capsule, shoulder, axis * 0.24f, new Vector3(0.17f, 0.24f, 0.17f), sleeve, rot);
-                MeshKit.Prim(PrimitiveType.Sphere, shoulder, axis * 0.5f, new Vector3(0.17f, 0.15f, 0.17f), glove);
+                shoulder.localPosition = new Vector3(side * 0.25f, 0.62f, -0.2f);
+                // Main sur la jante du volant, à « dix heures dix ».
+                var hand = new Vector3(side * 0.17f, 0.4f, 0.54f) - shoulder.localPosition;
+                Limb(shoulder, Vector3.zero, hand * 0.92f, 0.12f, suit, "Arm");
+                MeshKit.Prim(PrimitiveType.Sphere, shoulder, Vector3.zero, new Vector3(0.15f, 0.15f, 0.15f), suit, null, "ShoulderPad");
+                MeshKit.Prim(PrimitiveType.Sphere, shoulder, hand, new Vector3(0.11f, 0.11f, 0.13f), carbon, null, "Glove");
                 rig.Shoulders[i] = shoulder;
             }
 
+            // Tête : pivot à la base du cou, casque intégral.
             var head = new GameObject("Head").transform;
             head.SetParent(d, false);
-            head.localPosition = new Vector3(0, 1.0f, 0.02f);
+            head.localPosition = new Vector3(0, 0.76f, -0.2f);
             rig.Head = head;
-            MeshKit.Prim(PrimitiveType.Sphere, head, Vector3.zero, new Vector3(0.82f, 0.76f, 0.76f), fur);
-
-            // Yeux (sauf grenouille : globes sur le dessus)
-            if (spec.Kind == AnimalKind.Frog)
-            {
-                foreach (float x in new[] { -0.2f, 0.2f })
-                {
-                    MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x, 0.33f, 0.12f), new Vector3(0.3f, 0.3f, 0.3f), fur);
-                    MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x, 0.37f, 0.22f), new Vector3(0.2f, 0.2f, 0.14f), white);
-                    MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x, 0.37f, 0.29f), new Vector3(0.09f, 0.11f, 0.05f), black);
-                }
-                MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(0, -0.12f, 0.3f), new Vector3(0.55f, 0.14f, 0.2f), accent);
-            }
-            else
-            {
-                foreach (float x in new[] { -0.16f, 0.16f })
-                {
-                    if (spec.Kind == AnimalKind.Panda)
-                        MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x * 1.1f, 0.06f, 0.3f), new Vector3(0.22f, 0.26f, 0.1f), accent,
-                            Quaternion.Euler(0, 0, x > 0 ? -25 : 25));
-                    MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x, 0.07f, 0.34f), new Vector3(0.15f, 0.18f, 0.08f), white);
-                    MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x, 0.07f, 0.38f), new Vector3(0.08f, 0.11f, 0.04f), black);
-                }
-            }
-
-            switch (spec.Kind)
-            {
-                case AnimalKind.Fox:
-                    Snout(head, accent, black, 0.26f, 0.3f);
-                    PointedEars(head, fur, accent, 0.5f, 0.24f);
-                    break;
-                case AnimalKind.Cat:
-                    Snout(head, accent, pinkInner, 0.2f, 0.18f);
-                    PointedEars(head, fur, pinkInner, 0.34f, 0.2f);
-                    break;
-                case AnimalKind.Panda:
-                    Snout(head, Mats.Lit(Color.white, 0.2f), black, 0.24f, 0.16f);
-                    RoundEars(head, accent, 0.26f);
-                    break;
-                case AnimalKind.Bear:
-                    Snout(head, accent, black, 0.26f, 0.18f);
-                    RoundEars(head, fur, 0.24f);
-                    break;
-                case AnimalKind.Rabbit:
-                    Snout(head, Mats.Lit(Color.white, 0.2f), pinkInner, 0.2f, 0.14f);
-                    foreach (float x in new[] { -0.15f, 0.15f })
-                    {
-                        var ear = MeshKit.Prim(PrimitiveType.Capsule, head, new Vector3(x, 0.6f, -0.05f), new Vector3(0.18f, 0.36f, 0.1f), fur,
-                            Quaternion.Euler(-12, 0, x > 0 ? -10 : 10)).transform;
-                        MeshKit.Prim(PrimitiveType.Capsule, ear, new Vector3(0, 0, 0.3f), new Vector3(0.6f, 0.85f, 0.4f), accent);
-                    }
-                    break;
-                case AnimalKind.Penguin:
-                    MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(0, -0.05f, 0.18f), new Vector3(0.6f, 0.5f, 0.5f), white);
-                    MeshKit.Shape(MeshKit.Cone, head, new Vector3(0, -0.08f, 0.36f), new Vector3(0.18f, 0.28f, 0.12f),
-                        Mats.Lit(new Color(1f, 0.6f, 0.1f), 0.4f), Quaternion.Euler(90, 0, 0));
-                    break;
-                case AnimalKind.Pig:
-                    MeshKit.Prim(PrimitiveType.Cylinder, head, new Vector3(0, -0.08f, 0.38f), new Vector3(0.26f, 0.06f, 0.2f), accent, Quaternion.Euler(90, 0, 0));
-                    foreach (float x in new[] { -0.05f, 0.05f })
-                        MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x, -0.08f, 0.45f), new Vector3(0.05f, 0.07f, 0.03f), black);
-                    PointedEars(head, fur, accent, 0.22f, 0.22f);
-                    break;
-                case AnimalKind.Frog:
-                    break;
-            }
-
-            if (spec.Kind == AnimalKind.Frog)
-            {
-                // Les yeux de la grenouille sont sur le dessus : simple bandeau aux couleurs du kart.
-                MeshKit.Prim(PrimitiveType.Cylinder, head, new Vector3(0, 0.2f, -0.02f), new Vector3(0.84f, 0.05f, 0.8f),
-                    Mats.Lit(spec.Kart, 0.5f), Quaternion.Euler(-8, 0, 0));
-            }
-            else
-            {
-                // Casque ouvert aux couleurs du kart : coque au-dessus des yeux, oreilles qui dépassent, liseré et visière.
-                MeshKit.Shape(MeshKit.Hemisphere, head, new Vector3(0, 0.15f, -0.01f), new Vector3(0.9f, 0.7f, 0.86f), Mats.Lit(spec.Kart, 0.6f, 0.1f),
-                    null, "Helmet");
-                MeshKit.Prim(PrimitiveType.Cylinder, head, new Vector3(0, 0.15f, -0.01f), new Vector3(0.92f, 0.025f, 0.88f), Mats.Lit(spec.KartTrim, 0.5f));
-                MeshKit.Prim(PrimitiveType.Cube, head, new Vector3(0, 0.18f, 0.37f), new Vector3(0.5f, 0.06f, 0.1f),
-                    Mats.Lit(new Color(0.08f, 0.1f, 0.12f), 0.85f), Quaternion.Euler(-12, 0, 0), "Visor");
-            }
+            var c = new Vector3(0, 0.17f, 0.02f);
+            MeshKit.Prim(PrimitiveType.Sphere, head, c, new Vector3(0.34f, 0.36f, 0.38f), helmet, null, "Helmet");
+            // Bande centrale d'avant en arrière, de la couleur secondaire.
+            MeshKit.Prim(PrimitiveType.Sphere, head, c + new Vector3(0, 0.004f, -0.004f), new Vector3(0.08f, 0.364f, 0.384f), helmetStripe, null, "HelmetStripe");
+            // Visière fumée et mentonnière.
+            MeshKit.Prim(PrimitiveType.Sphere, head, c + new Vector3(0, 0.015f, 0.105f), new Vector3(0.3f, 0.12f, 0.2f), visor, null, "Visor");
+            MeshKit.Prim(PrimitiveType.Sphere, head, c + new Vector3(0, -0.1f, 0.1f), new Vector3(0.24f, 0.12f, 0.18f), helmet, null, "ChinBar");
+            // Petit becquet à l'arrière du casque.
+            MeshKit.Prim(PrimitiveType.Cube, head, c + new Vector3(0, 0.13f, -0.16f), new Vector3(0.2f, 0.025f, 0.07f), helmetStripe,
+                Quaternion.Euler(-15, 0, 0), "HelmetSpoiler");
             return d;
         }
 
-        static void Snout(Transform head, Material muzzle, Material nose, float width, float length)
+        /// <summary>Membre en capsule de <paramref name="from"/> à <paramref name="to"/> (repère du parent), de diamètre <paramref name="thickness"/>.</summary>
+        static void Limb(Transform parent, Vector3 from, Vector3 to, float thickness, Material mat, string name)
         {
-            MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(0, -0.12f, 0.3f + length * 0.3f), new Vector3(width * 1.4f, width, length + 0.12f), muzzle);
-            MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(0, -0.06f, 0.36f + length * 0.75f), new Vector3(0.1f, 0.08f, 0.08f), nose);
-        }
-
-        static void PointedEars(Transform head, Material fur, Material inner, float height, float width)
-        {
-            foreach (float x in new[] { -0.24f, 0.24f })
-            {
-                var rot = Quaternion.Euler(-8, 0, x > 0 ? -22 : 22);
-                MeshKit.Shape(MeshKit.Cone, head, new Vector3(x, 0.24f, -0.02f), new Vector3(width, height, width * 0.55f), fur, rot);
-                MeshKit.Shape(MeshKit.Cone, head, new Vector3(x * 0.97f, 0.26f, 0.03f), new Vector3(width * 0.6f, height * 0.75f, width * 0.3f), inner, rot);
-            }
-        }
-
-        static void RoundEars(Transform head, Material mat, float size)
-        {
-            foreach (float x in new[] { -0.3f, 0.3f })
-                MeshKit.Prim(PrimitiveType.Sphere, head, new Vector3(x * 1.07f, 0.38f, -0.04f), new Vector3(size, size, size * 0.6f), mat);
+            var dir = to - from;
+            float len = dir.magnitude;
+            // Capsule Unity : hauteur 2 × scale.y (bouts arrondis compris), diamètre scale.x.
+            MeshKit.Prim(PrimitiveType.Capsule, parent, (from + to) * 0.5f, new Vector3(thickness, Mathf.Max(len, thickness) * 0.5f, thickness), mat,
+                Quaternion.FromToRotation(Vector3.up, dir), name);
         }
     }
 }

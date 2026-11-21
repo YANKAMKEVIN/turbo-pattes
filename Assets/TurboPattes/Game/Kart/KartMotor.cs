@@ -33,7 +33,7 @@ namespace TurboPattes.Game.Kart
         const float FeatherLeap = 9f;
         const float FeatherGravity = 0.45f;
 
-        public AnimalSpec Spec { get; private set; }
+        public DriverSpec Spec { get; private set; }
         public KartRig Rig { get; private set; }
         public TrackPath Path { get; private set; }
         public LapTracker Laps { get; private set; }
@@ -115,7 +115,7 @@ namespace TurboPattes.Game.Kart
             new(1f, 0.35f, 0.9f),
         };
 
-        public void Init(AnimalSpec spec, KartRig rig, TrackPath path, float startS, float startLateral)
+        public void Init(DriverSpec spec, KartRig rig, TrackPath path, float startS, float startLateral)
         {
             Spec = spec;
             Rig = rig;

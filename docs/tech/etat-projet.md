@@ -32,7 +32,7 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
   « Volcan Grondant » (montée à 14 m, coulées et mares de lave, volcan fumant), « Ville Néon » (huit de nuit avec échangeur, tours
   aux fenêtres allumées, lampadaires, néons). Ambiance par thème dans `Track/ThemeStyle` (ciel procédural, brouillard, lumière, sol, murets, eau).
 - **Relief** : hauteur par point de contrôle (`Circuit.Heights`), reliée par une cubique monotone sans dépassement (`Core/HeightProfile`, avec les tremplins par-dessus, seulement sur bitume + vibreurs). `KartMotor` suit le sol, les côtes freinent et les descentes poussent (45 % de la gravité), il décolle quand le sol se dérobe plus vite que la gravité (`Core/VerticalMotion`, g = 24 m/s²), volant réduit en l'air, tassement et son à la réception, tangage selon la pente. Au croisement, la recherche du tronçon le plus proche tient compte de la hauteur (`Core/TrackProjection`) : tours, IA, objets et chocs entre karts ne confondent pas le pont et la route dessous.
-- **Pilotes** (8, modèles en primitives) : Roxy (renarde, joueuse), Bambou (panda), Flip (grenouille), Lili (lapine), Bruno (ours), Mimi (chatte), Pingo (pingouin), Rosa (cochonne). **Caractère** (`Core/DriverStats`) : vitesse, accélération, adhérence, poids de 1 à 5, même total pour tous ; effets de quelques pour cent (pointe ±3 %, accélération ±16 %, braquage ±12 %, le plus lourd est moins bousculé dans les chocs). Jauges affichées sous le nom dans le choix du pilote.
+- **Pilotes** (8 humains depuis le 2026-11-21, modèles en primitives, `Core/Roster`) : Alex Moreau n° 7 (joueur par défaut, ex-Roxy), Viktor Brandt n° 12 (ex-Bambou), Lina Okafor n° 23 (ex-Flip), Sami Haddad n° 31 (ex-Lili), Teo Ferraz n° 5 (ex-Bruno), Hana Mori n° 18 (ex-Mimi), Nora Lindqvist n° 27 (ex-Pingo), Inès Duval n° 64 (ex-Rosa). **Caractère** (`Core/DriverStats`) : vitesse, accélération, adhérence, poids de 1 à 5, même total pour tous ; effets de quelques pour cent (pointe ±3 %, accélération ±16 %, braquage ±12 %, le plus lourd est moins bousculé dans les chocs). Jauges affichées sous le nom dans le choix du pilote.
 - **Conduite** arcade sans moteur physique (`KartMotor`) : saut + drift à 3 niveaux (étincelles jaunes, vertes, roses), turbo au lâcher, **figure en l'air** (DRIFT pendant un saut : tonneau, petit turbo si elle est finie avant l'atterrissage, `Core/AirTrick` ; l'IA en fait aussi), poussière et secousse de caméra aux réceptions et aux chocs, vibrations sur téléphone, hors-piste lent, rebond sur les murets, chocs entre karts, super départ (accélérer dans la dernière seconde du compte à rebours), tapis turbo.
 - **Objets** (bulles surprise à pattes dorées) : carotte turbo, noix de coco (roule tout droit, rebondit), pot de miel (flaque derrière soi), bulle bouclier, **plume planante** (grand bond plané avec élan, passe par-dessus coco, pelote et miel), **pelote de laine** (file le long de la piste vers le kart juste devant ; jamais tirée par le premier). Tirage selon la place (`ItemRoll`). L'IA garde son bouclier pour parer un projectile, saute à la plume par-dessus le miel, lance la pelote quand quelqu'un est devant.
 - **IA** : trajectoire avec corde dans les virages, freinage selon la courbure, drift dans les grandes courbes, évitement du miel, usage des objets, élastique léger.
@@ -93,7 +93,7 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.MusicExport.Export -tp-out Builds/Musique -logFile -
 # Planche PNG de toutes les icônes (objets + portraits) :
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
-# Parcours des menus (titre, pilote, choix de Bruno + Canyon, course avec un pot de miel en main, pause) avec captures :
+# Parcours des menus (titre, pilote, choix de Teo (ex-Bruno) + Canyon, course avec un pot de miel en main, pause) avec captures :
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Pattes" -tp-menutest /tmp/tp-menutest
 # Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
 ~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
@@ -156,6 +156,12 @@ assemblies de référence UnityEngine (NuGet) avec des stubs, Editor/ en syntaxe
    `Red`, `Signal`, `Telemetry`, `Graphite`, `Steel`) pour tous les écrans (titre, pilote, circuit, réglages, pause,
    résultats, podium, HUD) ; logo du titre tiré de `Brand.Title`, emblème damier + chevrons à la place de la patte ;
    libellés du HUD en capitales.
+2. **Pilotes humains** : `Core/Roster` (prénom, nom, code à trois lettres, numéro, caractère affiché, couleurs d'équipe ;
+   même index que `Drivers.Stats`, caractères de jeu inchangés et testés), `Kart/DriverSpec` (ex-`AnimalSpec`) ;
+   `KartFactory.BuildDriver` : bassin, cuisses et tibias vers le pédalier, buste en combinaison avec bande, col
+   carbone, bras gantés sur le volant, casque intégral (bande, visière fumée, mentonnière, becquet) ; portraits
+   = casque de trois quarts ; animations de fin gardées, amplitude des bras réduite de 20 % ; classement du HUD en
+   tour de chronométrage (couleur d'équipe, code, numéro). Les autotests cherchent maintenant « Alex » dans le journal.
 
 ## Refonte DA « Atelier plein gaz » (remplacée le 2026-11-21, gardée pour l'historique)
 

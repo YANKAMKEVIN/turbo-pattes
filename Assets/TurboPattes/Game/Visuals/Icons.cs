@@ -13,11 +13,9 @@ namespace TurboPattes.Game.Visuals
     public static class Icons
     {
         static readonly Dictionary<ItemKind, Texture2D> ItemCache = new();
-        static readonly Dictionary<AnimalSpec, Texture2D> PortraitCache = new();
+        static readonly Dictionary<DriverSpec, Texture2D> PortraitCache = new();
 
-        static readonly Color Dark = new(0.12f, 0.1f, 0.14f);
-        static readonly Color Blush = new(1f, 0.45f, 0.55f, 0.45f);
-        static readonly Color Pink = new(1f, 0.62f, 0.72f);
+        static readonly Color Dark = new(0.08f, 0.09f, 0.1f);
 
         public static Texture2D Item(ItemKind kind)
         {
@@ -72,7 +70,7 @@ namespace TurboPattes.Game.Visuals
 
         static Color UiColor(Rgb c) => new(c.R, c.G, c.B);
 
-        public static Texture2D Portrait(AnimalSpec spec)
+        public static Texture2D Portrait(DriverSpec spec)
         {
             if (PortraitCache.TryGetValue(spec, out var tex)) return tex;
             var c = new IconCanvas();
@@ -198,105 +196,32 @@ namespace TurboPattes.Game.Visuals
 
         // ---------- Portraits ----------
 
-        static void DrawPortrait(IconCanvas c, AnimalSpec s)
+        /// <summary>
+        /// Portrait d'un pilote humain : casque intégral de trois quarts à la couleur de l'équipe, bande de la couleur
+        /// secondaire, visière fumée avec un reflet, épaules de la combinaison et numéro de course sur le col.
+        /// </summary>
+        static void DrawPortrait(IconCanvas c, DriverSpec s)
         {
-            var fur = s.Fur;
-            var accent = s.Accent;
-            float eyeY = 0.53f, eyeX = 0.115f;
-            var head = Circle(0.5f, 0.57f, 0.31f);
-
-            switch (s.Kind)
-            {
-                case AnimalKind.Fox:
-                    c.Fill(Mirror(Polygon(0.02f, 0.78f, 0.1f, 0.83f, 0.46f, 0.6f, 0.34f)), fur);
-                    c.Fill(Mirror(Polygon(0.01f, 0.76f, 0.2f, 0.78f, 0.42f, 0.65f, 0.35f)), Dark, 0f, 0f);
-                    c.Fill(head, fur);
-                    c.Fill(Union(Ellipse(0.38f, 0.73f, 0.16f, 0.11f, 20f), Ellipse(0.62f, 0.73f, 0.16f, 0.11f, -20f)), accent, 0f, 0.1f);
-                    Face(c, eyeY, eyeX, 0.042f, accentNose: Dark, noseY: 0.67f);
-                    break;
-                case AnimalKind.Panda:
-                    c.Fill(Mirror(Circle(0.75f, 0.31f, 0.11f)), accent);
-                    c.Fill(head, fur);
-                    c.Fill(Ellipse(0.385f, 0.55f, 0.075f, 0.1f, 30f), accent, 0f, 0f);
-                    c.Fill(Ellipse(0.615f, 0.55f, 0.075f, 0.1f, -30f), accent, 0f, 0f);
-                    Face(c, eyeY + 0.01f, eyeX, 0.04f, Dark, 0.67f, whiteRing: true);
-                    break;
-                case AnimalKind.Frog:
-                    c.Fill(Mirror(Circle(0.68f, 0.35f, 0.13f)), fur);
-                    c.Fill(Ellipse(0.5f, 0.62f, 0.37f, 0.25f), fur);
-                    c.Fill(Ellipse(0.5f, 0.74f, 0.25f, 0.11f), accent, 0f, 0.1f);
-                    Eye(c, 0.32f, 0.35f, 0.075f);
-                    Eye(c, 0.68f, 0.35f, 0.075f);
-                    c.Fill(Circle(0.27f, 0.62f, 0.05f), Blush, 0f, 0f);
-                    c.Fill(Circle(0.73f, 0.62f, 0.05f), Blush, 0f, 0f);
-                    c.Fill(Smile(0.5f, 0.56f, 0.16f, 0.013f, 120f), Dark, 0f, 0f);
-                    break;
-                case AnimalKind.Rabbit:
-                    c.Fill(Mirror(Capsule(0.6f, 0.38f, 0.65f, 0.11f, 0.07f)), fur);
-                    c.Fill(Mirror(Capsule(0.6f, 0.36f, 0.645f, 0.13f, 0.032f)), accent, 0f, 0f);
-                    c.Fill(head, fur);
-                    c.Fill(Union(Ellipse(0.455f, 0.7f, 0.06f, 0.05f), Ellipse(0.545f, 0.7f, 0.06f, 0.05f)), Color.white, 0f, 0f);
-                    c.Fill(Polygon(0.012f, 0.47f, 0.765f, 0.53f, 0.765f, 0.525f, 0.81f, 0.475f, 0.81f), Color.white, IconCanvas.Line * 0.5f, 0f);
-                    Face(c, eyeY, eyeX, 0.042f, accent, 0.665f);
-                    break;
-                case AnimalKind.Bear:
-                    c.Fill(Mirror(Circle(0.74f, 0.32f, 0.1f)), fur);
-                    c.Fill(Mirror(Circle(0.74f, 0.32f, 0.05f)), accent, 0f, 0f);
-                    c.Fill(head, fur);
-                    c.Fill(Ellipse(0.5f, 0.7f, 0.14f, 0.1f), accent, 0f, 0.1f);
-                    Face(c, eyeY, eyeX, 0.05f, Dark, 0.66f);
-                    break;
-                case AnimalKind.Cat:
-                    c.Fill(Mirror(Polygon(0.03f, 0.74f, 0.13f, 0.82f, 0.45f, 0.58f, 0.33f)), fur);
-                    c.Fill(Mirror(Polygon(0.02f, 0.74f, 0.21f, 0.77f, 0.41f, 0.64f, 0.35f)), Pink, 0f, 0f);
-                    c.Fill(head, fur);
-                    c.Fill(Union(Ellipse(0.45f, 0.71f, 0.065f, 0.05f), Ellipse(0.55f, 0.71f, 0.065f, 0.05f)), accent, 0f, 0f);
-                    c.Fill(Mirror(Capsule(0.64f, 0.69f, 0.84f, 0.66f, 0.007f)), Dark, 0f, 0f);
-                    c.Fill(Mirror(Capsule(0.64f, 0.73f, 0.83f, 0.75f, 0.007f)), Dark, 0f, 0f);
-                    Face(c, eyeY, eyeX, 0.036f, Pink, 0.665f);
-                    break;
-                case AnimalKind.Penguin:
-                    c.Fill(head, fur);
-                    c.Fill(Union(Circle(0.41f, 0.6f, 0.15f), Circle(0.59f, 0.6f, 0.15f)), accent, 0f, 0.1f);
-                    Eye(c, 0.5f - eyeX, eyeY + 0.02f, 0.048f);
-                    Eye(c, 0.5f + eyeX, eyeY + 0.02f, 0.048f);
-                    c.Fill(Ellipse(0.5f, 0.68f, 0.08f, 0.045f), new Color(1f, 0.6f, 0.12f), IconCanvas.Line * 0.7f);
-                    c.Fill(Circle(0.33f, 0.68f, 0.04f), Blush, 0f, 0f);
-                    c.Fill(Circle(0.67f, 0.68f, 0.04f), Blush, 0f, 0f);
-                    break;
-                case AnimalKind.Pig:
-                    c.Fill(Mirror(Polygon(0.03f, 0.66f, 0.3f, 0.86f, 0.22f, 0.8f, 0.46f)), accent);
-                    c.Fill(head, fur);
-                    c.Fill(Ellipse(0.5f, 0.69f, 0.12f, 0.08f), accent, IconCanvas.Line * 0.7f, 0.1f);
-                    c.Fill(Ellipse(0.465f, 0.69f, 0.02f, 0.032f), Dark, 0f, 0f);
-                    c.Fill(Ellipse(0.535f, 0.69f, 0.02f, 0.032f), Dark, 0f, 0f);
-                    Eye(c, 0.5f - eyeX, eyeY, 0.045f);
-                    Eye(c, 0.5f + eyeX, eyeY, 0.045f);
-                    c.Fill(Circle(0.31f, 0.65f, 0.045f), Blush, 0f, 0f);
-                    c.Fill(Circle(0.69f, 0.65f, 0.045f), Blush, 0f, 0f);
-                    c.Fill(Smile(0.5f, 0.74f, 0.05f, 0.009f), Dark, 0f, 0f);
-                    break;
-            }
-        }
-
-        /// <summary>Yeux, joues, truffe et bouche communs à la plupart des animaux.</summary>
-        static void Face(IconCanvas c, float eyeY, float eyeX, float eyeR, Color accentNose, float noseY, bool whiteRing = false)
-        {
-            Eye(c, 0.5f - eyeX, eyeY, eyeR, whiteRing);
-            Eye(c, 0.5f + eyeX, eyeY, eyeR, whiteRing);
-            c.Fill(Circle(0.3f, eyeY + 0.1f, 0.045f), Blush, 0f, 0f);
-            c.Fill(Circle(0.7f, eyeY + 0.1f, 0.045f), Blush, 0f, 0f);
-            c.Fill(Ellipse(0.5f, noseY, 0.045f, 0.03f), accentNose, IconCanvas.Line * 0.5f, 0.3f);
-            c.Fill(Smile(0.47f, noseY + 0.035f, 0.03f, 0.008f, 160f), Dark, 0f, 0f);
-            c.Fill(Smile(0.53f, noseY + 0.035f, 0.03f, 0.008f, 160f), Dark, 0f, 0f);
-        }
-
-        static void Eye(IconCanvas c, float x, float y, float r, bool whiteRing = false)
-        {
-            if (whiteRing) c.Fill(Circle(x, y, r * 1.35f), Color.white, 0f, 0f);
-            c.Fill(Ellipse(x, y, r, r * 1.2f), Dark, 0f, 0f);
-            c.Fill(Circle(x - r * 0.32f, y - r * 0.4f, r * 0.38f), Color.white, 0f, 0f);
-            c.Fill(Circle(x + r * 0.35f, y + r * 0.45f, r * 0.16f), Color.white, 0f, 0f);
+            var helmet = s.Kart;
+            var stripe = s.KartTrim;
+            var visor = new Color(0.07f, 0.08f, 0.1f);
+            // Épaules et col de la combinaison.
+            c.Fill(Ellipse(0.5f, 0.98f, 0.4f, 0.2f), s.Suit);
+            c.Fill(Intersect(Ellipse(0.5f, 0.98f, 0.4f, 0.2f), Capsule(0.5f, 0.78f, 0.5f, 1.1f, 0.035f)), stripe, 0f, 0f);
+            c.Fill(Ellipse(0.5f, 0.82f, 0.13f, 0.05f), Dark, IconCanvas.Line * 0.6f, 0f);
+            // Coque du casque, légèrement allongée vers l'avant (à droite).
+            var shell = Union(Ellipse(0.5f, 0.47f, 0.3f, 0.29f), Ellipse(0.56f, 0.6f, 0.25f, 0.2f, -10f));
+            c.Fill(shell, helmet, IconCanvas.Line, 0.25f);
+            // Bande d'avant en arrière, suivant la courbure de la coque.
+            c.Fill(Intersect(Ring(0.66f, 0.62f, 0.4f, 0.04f), shell), stripe, 0f, 0.1f);
+            // Visière : ouverture sombre sur l'avant, reflet clair en biais.
+            var shield = Polygon(0.04f, 0.42f, 0.42f, 0.84f, 0.4f, 0.86f, 0.56f, 0.46f, 0.6f);
+            c.Fill(Intersect(shield, shell), visor, IconCanvas.Line * 0.7f, 0f);
+            c.Fill(Intersect(Capsule(0.55f, 0.47f, 0.72f, 0.45f, 0.018f), shield), new Color(1f, 1f, 1f, 0.45f), 0f, 0f);
+            // Charnière de visière et aération du menton.
+            c.Fill(Circle(0.38f, 0.5f, 0.035f), Dark, IconCanvas.Line * 0.5f, 0f);
+            c.Fill(Capsule(0.6f, 0.7f, 0.72f, 0.69f, 0.012f), Dark, 0f, 0f);
+            c.Fill(Capsule(0.6f, 0.74f, 0.7f, 0.735f, 0.012f), Dark, 0f, 0f);
         }
     }
 }

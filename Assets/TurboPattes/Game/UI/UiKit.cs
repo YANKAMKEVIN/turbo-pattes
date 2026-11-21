@@ -118,11 +118,11 @@ namespace TurboPattes.Game.UI
             }
         }
 
-        /// <summary>Portrait du pilote sur une pastille de la couleur de son kart.</summary>
-        public static void Portrait(Vector2 center, float radius, AnimalSpec spec, float ring = 0f)
+        /// <summary>Portrait du pilote (casque) sur une pastille graphite cerclée de la couleur de son équipe.</summary>
+        public static void Portrait(Vector2 center, float radius, DriverSpec spec, float ring = 0f)
         {
-            if (ring > 0f) Disc(center, radius + ring, spec.KartTrim);
-            Disc(center, radius, spec.Kart);
+            Disc(center, radius + Mathf.Max(ring, radius * 0.12f), spec.Kart);
+            Disc(center, radius, Graphite);
             float r = radius * 1.12f;
             GUI.DrawTexture(new Rect(center.x - r, center.y - r * 1.06f, r * 2f, r * 2f), Icons.Portrait(spec), ScaleMode.ScaleToFit);
         }

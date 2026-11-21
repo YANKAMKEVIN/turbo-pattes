@@ -455,8 +455,11 @@ namespace TurboPattes.Game.UI
                 float yy = y + r * row;
                 if (k.IsPlayer) Box(new Rect(x - 10 * s, yy, 190 * s, row), UiKit.Red);
                 _ui.Digits(new Rect(x, yy, 24 * s, row), (r + 1).ToString(), _small, k.IsPlayer ? UiKit.Chalk : UiKit.Signal, TextAnchor.MiddleCenter);
-                UiKit.Portrait(new Vector2(x + 38 * s, yy + row * 0.5f), 10 * s, k.Spec);
-                Label(new Rect(x + 54 * s, yy, 116 * s, row), k.Spec.Name, _small, UiKit.Chalk, TextAnchor.MiddleLeft);
+                // Tour de chronométrage : pastille couleur d'équipe, code à trois lettres, numéro.
+                Box(new Rect(x + 30 * s, yy + 4 * s, 5 * s, row - 8 * s), k.Spec.Kart);
+                Label(new Rect(x + 44 * s, yy, 70 * s, row), k.Spec.Code, _small, UiKit.Chalk, TextAnchor.MiddleLeft);
+                _ui.Digits(new Rect(x + 110 * s, yy, 56 * s, row), k.Spec.Number.ToString(), _small,
+                    k.IsPlayer ? UiKit.Chalk : UiKit.Steel, TextAnchor.MiddleRight);
             }
         }
 
@@ -791,7 +794,7 @@ namespace TurboPattes.Game.UI
             for (int r = 0; r < ranking.Length; r++)
             {
                 int id = ranking[r];
-                var spec = AnimalSpec.Roster[id];
+                var spec = DriverSpec.Roster[id];
                 float yy = y + r * row;
                 var ink = id == me ? UiKit.Chalk : UiKit.Carbon;
                 if (id == me) Box(new Rect(x, yy, panelW, row), UiKit.Red);

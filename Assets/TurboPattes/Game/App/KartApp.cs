@@ -144,7 +144,7 @@ namespace TurboPattes.Game.App
             yield return new WaitForSeconds(0.5f);
             menu.TestSelect(4, 0, Difficulty.Hard, 1);
             yield return new WaitForSeconds(1.5f);
-            ScreenCapture.CaptureScreenshot(Shot("3_bruno"));
+            ScreenCapture.CaptureScreenshot(Shot("3_teo"));
             yield return new WaitForSeconds(0.3f);
             menu.TestStart();
             yield return new WaitForSeconds(7f);
@@ -232,7 +232,7 @@ namespace TurboPattes.Game.App
             var ranking = cup.Standings.Ranking();
             File.WriteAllText(Path.Combine(_autotestDir, "podium.log"),
                 $"{cup.Def.Name} courses={cup.Standings.Races}\n" +
-                string.Join("\n", Array.ConvertAll(ranking, id => $"  {Array.IndexOf(ranking, id) + 1}. {Kart.AnimalSpec.Roster[id].Name} {cup.Standings.Total(id)} pts")) + "\n");
+                string.Join("\n", Array.ConvertAll(ranking, id => $"  {Array.IndexOf(ranking, id) + 1}. {Kart.DriverSpec.Roster[id].Name} {cup.Standings.Total(id)} pts")) + "\n");
             yield return new WaitForSeconds(0.3f);
             Application.Quit();
         }
@@ -534,7 +534,7 @@ namespace TurboPattes.Game.App
             {
                 var st = cup.Standings;
                 log.WriteLine($"Coupe {cup.Def.Name} apres course {cup.Race + 1} : " +
-                              string.Join(", ", Array.ConvertAll(st.Ranking(), id => $"{Kart.AnimalSpec.Roster[id].Name} {st.Total(id)} (+{st.LastPoints(id)})")));
+                              string.Join(", ", Array.ConvertAll(st.Ranking(), id => $"{Kart.DriverSpec.Roster[id].Name} {st.Total(id)} (+{st.LastPoints(id)})")));
                 log.Close();
                 // Course suivante (ou podium) : la scène se recharge, l'autotest reprend dans le nouveau KartApp.
                 cup.Next();

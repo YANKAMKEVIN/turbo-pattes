@@ -60,7 +60,7 @@ namespace TurboPattes.Game.UI
                 float h = BlockHeights[i];
                 MeshKit.Prim(PrimitiveType.Cube, _stage, new Vector3(BlockX[i], h * 0.5f, 0f), new Vector3(3.2f, h, 3.2f), Mats.Lit(BlockColors[i], 0.5f, 0.3f));
                 MeshKit.Prim(PrimitiveType.Cube, _stage, new Vector3(BlockX[i], h * 0.55f, 1.62f), new Vector3(0.9f, 0.6f, 0.05f), Mats.Lit(Color.white));
-                var spec = AnimalSpec.Roster[_ranking[i]];
+                var spec = DriverSpec.Roster[_ranking[i]];
                 var rig = KartFactory.Build(spec, _stage);
                 rig.Shield.SetActive(false);
                 rig.Root.localPosition = new Vector3(BlockX[i], h, 0f);
@@ -71,7 +71,7 @@ namespace TurboPattes.Game.UI
             // Le reste du peloton au pied du podium.
             for (int r = 3; r < _ranking.Length; r++)
             {
-                var rig = KartFactory.Build(AnimalSpec.Roster[_ranking[r]], _stage);
+                var rig = KartFactory.Build(DriverSpec.Roster[_ranking[r]], _stage);
                 rig.Shield.SetActive(false);
                 float x = (r - 3 - (_ranking.Length - 4) * 0.5f) * 3.1f;
                 rig.Root.localPosition = new Vector3(x, 0f, -5.5f);
@@ -169,7 +169,7 @@ namespace TurboPattes.Game.UI
             {
                 var sp = _cam.WorldToScreenPoint(_karts[i].position + Vector3.up * 2.6f);
                 if (sp.z <= 0f) continue;
-                var spec = AnimalSpec.Roster[_ranking[i]];
+                var spec = DriverSpec.Roster[_ranking[i]];
                 var r = new Rect(sp.x - 110 * s, Screen.height - sp.y - 54 * s, 220 * s, 60 * s);
                 UiKit.Card(r, i == 0 ? UiKit.Red : UiKit.Alpha(UiKit.Carbon, 0.88f), 14 * s);
                 _ui.Label(new Rect(r.x, r.y + 2 * s, r.width, 32 * s), $"{Hud.Ordinal(i + 1)}  {spec.Name}", _ui.Medium, UiKit.Chalk, TextAnchor.MiddleCenter);
@@ -181,7 +181,7 @@ namespace TurboPattes.Game.UI
             UiKit.Card(new Rect(px - 10 * s, py - 10 * s, pw + 20 * s, row * _ranking.Length + 20 * s), UiKit.Chalk, 18 * s, 4 * s);
             for (int r = 0; r < _ranking.Length; r++)
             {
-                var spec = AnimalSpec.Roster[_ranking[r]];
+                var spec = DriverSpec.Roster[_ranking[r]];
                 float y = py + r * row;
                 bool me = _ranking[r] == _cup.Player;
                 var ink = me ? UiKit.Chalk : UiKit.Carbon;

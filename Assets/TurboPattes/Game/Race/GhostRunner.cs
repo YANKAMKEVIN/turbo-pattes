@@ -56,12 +56,12 @@ namespace TurboPattes.Game.Race
             BestLap = BestLapBefore = GameSession.BestLap(circuit);
             MedalBefore = Medals.For(circuit, BestLapBefore);
             _best = BestLap > 0f ? GameSession.LoadGhost(circuit) : null;
-            _driver = System.Array.IndexOf(AnimalSpec.Roster, race.Player.Spec);
+            _driver = System.Array.IndexOf(DriverSpec.Roster, race.Player.Spec);
             _mode = GameSession.GhostMode;
             _shown = _mode == GhostMode.Off ? null : _best;
             if (_mode == GhostMode.Rival)
             {
-                var laps = new float[AnimalSpec.Roster.Length];
+                var laps = new float[DriverSpec.Roster.Length];
                 for (int d = 0; d < laps.Length; d++) laps[d] = GameSession.DriverBestLap(circuit, d);
                 int rival = GhostPick.Rival(_driver, laps);
                 // Pas encore d'autre pilote sur ce circuit : on retombe sur son propre record.
@@ -70,13 +70,13 @@ namespace TurboPattes.Game.Race
                 else _mode = GhostMode.Record;
             }
             _recording = new GhostLap { Driver = _driver };
-            int shownDriver = _shown != null && _shown.Driver >= 0 && _shown.Driver < AnimalSpec.Roster.Length ? _shown.Driver : -1;
-            GhostDriverName = shownDriver >= 0 ? AnimalSpec.Roster[shownDriver].Name : "";
-            BuildGhost(shownDriver >= 0 ? AnimalSpec.Roster[shownDriver] : race.Player.Spec);
+            int shownDriver = _shown != null && _shown.Driver >= 0 && _shown.Driver < DriverSpec.Roster.Length ? _shown.Driver : -1;
+            GhostDriverName = shownDriver >= 0 ? DriverSpec.Roster[shownDriver].Name : "";
+            BuildGhost(shownDriver >= 0 ? DriverSpec.Roster[shownDriver] : race.Player.Spec);
             race.LapCompleted += OnLap;
         }
 
-        void BuildGhost(AnimalSpec spec)
+        void BuildGhost(DriverSpec spec)
         {
             var rig = KartFactory.Build(spec, transform);
             _ghost = rig.Root;

@@ -25,9 +25,6 @@ namespace TurboPattes.Game.UI
         /// <summary>Le joueur a choisi un autre circuit : l'application reconstruit la piste puis appelle <see cref="SetTrack"/>.</summary>
         public Action<int> CircuitChanged;
 
-        static readonly string[] Species =
-            { "la renarde", "le panda", "la grenouille", "la lapine", "l'ours", "la chatte", "le pingouin", "la cochonne" };
-
         readonly UiKit _ui = new();
         Screen _screen;
         Row _row = Row.Start;
@@ -102,9 +99,9 @@ namespace TurboPattes.Game.UI
 
         void ShowPilot(int index)
         {
-            _pilot = (index + AnimalSpec.Roster.Length) % AnimalSpec.Roster.Length;
+            _pilot = (index + DriverSpec.Roster.Length) % DriverSpec.Roster.Length;
             if (_kart != null) Destroy(_kart);
-            var rig = KartFactory.Build(AnimalSpec.Roster[_pilot], _turntable);
+            var rig = KartFactory.Build(DriverSpec.Roster[_pilot], _turntable);
             rig.Root.localPosition = Vector3.zero;
             rig.Root.localRotation = Quaternion.identity;
             _kart = rig.Root.gameObject;
@@ -135,7 +132,7 @@ namespace TurboPattes.Game.UI
             l.Settings = new Rect(safe.x, safe.yMax - 60 * s, 190 * s, 56 * s);
 
             // Cartes des pilotes, en bas.
-            int n = AnimalSpec.Roster.Length;
+            int n = DriverSpec.Roster.Length;
             float cardW = Mathf.Min(118 * s, (safe.width - 360 * s) / n - 10 * s), gap = 10 * s;
             float rowW = n * cardW + (n - 1) * gap;
             float x0 = safe.x + (safe.width - 330 * s - rowW) * 0.5f;
@@ -559,7 +556,7 @@ namespace TurboPattes.Game.UI
         void DrawPilot(Layout l)
         {
             float s = l.S;
-            var spec = AnimalSpec.Roster[_pilot];
+            var spec = DriverSpec.Roster[_pilot];
 
             _ui.Button(l.Back, "< Retour", false, false, _ui.Small);
             var header = new Rect(l.Back.xMax + 16 * s, l.Safe.y + 4 * s, 330 * s, 46 * s);
@@ -572,7 +569,7 @@ namespace TurboPattes.Game.UI
             var namePlate = new Rect(midX - 220 * s, l.Safe.y + 64 * s, 440 * s, 104 * s);
             _ui.Plate(namePlate);
             _ui.Label(new Rect(namePlate.x, namePlate.y, namePlate.width, 70 * s), spec.Name, nameStyle, UiKit.Chalk, TextAnchor.MiddleCenter);
-            _ui.Label(new Rect(namePlate.x, namePlate.y + 64 * s, namePlate.width, 34 * s), Species[_pilot], _ui.Medium, UiKit.Signal, TextAnchor.MiddleCenter);
+            _ui.Label(new Rect(namePlate.x, namePlate.y + 64 * s, namePlate.width, 34 * s), $"N° {spec.Number}  ·  {spec.Profile.LastName.ToUpperInvariant()}  ·  {spec.Profile.Trait}", _ui.Small, UiKit.Signal, TextAnchor.MiddleCenter);
             DrawStats(new Vector2(midX, l.Safe.y + 184 * s), s, Drivers.For(_pilot));
 
             bool pilotRow = _row == Row.Pilot;
@@ -582,7 +579,7 @@ namespace TurboPattes.Game.UI
             for (int i = 0; i < l.Cards.Length; i++)
             {
                 var r = l.Cards[i];
-                var a = AnimalSpec.Roster[i];
+                var a = DriverSpec.Roster[i];
                 bool sel = i == _pilot;
                 if (sel && pilotRow) UiKit.Card(new Rect(r.x - 5 * s, r.y - 5 * s, r.width + 10 * s, r.height + 10 * s), UiKit.Carbon, 23 * s);
                 UiKit.Card(r, sel ? UiKit.Red : UiKit.Alpha(UiKit.Chalk, 0.92f), 18 * s, sel && pilotRow ? 0f : 4f * s);

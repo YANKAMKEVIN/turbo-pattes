@@ -16,8 +16,8 @@ namespace TurboPattes.Game.App
         public int Race;
         /// <summary>Numéro du pilote du joueur.</summary>
         public int Player;
-        /// <summary>Pilotes désignés par leur numéro dans <see cref="Kart.AnimalSpec.Roster"/>.</summary>
-        public readonly CupStandings Standings = new(Kart.AnimalSpec.Roster.Length);
+        /// <summary>Pilotes désignés par leur numéro dans <see cref="Kart.DriverSpec.Roster"/>.</summary>
+        public readonly CupStandings Standings = new(Kart.DriverSpec.Roster.Length);
         public int[] LastOrder;
         /// <summary>Points de la course <see cref="Race"/> déjà comptés.</summary>
         public bool Recorded;
@@ -226,12 +226,12 @@ namespace TurboPattes.Game.App
         {
             PlayerPrefs.DeleteKey($"tp.bestlap.{circuit}");
             for (int laps = 1; laps <= 9; laps++) PlayerPrefs.DeleteKey($"tp.best.{circuit}.{laps}");
-            for (int d = 0; d < Kart.AnimalSpec.Roster.Length; d++) PlayerPrefs.DeleteKey($"tp.bestlap.{circuit}.p{d}");
+            for (int d = 0; d < Kart.DriverSpec.Roster.Length; d++) PlayerPrefs.DeleteKey($"tp.bestlap.{circuit}.p{d}");
             PlayerPrefs.Save();
             try
             {
                 File.Delete(GhostPath(circuit));
-                for (int d = 0; d < Kart.AnimalSpec.Roster.Length; d++) File.Delete(DriverGhostPath(circuit, d));
+                for (int d = 0; d < Kart.DriverSpec.Roster.Length; d++) File.Delete(DriverGhostPath(circuit, d));
             }
             catch (IOException) { }
         }

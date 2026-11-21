@@ -123,7 +123,7 @@ référence à un pilote réel connu ; prénom affiché dans les menus et le HUD
 compact.
 
 Modèle (primitives générées par code, `KartFactory.BuildDriver`) :
-- **proportions adultes** : tête (casque compris) ≈ 1/6,5 de la hauteur assise, buste plus large que le casque,
+- **proportions adultes** : tête ≈ 1/7 de la taille debout (casque compris, environ 1/3 de la hauteur assise), buste plus large que le casque,
   épaules marquées, bassin et cuisses visibles dans le baquet, jambes allongées vers le pédalier ;
 - **combinaison** une pièce à la couleur de l'équipe, bande secondaire sur le buste, col montant ;
 - **casque intégral** à la couleur principale, bande de la couleur secondaire, **visière fumée** brillante,

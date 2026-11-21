@@ -68,6 +68,7 @@ namespace TurboPattes.Core
         {
             new("Chiffres et noms sur plaque carbone", Chalk, Carbon),
             new("Libellés TOUR / DEVANT / km/h sur plaque carbone", Signal, Carbon),
+            new("Numéros du classement sur plaque carbone", Steel, Carbon),
             new("Texte sur fiche blanc piste", Carbon, Chalk),
             new("Texte sur bouton principal, ligne du joueur", Chalk, Red),
             new("Libellés rouges sur fiche (Meilleur tour, Total)", Red, Chalk),
