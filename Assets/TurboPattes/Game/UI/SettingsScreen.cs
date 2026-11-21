@@ -1,4 +1,5 @@
 using System;
+using TurboPattes.Core;
 using TurboPattes.Game.App;
 using TurboPattes.Game.Audio;
 using UnityEngine;
@@ -10,10 +11,12 @@ namespace TurboPattes.Game.UI
     /// Réglages (depuis le titre ou la pause) : volumes, sensibilité tactile, vibrations, qualité graphique.
     /// Chaque changement est enregistré tout de suite. Pendant qu'il est ouvert, <see cref="IsOpen"/> dit aux autres écrans
     /// d'ignorer les commandes. Marche aussi en pause (temps arrêté).
+    /// DA « Atelier » : fiches crème rangées par section (Son, Commandes, Affichage), jauges en crans obliques avec
+    /// la valeur en chiffres fixes, bascules en deux segments, ligne active surlignée en vermillon (<see cref="SettingsRows"/>).
     /// </summary>
     public sealed class SettingsScreen : MonoBehaviour
     {
-        static readonly string[] Rows = { "Musique", "Effets", "Sensibilité tactile", "Commandes tactiles", "Vibrations", "Qualité graphique", "Retour" };
+        static readonly string[] Rows = SettingsRows.Labels;
         static readonly string[] QualityNames = { "Auto", "Maximale", "Haute", "Moyenne", "Basse", "Minimale" };
 
         public static bool IsOpen { get; private set; }
@@ -45,6 +48,14 @@ namespace TurboPattes.Game.UI
 
         static Rect Minus(int i) { var r = RowRect(i); return new Rect(r.xMax - 250 * S, r.y, 62 * S, r.height); }
         static Rect Plus(int i) { var r = RowRect(i); return new Rect(r.xMax - 62 * S, r.y, 62 * S, r.height); }
+
+        /// <summary>Bascules : segment de gauche (premier choix) ou de droite, sur la place des boutons - / +.</summary>
+        static Rect ToggleHalf(int i, int half)
+        {
+            var r = RowRect(i);
+            float s = S, x0 = r.xMax - 250 * s, w = (250 * s - 14 * s) * 0.5f;
+            return new Rect(x0 + half * (w + 6 * s), r.y + 9 * s, w, r.height - 18 * s);
+        }
 
         // ------------------------------------------------------------------ logique
 
@@ -84,13 +95,23 @@ namespace TurboPattes.Game.UI
                     if (RowRect(i).Contains(tap.Value)) { Close(); return; }
                     continue;
                 }
-                if (Minus(i).Contains(tap.Value)) { _row = i; Change(i, -1); }
-                else if (Plus(i).Contains(tap.Value) || Toggle(i) && RowRect(i).Contains(tap.Value)) { _row = i; Change(i, 1); }
+                if (Toggle(i))
+                {
+                    // Toucher un segment le choisit ; toucher ailleurs sur la ligne bascule.
+                    int half = ToggleHalf(i, 0).Contains(tap.Value) ? 0 : ToggleHalf(i, 1).Contains(tap.Value) ? 1 : -1;
+                    if (half >= 0) { _row = i; if (half != ToggleSide(i)) Change(i, 1); }
+                    else if (RowRect(i).Contains(tap.Value)) { _row = i; Change(i, 1); }
+                }
+                else if (Minus(i).Contains(tap.Value)) { _row = i; Change(i, -1); }
+                else if (Plus(i).Contains(tap.Value)) { _row = i; Change(i, 1); }
             }
         }
 
         /// <summary>Lignes à deux états (commandes, vibrations) : un appui bascule, pas de boutons - / +.</summary>
-        static bool Toggle(int row) => row == 3 || row == 4;
+        static bool Toggle(int row) => SettingsRows.Kinds[row] == SettingKind.Toggle;
+
+        /// <summary>Segment retenu d'une bascule : 0 = premier choix (Droitier, Oui), 1 = second.</summary>
+        static int ToggleSide(int row) => row == 3 ? (GameSession.LeftHanded ? 1 : 0) : GameSession.Vibration ? 0 : 1;
 
         static void Change(int row, int d)
         {
@@ -113,8 +134,7 @@ namespace TurboPattes.Game.UI
             Jukebox.Instance.Move();
         }
 
-        // Pas réguliers sans dérive des flottants (0,1 + 0,1 + 0,1…).
-        static float Step(float v, float d, float min, float max) => Mathf.Clamp(Mathf.Round((v + d) * 10f) / 10f, min, max);
+        static float Step(float v, float d, float min, float max) => SettingsRows.Step(v, d, min, max);
 
         void Close()
         {
@@ -137,6 +157,13 @@ namespace TurboPattes.Game.UI
             {
                 var r = RowRect(i);
                 bool focus = i == _row;
+                // Section : petit titre ocre dans la marge gauche, à hauteur de sa première ligne.
+                string section = SettingsRows.SectionStart(i);
+                if (section != null && r.x > 190 * s)
+                {
+                    UiKit.Slash(new Rect(r.x - 22 * s, r.y + r.height * 0.3f, 6 * s, r.height * 0.4f), UiKit.Ochre);
+                    _ui.Label(new Rect(r.x - 200 * s, r.y, 170 * s, r.height), section.ToUpperInvariant(), _ui.Small, UiKit.Ochre, TextAnchor.MiddleRight);
+                }
                 if (i == Rows.Length - 1)
                 {
                     _ui.Button(new Rect(r.center.x - 150 * s, r.y + 10 * s, 300 * s, r.height), "Retour", true, focus);
@@ -147,16 +174,55 @@ namespace TurboPattes.Game.UI
                 var ink = focus ? UiKit.Cream : UiKit.Ink;
                 if (focus) UiKit.Slash(new Rect(r.x + 10 * s, r.y + r.height * 0.22f, 7 * s, r.height * 0.56f), UiKit.Ochre);
                 _ui.Label(new Rect(r.x + 28 * s, r.y, 300 * s, r.height), Rows[i], _ui.Medium, ink, TextAnchor.MiddleLeft);
-                var valueRect = new Rect(Minus(i).xMax, r.y, Plus(i).x - Minus(i).xMax, r.height);
-                _ui.Label(valueRect, Value(i), _ui.Medium, focus ? UiKit.Ochre : UiKit.Vermilion, TextAnchor.MiddleCenter);
                 if (i == 3) DrawZones(r, s);
-                if (!Toggle(i))
+                var valueRect = new Rect(Minus(i).xMax, r.y, Plus(i).x - Minus(i).xMax, r.height);
+                switch (SettingsRows.Kinds[i])
                 {
-                    var minus = Minus(i); var plus = Plus(i);
-                    float m = 7 * s;
-                    _ui.Button(new Rect(minus.x + m, minus.y + m, minus.width - 2 * m, minus.height - 2 * m), "-", false);
-                    _ui.Button(new Rect(plus.x + m, plus.y + m, plus.width - 2 * m, plus.height - 2 * m), "+", false);
+                    case SettingKind.Toggle:
+                        for (int half = 0; half < 2; half++)
+                        {
+                            bool on = half == ToggleSide(i);
+                            var seg = ToggleHalf(i, half);
+                            // Choix retenu : ocre sur la ligne active (vermillon), vermillon sinon ; l'autre reste en retrait.
+                            UiKit.Card(seg, on ? (focus ? UiKit.Ochre : UiKit.Vermilion) : UiKit.Alpha(focus ? UiKit.Cream : UiKit.Ink, 0.16f), 9 * s);
+                            _ui.Label(seg, SettingsRows.ToggleNames[i][half], _ui.Small, on ? (focus ? UiKit.Ink : UiKit.Cream) : UiKit.Alpha(ink, 0.6f), TextAnchor.MiddleCenter);
+                        }
+                        continue;
+                    case SettingKind.Gauge:
+                        DrawGauge(i, valueRect, focus, s);
+                        break;
+                    default:
+                        _ui.Label(valueRect, Value(i), _ui.Medium, focus ? UiKit.Ochre : UiKit.Vermilion, TextAnchor.MiddleCenter);
+                        break;
                 }
+                var minus = Minus(i); var plus = Plus(i);
+                float m = 7 * s;
+                _ui.Button(new Rect(minus.x + m, minus.y + m, minus.width - 2 * m, minus.height - 2 * m), "-", false);
+                _ui.Button(new Rect(plus.x + m, plus.y + m, plus.width - 2 * m, plus.height - 2 * m), "+", false);
+            }
+            // Rappel des commandes, discret, au pied de l'écran.
+            _ui.Label(new Rect(0, h - 44 * s, w, 30 * s), "Flèches : choisir et régler   ·   Entrée : basculer   ·   Échap : retour", _ui.Small,
+                UiKit.Alpha(UiKit.Cream, 0.55f), TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>Jauge : valeur en chiffres fixes en haut, dix crans obliques en dessous (allumés jusqu'à la valeur).</summary>
+        void DrawGauge(int row, Rect area, bool focus, float s)
+        {
+            var (value, min, max) = row switch
+            {
+                0 => (GameSession.MusicVolume, 0f, 1f),
+                1 => (GameSession.SfxVolume, 0f, 1f),
+                _ => (GameSession.TouchSensitivity, 0.5f, 1.5f),
+            };
+            _ui.Digits(new Rect(area.x, area.y + 3 * s, area.width, area.height * 0.5f), Value(row), _ui.Small,
+                focus ? UiKit.Ochre : UiKit.Vermilion, TextAnchor.MiddleCenter);
+            int lit = SettingsRows.Lit(value, min, max);
+            float pad = 8 * s, step = (area.width - 2 * pad) / SettingsRows.Notches;
+            for (int k = 0; k < SettingsRows.Notches; k++)
+            {
+                var notch = new Rect(area.x + pad + k * step + step * 0.25f, area.y + area.height * 0.56f, step * 0.5f, area.height * 0.28f);
+                var on = focus ? UiKit.Ochre : UiKit.Vermilion;
+                UiKit.Slash(notch, k < lit ? on : UiKit.Alpha(focus ? UiKit.Cream : UiKit.Ink, 0.22f));
             }
         }
 
