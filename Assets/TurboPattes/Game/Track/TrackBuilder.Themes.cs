@@ -8,6 +8,9 @@ namespace TurboPattes.Game.Track
     /// <summary>Décors des thèmes jungle, lagon, récif, ciel, espace, banquise, volcan et ville (tout en primitives).</summary>
     public static partial class TrackBuilder
     {
+        /// <summary>Lave à animer, laissée par le décor du volcan pour <see cref="Build"/> (null ailleurs).</summary>
+        static (Material mat, Color emission)? _animatedLava;
+
         static void BuildThemeDecor(Theme theme, TrackPath path, Terrain terrain, ThemeStyle style, Transform root, System.Random rng)
         {
             var decor = new GameObject("Decor").transform;
@@ -449,7 +452,10 @@ namespace TurboPattes.Game.Track
         {
             var rock = Mats.Lit(new Color(0.22f, 0.18f, 0.18f), 0.1f);
             var rockRed = Mats.Lit(new Color(0.4f, 0.2f, 0.15f), 0.1f);
-            var lava = Mats.Emissive(new Color(1f, 0.45f, 0.1f), new Color(1f, 0.35f, 0.05f) * 2.5f);
+            // Instance à part : sa lueur palpite (DecorMotion, posé après la fusion du décor).
+            var lavaGlow = new Color(1f, 0.35f, 0.05f) * 2.5f;
+            var lava = Mats.NewEmissive(new Color(1f, 0.45f, 0.1f), lavaGlow);
+            _animatedLava = (lava, lavaGlow);
             var smoke = Mats.Lit(new Color(0.3f, 0.27f, 0.27f), 0f);
             var dead = Mats.Lit(new Color(0.18f, 0.14f, 0.12f), 0.05f);
 

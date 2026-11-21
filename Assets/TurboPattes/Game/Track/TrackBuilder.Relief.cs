@@ -212,7 +212,7 @@ namespace TurboPattes.Game.Track
         static Vector3 BaseAt(TrackPath path, int k, float lateral, float dy = 0f)
         {
             var p = path.Points[k];
-            return new Vector3(p.x, path.BaseHeights[k] + dy, p.z) + path.Rights[k] * lateral;
+            return new Vector3(p.x, path.BaseHeights[k] + dy + path.LiftAt(k, lateral), p.z) + path.Rights[k] * lateral;
         }
 
         /// <summary>Ponts : tablier sous les bas-côtés, dessous, poutres de rive colorées et piles jusqu'au sol.</summary>
@@ -272,7 +272,7 @@ namespace TurboPattes.Game.Track
                 if (i1 < i0) i1 += path.Count;
                 foreach (int side in new[] { -1, 1 })
                     MeshKit.MeshObject("KickerSide", Strip(path, i0, i1,
-                        k => (BaseAt(path, k, side * w, -0.2f), new Vector3(path.Points[k].x, path.Points[k].y + 0.03f, path.Points[k].z) + path.Rights[k] * side * w),
+                        k => (BaseAt(path, k, side * w, -0.2f), new Vector3(path.Points[k].x, path.Points[k].y + 0.03f + path.LiftAt(k, side * w), path.Points[k].z) + path.Rights[k] * side * w),
                         3f, "KickerSide"), stripes, ramp);
 
                 path.Sample(kicker.LipS, out var lip, out var t, out var r);

@@ -48,6 +48,12 @@ namespace TurboPattes.Game.Track
         /// côté intérieur (-1 gauche, +1 droite) et recul du muret (m). Un petit tremplin est posé dans le sable.
         /// </summary>
         public (int control, float halfLength, int side, float extra)[] Shortcuts;
+        /// <summary>
+        /// Virages relevés (<see cref="Core.Banking"/>) : centre sur un point de contrôle, demi-longueur et angle
+        /// (positif = extérieur droit relevé, pour un virage à gauche). Seulement sur les tronçons portés
+        /// (piste suspendue, ponts) : le terrain sous la piste ne suit pas encore l'inclinaison.
+        /// </summary>
+        public (int control, float halfLength, float degrees)[] Banks;
 
         /// <summary>Gravité relative (espace : sauts plus longs).</summary>
         public float Gravity = 1f;
@@ -161,6 +167,8 @@ namespace TurboPattes.Game.Track
             Control = new[] { new Vector2(-187, 132), new Vector2(-232, 93), new Vector2(-244, 42), new Vector2(-236, -8), new Vector2(-215, -52), new Vector2(-172, -84), new Vector2(-111, -93), new Vector2(-58, -86), new Vector2(-27, -93), new Vector2(7, -126), new Vector2(66, -160), new Vector2(138, -166), new Vector2(201, -142), new Vector2(247, -99), new Vector2(265, -45), new Vector2(238, 8), new Vector2(177, 43), new Vector2(122, 60), new Vector2(96, 80), new Vector2(76, 113), new Vector2(40, 140), new Vector2(-8, 149), new Vector2(-61, 149), new Vector2(-122, 147) },
             Heights = new[] { 44.5f, 47.5f, 48f, 47.5f, 47.5f, 48f, 49.5f, 51.5f, 52.5f, 51.5f, 48f, 43.5f, 39.5f, 36.5f, 36f, 36.5f, 36.5f, 36f, 34.5f, 32.5f, 31.5f, 32.5f, 36f, 40.5f },
             Kickers = new[] { (10, 10f, 1.6f), (18, 10f, 1.5f) },
+            // Le virage le plus serré (à gauche, rayon ~70 m) est relevé de 12°.
+            Banks = new[] { (14, 55f, 12f) },
             Gravity = 0.85f,
             Floating = true,
             ItemRows = new[] { 0.1f, 0.33f, 0.58f, 0.84f },

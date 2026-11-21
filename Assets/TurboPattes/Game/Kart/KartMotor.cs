@@ -90,7 +90,9 @@ namespace TurboPattes.Game.Kart
 
         float _hopWindow;
         bool _prevDrift;
-        float _steerVisual, _spinAngle, _wheelAngle, _driftVisual, _tilt, _pitch, _squash;
+        float _steerVisual, _spinAngle, _wheelAngle, _driftVisual, _tilt, _pitch, _squash, _roll;
+        /// <summary>Inclinaison du sol sous le kart (degrés, virage relevé ; positive = droite de la piste relevée).</summary>
+        float _bank;
         /// <summary>Pente du sol dans l'axe du kart (positive en montée).</summary>
         float _slopeAhead;
         int _lastDriftLevel;
@@ -193,8 +195,9 @@ namespace TurboPattes.Game.Kart
                     {
                         Drift.Cancel();
                     }
-                    // Glisse vers l'extérieur du virage
-                    vR = Mathf.Lerp(vR, -Drift.Direction * vF * 0.22f, 1f - Mathf.Exp(-4f * dt));
+                    // Glisse vers l'extérieur du virage (moins sur un virage relevé, qui retient le kart).
+                    float slide = air ? 1f : Banking.SlideFactor(_bank);
+                    vR = Mathf.Lerp(vR, -Drift.Direction * vF * 0.22f * slide, 1f - Mathf.Exp(-4f * dt));
                     int level = Drift.Level;
                     if (level > _lastDriftLevel) DriftLevelUp?.Invoke(this);
                     _lastDriftLevel = level;
@@ -280,6 +283,7 @@ namespace TurboPattes.Game.Kart
             float slope = Path.GroundSlope(s, lat);
             float along = Vector3.Dot(Velocity, Path.Tangents[TrackIndex]);
             _slopeAhead = slope * Vector3.Dot(Forward, Path.Tangents[TrackIndex]);
+            _bank = Path.BankAngle(s);
             switch (Vertical.Step(dt, Path.GroundHeight(s, lat), slope * along))
             {
                 case VerticalEvent.TookOff:
@@ -381,7 +385,10 @@ namespace TurboPattes.Game.Kart
                 ? -Mathf.Atan2(Vertical.Vy, Mathf.Max(8f, ForwardSpeed)) * Mathf.Rad2Deg * 0.6f
                 : -Mathf.Atan(_slopeAhead) * Mathf.Rad2Deg;
             _pitch = Mathf.Lerp(_pitch, targetPitch, 1f - Mathf.Exp(-(Airborne ? 4f : 12f) * dt));
-            root.SetPositionAndRotation(Position, Quaternion.Euler(_pitch, Yaw * Mathf.Rad2Deg, 0f));
+            // Roulis : le kart épouse le virage relevé (droite de la piste relevée = droite du kart s'il roule dans le sens de la course).
+            float targetRoll = Airborne ? 0f : _bank * Vector3.Dot(Forward, Path.Tangents[TrackIndex]);
+            _roll = Mathf.Lerp(_roll, targetRoll, 1f - Mathf.Exp(-10f * dt));
+            root.SetPositionAndRotation(Position, Quaternion.Euler(_pitch, Yaw * Mathf.Rad2Deg, _roll));
             _squash = Mathf.MoveTowards(_squash, 0f, dt * 4f);
 
             float targetDrift = Drift.Active ? Drift.Direction * 28f : 0f;

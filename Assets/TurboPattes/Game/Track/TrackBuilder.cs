@@ -39,6 +39,12 @@ namespace TurboPattes.Game.Track
             // Tout le circuit est immobile : un objet par matériau au lieu de centaines.
             var (merged, skipped, result) = MeshKit.Combine(root);
             Debug.Log($"[TurboPattes] Décor fusionné : {merged} maillages -> {result} objets ({skipped} non lisibles)");
+            // Décor animé : les maillages fusionnés gardent le matériau, qu'on anime en place.
+            if (_animatedLava.HasValue)
+            {
+                root.gameObject.AddComponent<DecorMotion>().AnimateLava(_animatedLava.Value.mat, _animatedLava.Value.emission);
+                _animatedLava = null;
+            }
             return pads;
         }
 
@@ -87,8 +93,8 @@ namespace TurboPattes.Game.Track
                 int k = i % n;
                 Vector3 p = path.Points[k], r = path.Rights[k];
                 float d = i == n ? path.Length : path.Dist[k];
-                v[i * 2] = p + r * from + Vector3.up * y;
-                v[i * 2 + 1] = p + r * to + Vector3.up * y;
+                v[i * 2] = p + r * from + Vector3.up * (y + path.LiftAt(k, from));
+                v[i * 2 + 1] = p + r * to + Vector3.up * (y + path.LiftAt(k, to));
                 uv[i * 2] = new Vector2(0, d / tile);
                 uv[i * 2 + 1] = new Vector2(1, d / tile);
             }
@@ -149,7 +155,8 @@ namespace TurboPattes.Game.Track
                     for (int j = 0; j < 4; j++)
                     {
                         var basePoint = new Vector3(path.Points[k].x, path.BaseHeights[k], path.Points[k].z);
-                        v.Add(basePoint + path.Rights[k] * ((offs[j] + extra) * side) + Vector3.up * ys[j]);
+                        float lat = (offs[j] + extra) * side;
+                        v.Add(basePoint + path.Rights[k] * lat + Vector3.up * (ys[j] + path.LiftAt(k, lat)));
                         uv.Add(new Vector2(d / 6f, vs[j]));
                     }
                 }

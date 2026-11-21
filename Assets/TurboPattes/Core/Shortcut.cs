@@ -49,22 +49,8 @@ namespace TurboPattes.Core
             return s < 0f ? s + TrackLength : s;
         }
 
-        /// <summary>Écart signé (le plus court, en tenant compte du bouclage) entre <paramref name="s"/> et le centre.</summary>
-        float FromCenter(float s)
-        {
-            float d = Wrap(s - CenterS);
-            return d > TrackLength * 0.5f ? d - TrackLength : d;
-        }
-
         /// <summary>Part du recul du muret à cette distance : 1 dans la zone, 0 loin, transition douce sur <see cref="Fade"/>.</summary>
-        public float Amount(float s)
-        {
-            float d = Math.Abs(FromCenter(s));
-            if (d <= HalfLength) return 1f;
-            if (d >= HalfLength + Fade) return 0f;
-            float u = 1f - (d - HalfLength) / Fade;
-            return u * u * (3f - 2f * u);
-        }
+        public float Amount(float s) => TrackZone.Weight(s, CenterS, HalfLength, Fade, TrackLength);
 
         /// <summary>Distance du muret à la ligne médiane, du côté <paramref name="side"/>.</summary>
         public float BarrierOffset(float s, int side, float baseOffset) => side == Side ? baseOffset + Extra * Amount(s) : baseOffset;

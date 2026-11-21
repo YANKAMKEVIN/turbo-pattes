@@ -79,6 +79,8 @@ namespace TurboPattes.Game.Kart
             // Vitesse de passage selon la courbure à venir.
             float sharp = path.TurnBetween(s + 5f, s + 30f);
             float cornerSpeed = k.TopSpeed * Mathf.Lerp(1f, 0.62f + 0.1f * _skill, Mathf.Clamp01((sharp - 30f) / 80f));
+            // Virage relevé : on peut le passer plus vite.
+            cornerSpeed = Mathf.Min(k.TopSpeed, cornerSpeed * Banking.CornerSpeedRatio(path.BankAngle(s + 15f)));
             if (speed > cornerSpeed + 2f && !_drifting) { input.Throttle = 0f; input.Brake = 0.4f; }
 
             // Drift dans les grandes courbes.

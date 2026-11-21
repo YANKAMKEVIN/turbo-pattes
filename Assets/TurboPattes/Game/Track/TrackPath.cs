@@ -6,8 +6,9 @@ namespace TurboPattes.Game.Track
 {
     /// <summary>
     /// Ligne médiane du circuit : spline de Catmull-Rom fermée, échantillonnée finement, avec sa hauteur
-    /// (<see cref="HeightProfile"/>). Tangentes et « droite » restent horizontales : la piste n'est jamais inclinée
-    /// sur le côté. « Droite » = vers la droite dans le sens de la course.
+    /// (<see cref="HeightProfile"/>). Tangentes et « droite » restent horizontales ; la piste ne s'incline sur le côté
+    /// que dans les virages relevés (<see cref="Banks"/>), autour de sa ligne médiane. « Droite » = vers la droite
+    /// dans le sens de la course.
     /// </summary>
     public sealed class TrackPath
     {
@@ -37,6 +38,9 @@ namespace TurboPattes.Game.Track
         public readonly bool Floating;
         /// <summary>Raccourcis risqués (muret reculé, sable, petit tremplin).</summary>
         public readonly List<Shortcut> Shortcuts = new();
+        /// <summary>Virages relevés, et inclinaison (degrés) de chaque échantillon.</summary>
+        public readonly List<Banking> Banks = new();
+        public readonly float[] BankDeg;
         readonly TrackProjection _projection;
 
         public int Count => Points.Length;
@@ -109,6 +113,11 @@ namespace TurboPattes.Game.Track
                 Shortcuts.Add(new Shortcut(center, half, side, extra, Length, center - 5f, 8f, 1.2f, inner, inner + 5f));
             }
 
+            BankDeg = new float[count];
+            foreach (var (c, half, degrees) in relief?.Banks ?? new (int, float, float)[0])
+                Banks.Add(new Banking(Dist[c * samplesPerSegment], half, degrees, Length));
+            for (int i = 0; i < count; i++) BankDeg[i] = BankAngle(Dist[i]);
+
             var xs = new float[count];
             var ys = new float[count];
             var zs = new float[count];
@@ -133,7 +142,7 @@ namespace TurboPattes.Game.Track
         {
             float h = Profile?.Height(s, OnRamp(lateral)) ?? 0f;
             foreach (var sc in Shortcuts) h += sc.Kick(s, lateral, out _);
-            return h;
+            return h + BankLift(s, lateral);
         }
 
         /// <summary>Pente du sol (dh/ds, dans le sens de la course).</summary>
@@ -145,8 +154,28 @@ namespace TurboPattes.Game.Track
                 sc.Kick(s, lateral, out float k);
                 slope += k;
             }
+            foreach (var b in Banks) slope += b.LiftSlope(Wrap(s), lateral);
             return slope;
         }
+
+        /// <summary>Inclinaison de la piste (degrés, positif = côté droit relevé).</summary>
+        public float BankAngle(float s)
+        {
+            float a = 0f;
+            foreach (var b in Banks) a += b.Angle(Wrap(s));
+            return a;
+        }
+
+        /// <summary>Surélévation due au relevé au décalage <paramref name="lateral"/>.</summary>
+        public float BankLift(float s, float lateral)
+        {
+            float h = 0f;
+            foreach (var b in Banks) h += b.Lift(Wrap(s), lateral);
+            return h;
+        }
+
+        /// <summary>Surélévation due au relevé à l'échantillon <paramref name="k"/> (maillages).</summary>
+        public float LiftAt(int k, float lateral) => BankDeg[k] == 0f ? 0f : lateral * Mathf.Tan(BankDeg[k] * Mathf.Deg2Rad);
 
         /// <summary>Distance du muret à la ligne médiane du côté <paramref name="side"/> (-1 gauche, +1 droite) : reculé dans les raccourcis.</summary>
         public float BarrierAt(float s, int side)
@@ -234,7 +263,7 @@ namespace TurboPattes.Game.Track
         public Vector3 PointAt(float s, float lateral = 0f)
         {
             Sample(s, out var p, out _, out var r);
-            return p + r * lateral;
+            return p + r * lateral + Vector3.up * BankLift(s, lateral);
         }
 
         /// <summary>Angle (degrés, toujours positif) entre les tangentes à <paramref name="s0"/> et <paramref name="s1"/>.</summary>
