@@ -23,42 +23,35 @@ namespace TurboPattes.Core
             int v = int.Parse(h, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             return new Rgb(((v >> 16) & 0xff) / 255f, ((v >> 8) & 0xff) / 255f, (v & 0xff) / 255f);
         }
+
+        /// <summary>Luminance relative (WCAG 2.1) : composantes sRVB ramenées en linéaire puis pondérées.</summary>
+        public float Luminance => 0.2126f * Lin(R) + 0.7152f * Lin(G) + 0.0722f * Lin(B);
+
+        static float Lin(float c) => c <= 0.04045f ? c / 12.92f : (float)Math.Pow((c + 0.055f) / 1.055f, 2.4f);
+
+        /// <summary>Rapport de contraste WCAG entre deux couleurs opaques (1 à 21).</summary>
+        public static float Contrast(Rgb a, Rgb b)
+        {
+            float la = a.Luminance, lb = b.Luminance;
+            return (Math.Max(la, lb) + 0.05f) / (Math.Min(la, lb) + 0.05f);
+        }
     }
 
     /// <summary>
-    /// Direction artistique « Atelier plein gaz » (docs/da/directions-v2) : palette de l'interface et police Saira.
-    /// Le crème sert de support, le vert charbon d'encre et d'ombre, le vermillon et l'ocre hiérarchisent
-    /// les actions, le bleu atelier apporte le contraste frais.
-    /// </summary>
-    public static class Atelier
-    {
-        public static readonly Rgb Charcoal = Rgb.Hex("#24302D");
-        public static readonly Rgb Vermilion = Rgb.Hex("#D94D3F");
-        public static readonly Rgb Ochre = Rgb.Hex("#E9B949");
-        public static readonly Rgb Workshop = Rgb.Hex("#3C8F91");
-        public static readonly Rgb Cream = Rgb.Hex("#F2E7CE");
-
-        /// <summary>Fichiers de police dans Resources (Saira, licence OFL jointe).</summary>
-        public const string FontBold = "Fonts/Saira-Bold";
-        public const string FontSemiBold = "Fonts/Saira-SemiBold";
-        public const string FontRegular = "Fonts/Saira-Regular";
-    }
-
-    /// <summary>
-    /// Chiffres à largeur fixe pour le chrono, la vitesse et les écarts : Saira a des chiffres proportionnels
+    /// Chiffres à largeur fixe pour le chrono, la vitesse et les écarts : Saira Condensed a des chiffres proportionnels
     /// (le « 1 » est étroit), donc chaque caractère est posé dans une case de largeur fixe, en fraction de la
     /// taille de police. Le texte ne bouge plus quand les chiffres défilent.
     /// </summary>
     public static class FixedDigits
     {
-        /// <summary>Case d'un chiffre : un peu plus large que le chiffre le plus large de Saira Bold (0,68 em).</summary>
-        public const float Digit = 0.68f;
+        /// <summary>Case d'un chiffre : un peu plus large que le chiffre le plus large de Saira Condensed Bold (0,49 em).</summary>
+        public const float Digit = 0.5f;
         /// <summary>Case des séparateurs « : », « , » et « . ».</summary>
-        public const float Separator = 0.32f;
-        public const float Space = 0.26f;
-        public const float Sign = 0.5f;
+        public const float Separator = 0.25f;
+        public const float Space = 0.19f;
+        public const float Sign = 0.48f;
         /// <summary>Lettres (« km/h », « e ») : case moyenne, juste pour que le total tombe à peu près juste.</summary>
-        public const float Other = 0.6f;
+        public const float Other = 0.45f;
 
         public static float Cell(char c)
         {

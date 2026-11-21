@@ -37,29 +37,40 @@ namespace TurboPattes.Game.Visuals
             return ItemCache[kind] = c.ToTexture("Item" + kind);
         }
 
-        static Texture2D _paw;
+        static Texture2D _emblem;
 
         /// <summary>
-        /// Patte crème de l'icône de l'application (coussinet et quatre doigts, inclinée de 15°), pour le logo :
-        /// même dessin que Editor/AppIcon, sur fond transparent.
+        /// Emblème de l'écran titre (même motif que Editor/AppIcon) : drapeau à damier penché et deux chevrons rouge
+        /// course qui filent vers la droite, sur fond transparent.
         /// </summary>
-        public static Texture2D Paw()
+        public static Texture2D Emblem()
         {
-            if (_paw != null) return _paw;
+            if (_emblem != null) return _emblem;
             var c = new IconCanvas();
-            var cream = new Color(0.949f, 0.906f, 0.808f); // #F2E7CE
-            const float scale = 1.15f, tilt = 15f;
-            float cs = Mathf.Cos(tilt * Mathf.Deg2Rad), sn = Mathf.Sin(tilt * Mathf.Deg2Rad);
-            // (u, v) : repère de la patte de AppIcon, v vers le haut ; la toile compte y vers le bas.
-            Func<Vector2, float> Part(float u, float v, float rx, float ry)
+            var chalk = UiColor(Palette.Chalk);
+            var carbon = UiColor(Palette.Carbon);
+            var red = UiColor(Palette.Red);
+            // Drapeau : parallélogramme penché, damier 4 × 3 (cases carbone découpées dans le blanc).
+            var flag = Polygon(0.015f, 0.16f, 0.26f, 0.62f, 0.26f, 0.52f, 0.66f, 0.06f, 0.66f);
+            c.Fill(flag, chalk, IconCanvas.Line, 0f);
+            for (int row = 0; row < 3; row++)
+            for (int col = 0; col < 4; col++)
             {
-                float x = u * scale, y = -v * scale;
-                return Ellipse(0.5f + x * cs - y * sn, 0.52f + x * sn + y * cs, rx * scale, ry * scale, tilt);
+                if ((row + col) % 2 == 0) continue;
+                float y0 = 0.26f + row * 0.1333f, y1 = y0 + 0.1333f;
+                // Bords penchés comme le drapeau : x recule de 0,25 par unité de hauteur.
+                float x0 = 0.16f + col * 0.115f - (y0 - 0.26f) * 0.25f, x1 = x0 + 0.115f;
+                c.Fill(Intersect(Polygon(0f, x0, y0, x1, y0, x1 - 0.0333f, y1, x0 - 0.0333f, y1), flag), carbon, 0f, 0f);
             }
-            c.Fill(Union(Part(0f, -0.07f, 0.23f, 0.17f), Part(-0.285f, 0.12f, 0.08f, 0.105f), Part(-0.095f, 0.265f, 0.09f, 0.12f),
-                Part(0.095f, 0.265f, 0.09f, 0.12f), Part(0.285f, 0.12f, 0.08f, 0.105f)), cream, IconCanvas.Line, 0f);
-            return _paw = c.ToTexture("Paw");
+            // Hampe.
+            c.Fill(Capsule(0.15f, 0.22f, 0.04f, 0.84f, 0.022f), UiColor(Palette.Steel), IconCanvas.Line * 0.6f, 0f);
+            // Deux chevrons « > » rouges.
+            foreach (float x in new[] { 0.62f, 0.76f })
+                c.Fill(Polygon(0.01f, x, 0.3f, x + 0.08f, 0.3f, x + 0.2f, 0.46f, x + 0.08f, 0.62f, x, 0.62f, x + 0.12f, 0.46f), red, IconCanvas.Line * 0.7f, 0f);
+            return _emblem = c.ToTexture("Emblem");
         }
+
+        static Color UiColor(Rgb c) => new(c.R, c.G, c.B);
 
         public static Texture2D Portrait(AnimalSpec spec)
         {

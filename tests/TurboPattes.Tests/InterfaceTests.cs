@@ -4,16 +4,57 @@ using TurboPattes.Core;
 
 namespace TurboPattes.Tests
 {
-    public class AtelierTests
+    public class PaletteTests
     {
         [Test]
-        public void Palette_ValeursDeLaDirectionAtelier()
+        public void Palette_ValeursDeLaDirectionArcadeSportif()
         {
-            AssertRgb(Atelier.Charcoal, 0x24, 0x30, 0x2D);
-            AssertRgb(Atelier.Vermilion, 0xD9, 0x4D, 0x3F);
-            AssertRgb(Atelier.Ochre, 0xE9, 0xB9, 0x49);
-            AssertRgb(Atelier.Workshop, 0x3C, 0x8F, 0x91);
-            AssertRgb(Atelier.Cream, 0xF2, 0xE7, 0xCE);
+            AssertRgb(Palette.Carbon, 0x14, 0x17, 0x1B);
+            AssertRgb(Palette.Graphite, 0x27, 0x2C, 0x33);
+            AssertRgb(Palette.Chalk, 0xF2, 0xF4, 0xF6);
+            AssertRgb(Palette.Red, 0xC8, 0x21, 0x1B);
+            AssertRgb(Palette.Signal, 0xF2, 0xC2, 0x00);
+            AssertRgb(Palette.Telemetry, 0x1A, 0x62, 0xC0);
+            AssertRgb(Palette.Steel, 0x8A, 0x93, 0x9E);
+        }
+
+        [Test]
+        public void Contraste_NoirSurBlancVaut21EtEstSymetrique()
+        {
+            Assert.That(Rgb.Contrast(Rgb.Hex("#000000"), Rgb.Hex("#FFFFFF")), Is.EqualTo(21f).Within(0.01f));
+            Assert.That(Rgb.Contrast(Palette.Red, Palette.Chalk), Is.EqualTo(Rgb.Contrast(Palette.Chalk, Palette.Red)));
+            Assert.That(Rgb.Contrast(Palette.Red, Palette.Red), Is.EqualTo(1f).Within(1e-5f));
+            // Valeur de référence : #777777 sur blanc ≈ 4,48:1 (juste sous le seuil WCAG AA).
+            Assert.That(Rgb.Contrast(Rgb.Hex("#777777"), Rgb.Hex("#FFFFFF")), Is.EqualTo(4.48f).Within(0.01f));
+        }
+
+        [Test]
+        public void Hud_ToutTexteAUnContrasteSuffisantSurSonFond()
+        {
+            Assert.That(Palette.TextPairs.Length, Is.GreaterThanOrEqualTo(10));
+            foreach (var pair in Palette.TextPairs)
+                Assert.That(pair.Contrast, Is.GreaterThanOrEqualTo(pair.Required), $"{pair.Use} : {pair.Contrast:0.00}:1");
+            // Le texte courant (pas seulement les gros titres) couvre les fonds principaux du HUD.
+            foreach (var bg in new[] { Palette.Carbon, Palette.Chalk, Palette.Red, Palette.Telemetry })
+                Assert.That(Array.Exists(Palette.TextPairs, p => !p.Large && p.Background.Equals(bg)), Is.True);
+        }
+
+        [Test]
+        public void Titre_UneSeuleConstanteCoupeeEnDeuxLignesPourLeLogo()
+        {
+            Assert.That(Brand.LogoLines(), Is.EqualTo(new[] { "TURBO", "PATTES" }));
+            Assert.That(Brand.LogoLines("Apex Kart"), Is.EqualTo(new[] { "APEX", "KART" }));
+            Assert.That(Brand.LogoLines("Ligne Rouge Karting"), Is.EqualTo(new[] { "LIGNE ROUGE", "KARTING" }));
+            Assert.That(Brand.LogoLines("Kartix"), Is.EqualTo(new[] { "KARTIX", "" }));
+            Assert.That(Brand.Tagline, Is.Not.Empty);
+        }
+
+        [Test]
+        public void Polices_SairaCondensedPourLeHudEtSairaPourLesPhrases()
+        {
+            Assert.That(Typography.Bold, Does.Contain("SairaCondensed"));
+            Assert.That(Typography.SemiBold, Does.Contain("SairaCondensed"));
+            Assert.That(Typography.Regular, Is.EqualTo("Fonts/Saira-Regular"));
         }
 
         [Test]
