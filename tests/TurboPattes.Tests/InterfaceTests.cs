@@ -47,14 +47,15 @@ namespace TurboPattes.Tests
             Assert.That(Brand.LogoLines("Apex Kart"), Is.EqualTo(new[] { "APEX", "KART" }));
             Assert.That(Brand.LogoLines("Ligne Rouge Karting"), Is.EqualTo(new[] { "LIGNE ROUGE", "KARTING" }));
             Assert.That(Brand.LogoLines("Kartix"), Is.EqualTo(new[] { "KARTIX", "" }));
-            Assert.That(Brand.Tagline, Is.Not.Empty);
+            Assert.That(Brand.Tagline, Is.EqualTo("Championnat de karting arcade"), "accroche validée par Kevin le 21/11");
         }
 
         [Test]
         public void Polices_SairaCondensedPourLeHudEtSairaPourLesPhrases()
         {
-            Assert.That(Typography.Bold, Does.Contain("SairaCondensed"));
-            Assert.That(Typography.SemiBold, Does.Contain("SairaCondensed"));
+            // Saira Condensed validée par Kevin le 21/11.
+            Assert.That(Typography.Bold, Is.EqualTo("Fonts/SairaCondensed-Bold"));
+            Assert.That(Typography.SemiBold, Is.EqualTo("Fonts/SairaCondensed-SemiBold"));
             Assert.That(Typography.Regular, Is.EqualTo("Fonts/Saira-Regular"));
         }
 

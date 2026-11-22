@@ -15,7 +15,7 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 | Moteur | Unity 6000.6.3f1 + URP 17 + Input System (configuration reprise de `~/dev/check`) |
 | Plateformes | Mobile Android **et** PC/manette dès le départ (iOS plus tard) |
 | Univers | ~~Animaux pilotes~~ → **pilotes humains** (décision du 2026-11-21), **tous publics (8-50 ans), pas « bébé »** |
-| Direction artistique (2026-11-21) | **« Arcade sportif »** : karts et circuits façon sport mécanique, couleurs franches mais sobres (carbone `#14171B`, blanc piste `#F2F4F6`, rouge course `#C8211B`, jaune signal `#F2C200`, bleu télémétrie `#1A62C0`), police Saira Condensed (OFL), HUD épuré, métal et carbone. Référence : `docs/design/da-arcade-sportif.md`. Remplace « Atelier plein gaz », jugée trop enfant. Branche `claude/da-sport`. **Validée par Kevin le 21/11** (palette, pilotes, objets, circuits) ; restent la police et l'accroche. |
+| Direction artistique (2026-11-21) | **« Arcade sportif »** : karts et circuits façon sport mécanique, couleurs franches mais sobres (carbone `#14171B`, blanc piste `#F2F4F6`, rouge course `#C8211B`, jaune signal `#F2C200`, bleu télémétrie `#1A62C0`), police Saira Condensed (OFL), HUD épuré, métal et carbone. Référence : `docs/design/da-arcade-sportif.md`. Remplace « Atelier plein gaz », jugée trop enfant. Branche `claude/da-sport`. **Validée par Kevin le 21/11** (palette, police, pilotes, objets, circuits, accroche « Championnat de karting arcade »). |
 | ~~Direction artistique (2026-11-01)~~ | *Remplacée le 2026-11-21.* **« Atelier plein gaz »** : port méditerranéen, rendu peint façon affiche de sport, pilotes athlétiques en combinaison + casque, karts artisanaux en tubes soudés. Palette `#24302D` `#D94D3F` `#E9B949` `#3C8F91` `#F2E7CE`, police Saira (OFL). Fiche : `docs/da/directions-v2/directions.md`, planche `direction-3.png`. Un peu plus coloré et moins réaliste que la planche (accessible comme les grands jeux de kart). Les DA « Club des Pattes » (`docs/da/maquettes-codex`) et l'UI actuelle sont rejetées : trop enfantines. |
 | Première étape | Prototype jouable : conduite, drift/turbo, un circuit, IA |
 | Nom du jeu (2026-11-21) | **Turbo Grid** : constante `Brand.Title` (logo, nom de l'application `productName`, menus de l'éditeur). Marque et disponibilité sur les stores à vérifier. |
@@ -165,7 +165,7 @@ python3 ~/dev/turbo-pattes/tools/logo/turbo_grid_logo.py
 ## Refonte DA « arcade sportif » (branche `claude/da-sport`, prioritaire)
 
 Référence : `docs/design/da-arcade-sportif.md`, **validée par Kevin le 21/11** (palette, pilotes, objets, circuits) ;
-nom du jeu choisi le même jour : **Turbo Grid** (`Brand.Title`). Restent des valeurs par défaut : police, accroche. Code Unity **ni compilé ni exécuté** dans le conteneur Linux : Game/ vérifié contre les
+nom du jeu choisi le même jour : **Turbo Grid** (`Brand.Title`). Police Saira Condensed et accroche « Championnat de karting arcade » validées aussi le 21/11. Code Unity **ni compilé ni exécuté** dans le conteneur Linux : Game/ vérifié contre les
 assemblies de référence UnityEngine (NuGet) avec des stubs, Editor/ en syntaxe seulement (Roslyn).
 
 1. **Thème et interface** : `Core/Brand` (titre affiché `Brand.Title`, une seule constante ; accroche ; palette

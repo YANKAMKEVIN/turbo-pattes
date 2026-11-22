@@ -3,7 +3,8 @@ using System;
 namespace TurboPattes.Core
 {
     /// <summary>
-    /// Nom affiché du jeu, choisi par Kevin le 2026-11-21 : « Turbo Grid » (docs/design/da-arcade-sportif.md, § 9).
+    /// Nom affiché du jeu, choisi par Kevin le 2026-11-21 : « Turbo Grid » (docs/design/da-arcade-sportif.md, § 9) ;
+    /// accroche validée le même jour.
     /// Seul endroit à modifier : logo, nom de l'application (BuildScript) et menus de l'éditeur en dépendent.
     /// Le dépôt, les espaces de noms et l'identifiant Android gardent « turbopattes » (changer l'identifiant
     /// créerait une nouvelle application sur le store).
@@ -83,7 +84,10 @@ namespace TurboPattes.Core
         };
     }
 
-    /// <summary>Polices (Resources/Fonts) : Saira Condensed pour titres, chiffres et HUD, Saira pour les phrases (OFL).</summary>
+    /// <summary>
+    /// Polices (Resources/Fonts) : Saira Condensed pour titres, chiffres et HUD (validée par Kevin le 2026-11-21), Saira pour
+    /// les phrases (OFL).
+    /// </summary>
     public static class Typography
     {
         public const string Bold = "Fonts/SairaCondensed-Bold";
