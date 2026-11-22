@@ -105,6 +105,8 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 
 ## Vérifications faites (2026-11-01)
 
+- **Branche `claude/suite-3` (2026-11-22, conteneur Linux sans Unity)** : houle du Lagon, nuages qui dérivent sur la Route des Nuages, pilotes penchés dans les virages et coup d'œil en arrière. 201 tests NUnit verts (188 avant). Game/ compilé contre les assemblies de référence UnityEngine 2021.3 (NuGet) avec des stubs, sans nouvelle erreur (les 3 erreurs connues d'API absentes en 2021 restent). **À faire sur Mac** : `autotest-tous.sh` (journal : « Houle : N sommets », « Nuages qui dérivent : 45 groupes »), regarder le Lagon (houle, bord du plan animé, plages) et les Nuages, une course en vue poursuite (penché, coup d'œil) ; sur l'A17, comparer la fluidité du Lagon avec la précédente (coût de la houle).
+
 - **Branche `claude/da-sport`, nom « Turbo Grid » (2026-11-21, conteneur Linux sans Unity)** : `Brand.Title`, `productName`
   (ProjectSettings et `BuildScript.ConfigurePlayer`), menus de l'éditeur tirés de `Brand.Title`, exécutable Mac des
   scripts `tools/autotest-*.sh` (`TurboPattes.app/Contents/MacOS/Turbo Grid`). 188 tests NUnit verts (188 avant, test
