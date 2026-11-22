@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using TurboPattes.Core;
 using TurboPattes.Game.Visuals;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -10,6 +12,12 @@ namespace TurboPattes.Game.Track
     {
         /// <summary>Lave à animer, laissée par le décor du volcan pour <see cref="Build"/> (null ailleurs).</summary>
         static (Material mat, Color emission)? _animatedLava;
+
+        /// <summary>
+        /// Groupes de nuages qui dériveront au vent, laissés par le décor du ciel pour <see cref="Build"/> : construits
+        /// après la fusion du décor (sinon figés dans le maillage commun). Place, distance à la piste, boules, matériau.
+        /// </summary>
+        static readonly List<(Vector3 center, float distance, (Vector3 offset, Vector3 scale)[] puffs, Material mat)> _driftingClouds = new();
 
         static void BuildThemeDecor(Theme theme, TrackPath path, Terrain terrain, ThemeStyle style, Transform root, System.Random rng)
         {
@@ -107,9 +115,98 @@ namespace TurboPattes.Game.Track
         static void BuildWater(TrackPath path, ThemeStyle style, Transform root)
         {
             var c = Center(path);
-            var water = MeshKit.Prim(PrimitiveType.Plane, root, new Vector3(c.x, style.WaterLevel, c.z), new Vector3(160f, 1f, 160f),
+            // Sous le plan animé de la houle (BuildWaves) : abaissé pour ne jamais percer ses creux.
+            float y = style.WaterLevel - DecorWaves.WaterAmplitude - 0.05f;
+            var water = MeshKit.Prim(PrimitiveType.Plane, root, new Vector3(c.x, y, c.z), new Vector3(160f, 1f, 160f),
                 Mats.Lit(style.Water, 0.9f), null, "Water");
             water.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        /// <summary>
+        /// Houle du lagon : plan d'eau maillé (mailles de <see cref="DecorWaves.WaterCell"/>) autour du circuit, plus
+        /// 120 m de marge, animé par <see cref="DecorMotion"/>. Posé après la fusion du décor. Le grand plan d'eau
+        /// fixe (<see cref="BuildWater"/>) reste dessous, abaissé pour ne jamais percer les creux ; la houle s'éteint au
+        /// bord du plan animé (<see cref="DecorWaves.WaterEdge"/>).
+        /// </summary>
+        static void BuildWaves(TrackPath path, ThemeStyle style, Transform root, DecorMotion motion)
+        {
+            const float margin = 120f;
+            var min = new Vector2(float.MaxValue, float.MaxValue);
+            var max = new Vector2(float.MinValue, float.MinValue);
+            foreach (var p in path.Points)
+            {
+                min = Vector2.Min(min, new Vector2(p.x, p.z));
+                max = Vector2.Max(max, new Vector2(p.x, p.z));
+            }
+            min -= Vector2.one * margin;
+            max += Vector2.one * margin;
+            float cell = DecorWaves.WaterCell;
+            int nx = Mathf.CeilToInt((max.x - min.x) / cell), nz = Mathf.CeilToInt((max.y - min.y) / cell);
+            // Garde-fou pour un très grand circuit : au plus ~16 000 sommets (mailles plus grandes).
+            while ((nx + 1) * (nz + 1) > 16000)
+            {
+                cell *= 1.25f;
+                nx = Mathf.CeilToInt((max.x - min.x) / cell);
+                nz = Mathf.CeilToInt((max.y - min.y) / cell);
+            }
+            var verts = new Vector3[(nx + 1) * (nz + 1)];
+            var normals = new Vector3[verts.Length];
+            var edge = new float[verts.Length];
+            float x1 = min.x + nx * cell, z1 = min.y + nz * cell;
+            for (int j = 0; j <= nz; j++)
+            for (int i = 0; i <= nx; i++)
+            {
+                int k = j * (nx + 1) + i;
+                float x = min.x + i * cell, z = min.y + j * cell;
+                verts[k] = new Vector3(x, 0f, z);
+                normals[k] = Vector3.up;
+                edge[k] = DecorWaves.WaterEdge(Mathf.Min(Mathf.Min(x - min.x, x1 - x), Mathf.Min(z - min.y, z1 - z)));
+            }
+            var tris = new int[nx * nz * 6];
+            int t = 0;
+            for (int j = 0; j < nz; j++)
+            for (int i = 0; i < nx; i++)
+            {
+                int a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1;
+                tris[t++] = a; tris[t++] = c; tris[t++] = b;
+                tris[t++] = b; tris[t++] = c; tris[t++] = d;
+            }
+            var mesh = new Mesh { name = "Waves", indexFormat = IndexFormat.UInt32 };
+            mesh.MarkDynamic();
+            mesh.vertices = verts;
+            mesh.normals = normals;
+            mesh.triangles = tris;
+            // Boîte fixe qui contient toute la houle : pas de RecalculateBounds à chaque image.
+            mesh.bounds = new Bounds(new Vector3((min.x + x1) * 0.5f, 0f, (min.y + z1) * 0.5f),
+                new Vector3(x1 - min.x, DecorWaves.WaterAmplitude * 2f + 0.1f, z1 - min.y));
+            var go = MeshKit.MeshObject("Waves", mesh, Mats.Lit(style.Water, 0.9f), root, false);
+            go.transform.localPosition = new Vector3(0f, style.WaterLevel, 0f);
+            motion.AnimateWater(mesh, verts, edge);
+            Debug.Log($"[TurboPattes] Houle : {verts.Length} sommets (mailles de {cell:0.#} m)");
+        }
+
+        /// <summary>
+        /// Nuages qui dérivent : chaque groupe laissé par <see cref="SkyIslands"/> devient un objet à part (ses boules
+        /// fusionnées entre elles) que <see cref="DecorMotion"/> balance au vent, sans jamais approcher la piste à moins
+        /// de <see cref="DecorWaves.CloudClearance"/> mètres.
+        /// </summary>
+        static void BuildDriftingClouds(Transform root, DecorMotion motion)
+        {
+            int n = 0;
+            foreach (var (center, distance, puffs, mat) in _driftingClouds)
+            {
+                var g = new GameObject("DriftingCloud").transform;
+                g.SetParent(root, false);
+                g.localPosition = center;
+                foreach (var (offset, scale) in puffs)
+                    MeshKit.Prim(PrimitiveType.Sphere, g, offset, scale, mat).GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+                MeshKit.Combine(g);
+                // Phase tirée de la place : déterministe, différente d'un groupe à l'autre.
+                motion.AddCloud(g, DecorWaves.CloudDriftReach(distance), (center.x * 0.37f + center.z * 0.11f) % (Mathf.PI * 2f));
+                n++;
+            }
+            _driftingClouds.Clear();
+            Debug.Log($"[TurboPattes] Nuages qui dérivent : {n} groupes");
         }
 
         // ------------------------------------------------------------------ jungle
@@ -325,15 +422,18 @@ namespace TurboPattes.Game.Track
                 float s = c.R(30f, 60f);
                 c.P(PrimitiveType.Sphere, p, new Vector3(s, s * 0.35f, s * c.R(0.7f, 1.2f)), c.Chance(0.5) ? cloud : cloudShade, null, false);
             }
-            // Nuages flottants au bord de la piste.
+            // Nuages flottants au bord de la piste : ils dérivent au vent (construits après la fusion, voir Build).
+            // Mêmes tirages au hasard qu'avant, dans le même ordre : le reste du décor ne bouge pas.
             c.Scatter(45, 22f, 150f, (p, d) =>
             {
                 p.y = c.R(c.LowY - 8f, c.HighY + 15f);
+                var puffs = new (Vector3 offset, Vector3 scale)[4];
                 for (int i = 0; i < 4; i++)
                 {
                     float s = c.R(6f, 12f);
-                    c.P(PrimitiveType.Sphere, p + new Vector3(i * 6f - 9f, c.R(-1.5f, 2f), c.R(-3f, 3f)), new Vector3(s, s * 0.6f, s), cloud, null, false);
+                    puffs[i] = (new Vector3(i * 6f - 9f, c.R(-1.5f, 2f), c.R(-3f, 3f)), new Vector3(s, s * 0.6f, s));
                 }
+                _driftingClouds.Add((p, d, puffs, cloud));
             });
             // Îles volantes avec un arbre.
             c.Scatter(9, 50f, 200f, (p, d) =>
