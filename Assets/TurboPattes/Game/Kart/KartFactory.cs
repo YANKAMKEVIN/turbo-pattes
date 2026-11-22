@@ -142,12 +142,14 @@ namespace TurboPattes.Game.Kart
         /// </summary>
         const float ArmAmplitude = 0.8f;
 
-        /// <summary>Applique une posture (<see cref="DriverPoses"/>) au pilote ; <see cref="DriverPose.Rest"/> le remet au volant.</summary>
+        /// <summary>Applique une posture (<see cref="DriverPoses"/> : conduite ou fin de course) au pilote ; <see cref="DriverPose.Rest"/> le remet au volant, droit.</summary>
         public static void Pose(KartRig rig, DriverPose pose)
         {
             if (rig.Head == null || rig.Shoulders == null) return;
             rig.Driver.localPosition = rig.DriverRest + Vector3.up * pose.Bounce;
-            rig.Head.localRotation = Quaternion.Euler(pose.HeadPitch, 0f, pose.HeadRoll);
+            // Roulis du pilote autour du fond du baquet (penché dans les virages), tête qui tourne puis s'incline.
+            rig.Driver.localRotation = Quaternion.Euler(0f, 0f, pose.Lean);
+            rig.Head.localRotation = Quaternion.Euler(pose.HeadPitch, pose.HeadYaw, pose.HeadRoll);
             // Lever : rotation vers le haut autour de l'axe des épaules ; écarter : vers l'extérieur de chaque côté.
             for (int i = 0; i < rig.Shoulders.Length; i++)
                 rig.Shoulders[i].localRotation = Quaternion.Euler(-pose.ArmLift * ArmAmplitude, 0f, (i == 0 ? 1f : -1f) * pose.ArmSpread * ArmAmplitude);
