@@ -19,6 +19,7 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 | ~~Direction artistique (2026-11-01)~~ | *Remplacée le 2026-11-21.* **« Atelier plein gaz »** : port méditerranéen, rendu peint façon affiche de sport, pilotes athlétiques en combinaison + casque, karts artisanaux en tubes soudés. Palette `#24302D` `#D94D3F` `#E9B949` `#3C8F91` `#F2E7CE`, police Saira (OFL). Fiche : `docs/da/directions-v2/directions.md`, planche `direction-3.png`. Un peu plus coloré et moins réaliste que la planche (accessible comme les grands jeux de kart). Les DA « Club des Pattes » (`docs/da/maquettes-codex`) et l'UI actuelle sont rejetées : trop enfantines. |
 | Première étape | Prototype jouable : conduite, drift/turbo, un circuit, IA |
 | Nom du jeu (2026-11-21) | **Turbo Grid** : constante `Brand.Title` (logo, nom de l'application `productName`, menus de l'éditeur). Marque et disponibilité sur les stores à vérifier. |
+| Écran de lancement (2026-11-21) | **Logo Unity, puis écran de marque Turbo Grid** : splash Unity gardé (fond carbone `#14171B`, logo Unity clair), puis 1,8 s d'écran de marque en jeu (`UI/BrandScreen`, `Core/BrandSplash`) avec le logo du titre, l'accroche en Saira Condensed et un trait rouge, fondu sur le survol du circuit, puis l'écran titre. Une fois par lancement, jamais en autotest ; un toucher passe au fondu. Logo exportable : `tools/logo/turbo_grid_logo.py` → `docs/design/logo-turbo-grid.svg/.png`, `ecran-de-marque.svg/.png`. |
 | Identifiant | `com.kevinyankam.turbopattes`, écran en paysage. **Gardé malgré le nouveau nom** : le changer créerait une nouvelle application sur le store. Le dépôt et les espaces de noms `TurboPattes.*` gardent aussi l'ancien nom. |
 
 ## Contenu du prototype
@@ -54,7 +55,7 @@ Dépôt : https://github.com/YANKAMKEVIN/turbo-pattes (privé, branche `main`). 
 ```
 Assets/TurboPattes/
   Core/    logique pure testable (sans UnityEngine) : LapTracker, DriftCharge, ItemRoll, ItemCatalog, RaceRanking, Tune,
-           Brand, Roster, DriverPose, DecorWaves, Banking, Shortcut, Cup, GhostLap…,
+           Brand, BrandSplash (écran de marque), Roster, DriverPose, DecorWaves, Banking, Shortcut, Cup, GhostLap…,
            HeightProfile (relief), VerticalMotion (sauts), TrackProjection (tronçon le plus proche en 3D)
   Game/
     App/      KartApp : point d'entrée (seul objet de la scène), construit le monde (LoadCircuit, ambiance par thème) ; autotest
@@ -65,7 +66,7 @@ Assets/TurboPattes/
     Kart/     KartMotor (conduite), KartFactory + DriverSpec (modèles des karts et pilotes), AiDriver, PlayerInput, KartInput
     Items/    ItemSystem (caisses, objets lancés ou posés, effets)
     Race/     RaceManager (déroulé de course), ChaseCamera
-    UI/       Hud, MainMenu, SettingsScreen, Podium, Tutorial, UiKit
+    UI/       Hud, MainMenu, BrandScreen (écran de marque au lancement), SettingsScreen, Podium, Tutorial, UiKit (dont le logo)
     Visuals/  Mats (matériaux depuis gabarits Resources), ProceduralTextures, MeshKit
     Audio/    SoundBank
   Editor/  BuildScript (configuration, gabarits de matériaux, builds)
@@ -97,6 +98,8 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 /Applications/Unity/Hub/Editor/6000.6.3f1/Unity.app/Contents/MacOS/Unity -batchmode -quit -projectPath ~/dev/turbo-pattes -buildTarget Android -executeMethod TurboPattes.EditorTools.IconSheet.Export -tp-out docs/icones.png -logFile -
 # Parcours des menus (titre, pilote, choix de Teo (ex-Bruno) + Canyon, course avec un pot de miel en main, pause) avec captures :
 ~/dev/turbo-pattes/Builds/macOS/TurboPattes.app/Contents/MacOS/"Turbo Grid" -tp-menutest /tmp/tp-menutest
+# Logo Turbo Grid et écran de marque en SVG + PNG (docs/design), depuis Brand.cs et la police du projet (fontTools ; PNG si Node + Playwright) :
+python3 ~/dev/turbo-pattes/tools/logo/turbo_grid_logo.py
 # Android (S24) : installer, puis lancer avec le diagnostic (rendu + entrées du joueur chaque seconde dans logcat)
 ~/Library/Android/sdk/platform-tools/adb install -r Builds/Android/TurboPattes.apk
 ~/Library/Android/sdk/platform-tools/adb shell am start -n com.kevinyankam.turbopattes/com.unity3d.player.UnityPlayerGameActivity -e unity "-tp-diag"
@@ -104,6 +107,8 @@ cd ~/dev/turbo-pattes/tests/TurboPattes.Tests && DOTNET_CLI_TELEMETRY_OPTOUT=1 /
 ```
 
 ## Vérifications faites (2026-11-01)
+
+- **Branche `claude/suite-3`, écran de lancement (2026-11-22, conteneur Linux sans Unity)** : écran de marque après le splash Unity, fond du splash en carbone (ProjectSettings et `BuildScript.ConfigurePlayer`), logo en SVG/PNG. 209 tests NUnit verts (201 avant). Game/ compilé contre les assemblies de référence UnityEngine 2021.3 (NuGet) avec des stubs, sans nouvelle erreur ; Editor/ relu seulement. **À faire sur Mac/Android** : « Turbo Grid/Configurer le projet », build, lancer sans argument et regarder splash Unity sur carbone → logo Turbo Grid → fondu → logo du titre qui glisse ; toucher pendant l'écran de marque (passe au fondu) ; revenir au menu après une course (pas d'écran de marque) ; `-tp-menutest` (pas d'écran de marque, captures inchangées). Dans l'éditeur, Player Settings > Splash Image : vérifier « Show Splash Screen » et « Show Unity Logo » cochés, fond carbone, style « Light on Dark », aucune image de fond ni logo ajouté.
 
 - **Branche `claude/suite-3` (2026-11-22, conteneur Linux sans Unity)** : houle du Lagon, nuages qui dérivent sur la Route des Nuages, pilotes penchés dans les virages et coup d'œil en arrière. 201 tests NUnit verts (188 avant). Game/ compilé contre les assemblies de référence UnityEngine 2021.3 (NuGet) avec des stubs, sans nouvelle erreur (les 3 erreurs connues d'API absentes en 2021 restent). **À faire sur Mac** : `autotest-tous.sh` (journal : « Houle : N sommets », « Nuages qui dérivent : 45 groupes »), regarder le Lagon (houle, bord du plan animé, plages) et les Nuages, une course en vue poursuite (penché, coup d'œil) ; sur l'A17, comparer la fluidité du Lagon avec la précédente (coût de la houle).
 

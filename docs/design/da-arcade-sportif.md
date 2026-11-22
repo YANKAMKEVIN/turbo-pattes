@@ -201,6 +201,12 @@ Grid), Kevin a retenu **Turbo Grid** : il garde « Turbo » et la mémoire du no
   concerné : le dossier dépend de l'identifiant de paquet).
 - Reste à vérifier : disponibilité de la marque « Turbo Grid » et du nom sur les stores.
 
+Écran de lancement (décision de Kevin du 21/11) : **logo Unity, puis logo Turbo Grid**. Le splash Unity est gardé,
+sur fond carbone ; suit un écran de marque court (1,8 s, `Core/BrandSplash`, `UI/BrandScreen`) : fond carbone, le même
+logo que l'écran titre (`UiKit.Logo`) qui se pose, l'accroche en Saira Condensed, un trait rouge qui file, puis fondu
+sur le survol du circuit. Version image du logo, reproductible : `tools/logo/turbo_grid_logo.py` →
+`docs/design/logo-turbo-grid.svg` (+ `.png`) et `docs/design/ecran-de-marque.svg` (+ `.png`).
+
 Accroche par défaut sous le logo : « Championnat de karting arcade ».
 
 ## 10. Limites et suite

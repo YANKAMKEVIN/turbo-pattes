@@ -214,7 +214,7 @@ namespace TurboPattes.Game.UI
 
         void HandleInput()
         {
-            if (SettingsScreen.IsOpen) return;
+            if (SettingsScreen.IsOpen || BrandScreen.IsOpen) return;
             var l = ComputeLayout();
             var kb = Keyboard.current;
             var pad = Gamepad.current;
@@ -367,6 +367,9 @@ namespace TurboPattes.Game.UI
             ChangeCircuit(chosen);
         }
 
+        /// <summary>Relance l'arrivée du logo (à la fin de l'écran de marque).</summary>
+        public void ReplayLogoIntro() => _titleShownAt = Time.time;
+
         /// <summary>Pour le mode -tp-menutest.</summary>
         public void TestGoToPilots() { _screen = Screen.Pilot; _row = Row.Start; }
         public void TestSelect(int pilot, int laps, Difficulty difficulty, int circuit)
@@ -442,7 +445,8 @@ namespace TurboPattes.Game.UI
         void OnGUI()
         {
             _ui.EnsureStyles();
-            if (SettingsScreen.IsOpen) return;
+            // Pendant l'écran de marque, l'écran titre attend : son logo glissera quand il aura disparu.
+            if (SettingsScreen.IsOpen || BrandScreen.IsOpen) return;
             var l = ComputeLayout();
             if (_screen == Screen.Title && _camBlend < 0.5f) DrawTitle(l);
             else if (_screen == Screen.Pilot && _camBlend > 0.5f)
@@ -510,7 +514,7 @@ namespace TurboPattes.Game.UI
             float since = Time.time - _titleShownAt;
             var pivot = new Vector2(w * 0.5f + LogoIntro.Offset(since) * w * 0.8f, l.Safe.y + l.Safe.height * 0.3f);
             float la = a * LogoIntro.Alpha(since);
-            DrawLogo(pivot, s, la);
+            _ui.Logo(pivot, s, la);
             var sub = new Rect(w * 0.5f - 290 * s, pivot.y + 122 * s, 580 * s, 44 * s);
             _ui.Plate(sub, a);
             _ui.Label(sub, Brand.Tagline.ToUpperInvariant(), _ui.Medium, UiKit.Alpha(UiKit.Chalk, a), TextAnchor.MiddleCenter);
@@ -523,34 +527,6 @@ namespace TurboPattes.Game.UI
             _ui.Plate(hint, 0.85f * a);
             _ui.Label(hint, "Touche l'écran, Entrée ou A", _ui.Body, UiKit.Alpha(UiKit.Chalk, a), TextAnchor.MiddleCenter);
             _ui.Button(l.Settings, "Réglages", false, false, _ui.Small, a);
-        }
-
-        /// <summary>
-        /// Logo : le titre (<see cref="Brand.Title"/>) sur deux lignes penchées, blanc piste puis rouge course, emblème à
-        /// gauche (damier et chevrons sur pastille carbone), filets de vitesse acier derrière.
-        /// </summary>
-        void DrawLogo(Vector2 pivot, float s, float a)
-        {
-            var m = GUI.matrix;
-            var shear = Matrix4x4.identity;
-            shear.m01 = -LogoIntro.Slant;
-            shear.m03 = LogoIntro.Slant * pivot.y;
-            GUI.matrix = m * shear;
-            // Filets de vitesse : trois traits qui filent derrière les lettres, vers la gauche.
-            UiKit.Box(new Rect(pivot.x - 420 * s, pivot.y - 34 * s, 300 * s, 10 * s), UiKit.Alpha(UiKit.Steel, 0.9f * a));
-            UiKit.Box(new Rect(pivot.x - 470 * s, pivot.y - 8 * s, 380 * s, 14 * s), UiKit.Alpha(UiKit.Red, 0.9f * a));
-            UiKit.Box(new Rect(pivot.x - 430 * s, pivot.y + 24 * s, 260 * s, 6 * s), UiKit.Alpha(UiKit.Steel, 0.9f * a));
-            var logo = new GUIStyle(_ui.Huge) { fontSize = Mathf.RoundToInt(130 * s) };
-            var lines = Brand.LogoLines();
-            _ui.Label(new Rect(pivot.x - 400 * s, pivot.y - 136 * s, 860 * s, 140 * s), lines[0], logo, UiKit.Alpha(UiKit.Chalk, a), TextAnchor.MiddleCenter, 6f);
-            _ui.Label(new Rect(pivot.x - 400 * s, pivot.y - 14 * s, 860 * s, 140 * s), lines[1], logo, UiKit.Alpha(UiKit.Red, a), TextAnchor.MiddleCenter, 6f);
-            GUI.matrix = m;
-            // L'emblème, à gauche du mot, sur une pastille carbone cerclée d'acier.
-            var badge = new Vector2(pivot.x - 290 * s, pivot.y - 62 * s);
-            UiKit.Disc(badge, 70 * s, UiKit.Alpha(UiKit.Steel, a));
-            UiKit.Disc(badge, 64 * s, UiKit.Alpha(UiKit.Carbon, a));
-            GUI.DrawTexture(new Rect(badge.x - 52 * s, badge.y - 52 * s, 104 * s, 104 * s), Icons.Emblem(), ScaleMode.ScaleToFit, true, 0f,
-                new Color(1f, 1f, 1f, a), 0f, 0f);
         }
 
         void DrawPilot(Layout l)

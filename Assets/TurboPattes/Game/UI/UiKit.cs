@@ -154,6 +154,35 @@ namespace TurboPattes.Game.UI
         /// <summary>Plaque carbone presque opaque : contraste stable derrière les informations de course.</summary>
         public void Plate(Rect r, float alpha = 1f) => Card(r, new Color(Carbon.r, Carbon.g, Carbon.b, 0.86f * alpha), Mathf.Min(r.height * 0.3f, 18f * Scale));
 
+        /// <summary>
+        /// Logo : le titre (<see cref="Brand.Title"/>) sur deux lignes penchées, blanc piste puis rouge course, emblème à
+        /// gauche (damier et chevrons sur pastille carbone), filets de vitesse acier derrière. Partagé par l'écran titre et l'écran de marque
+        /// (<see cref="BrandScreen"/>).
+        /// </summary>
+        public void Logo(Vector2 pivot, float s, float a)
+        {
+            var m = GUI.matrix;
+            var shear = Matrix4x4.identity;
+            shear.m01 = -LogoIntro.Slant;
+            shear.m03 = LogoIntro.Slant * pivot.y;
+            GUI.matrix = m * shear;
+            // Filets de vitesse : trois traits qui filent derrière les lettres, vers la gauche.
+            Box(new Rect(pivot.x - 420 * s, pivot.y - 34 * s, 300 * s, 10 * s), Alpha(Steel, 0.9f * a));
+            Box(new Rect(pivot.x - 470 * s, pivot.y - 8 * s, 380 * s, 14 * s), Alpha(Red, 0.9f * a));
+            Box(new Rect(pivot.x - 430 * s, pivot.y + 24 * s, 260 * s, 6 * s), Alpha(Steel, 0.9f * a));
+            var logo = new GUIStyle(Huge) { fontSize = Mathf.RoundToInt(130 * s) };
+            var lines = Brand.LogoLines();
+            Label(new Rect(pivot.x - 400 * s, pivot.y - 136 * s, 860 * s, 140 * s), lines[0], logo, Alpha(Chalk, a), TextAnchor.MiddleCenter, 6f);
+            Label(new Rect(pivot.x - 400 * s, pivot.y - 14 * s, 860 * s, 140 * s), lines[1], logo, Alpha(Red, a), TextAnchor.MiddleCenter, 6f);
+            GUI.matrix = m;
+            // L'emblème, à gauche du mot, sur une pastille carbone cerclée d'acier.
+            var badge = new Vector2(pivot.x - 290 * s, pivot.y - 62 * s);
+            Disc(badge, 70 * s, Alpha(Steel, a));
+            Disc(badge, 64 * s, Alpha(Carbon, a));
+            GUI.DrawTexture(new Rect(badge.x - 52 * s, badge.y - 52 * s, 104 * s, 104 * s), Icons.Emblem(), ScaleMode.ScaleToFit, true, 0f,
+                new Color(1f, 1f, 1f, a), 0f, 0f);
+        }
+
         /// <summary>Repère oblique : parallélogramme penché vers la droite (pente <paramref name="slant"/>).</summary>
         public static void Slash(Rect r, Color color, float slant = 0.35f)
         {
