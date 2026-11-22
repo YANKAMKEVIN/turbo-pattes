@@ -1,7 +1,8 @@
 # Direction artistique « Arcade sportif »
 
-> **Validée par Kevin le 21/11/2026** : palette (§ 2), pilotes (§ 6), objets (§ 7) et circuits (§ 8). Nom du jeu
-> choisi le même jour : **Turbo Grid** (§ 9).
+> **Validée par Kevin le 21/11/2026** : palette (§ 2), police Saira Condensed (§ 3), pilotes (§ 6), objets (§ 7),
+> circuits (§ 8) et accroche (§ 9). Nom du jeu choisi le même jour : **Turbo Grid** (§ 9), écran de lancement aussi
+> (logo Unity puis logo Turbo Grid, § 9).
 
 Décision de Kevin du 2026-11-21 : le design actuel est jugé **trop enfant**. Il est remplacé par une direction
 **arcade sportif** : karts et circuits façon sport mécanique, couleurs franches mais sobres, typographie racing,
@@ -9,7 +10,7 @@ HUD épuré, matières métal et carbone. Les **pilotes animaux deviennent des p
 menus et HUD, pilotes, circuits et décors, karts et objets.
 
 Ce document est la **référence** de la refonte. La palette, les pilotes, les objets et les circuits sont **validés
-par Kevin le 21/11** ; les autres valeurs (police, accroche) restent des valeurs par défaut. Toutes sont regroupées dans du code de données testé (`Core/Brand.cs`, `Core/Roster.cs`, `Core/ItemCatalog.cs`),
+par Kevin le 21/11**, ainsi que la police et l'accroche. Toutes les valeurs sont regroupées dans du code de données testé (`Core/Brand.cs`, `Core/Roster.cs`, `Core/ItemCatalog.cs`),
 pour qu'un changement de décision ne touche qu'un seul fichier.
 
 Ce qui ne change pas : physique, équilibrage, caractère des pilotes (`Core/DriverStats`), contenu des modes, règles
@@ -68,7 +69,7 @@ testé (ratio de contraste WCAG 2.1) : **4,5:1 minimum** pour le texte courant, 
 bandeaux (corps ≥ 48 px à 720 p). Les plaques du HUD sont presque opaques (86 %) pour que ce contraste tienne quel
 que soit le décor derrière.
 
-## 3. Typographie
+## 3. Typographie — validé le 21/11
 
 - **Saira Condensed** Bold et SemiBold (Omnibus-Type, licence SIL OFL 1.1, `Resources/Fonts/SairaCondensed-OFL.txt`) :
   titres, chiffres, libellés du HUD, boutons. Le dessin carré et serré de Saira est celui des numéros de course et
@@ -201,7 +202,13 @@ Grid), Kevin a retenu **Turbo Grid** : il garde « Turbo » et la mémoire du no
   concerné : le dossier dépend de l'identifiant de paquet).
 - Reste à vérifier : disponibilité de la marque « Turbo Grid » et du nom sur les stores.
 
-Accroche par défaut sous le logo : « Championnat de karting arcade ».
+Écran de lancement (décision de Kevin du 21/11) : **logo Unity, puis logo Turbo Grid**. Le splash Unity est gardé,
+sur fond carbone ; suit un écran de marque court (1,8 s, `Core/BrandSplash`, `UI/BrandScreen`) : fond carbone, le même
+logo que l'écran titre (`UiKit.Logo`) qui se pose, l'accroche en Saira Condensed, un trait rouge qui file, puis fondu
+sur le survol du circuit. Version image du logo, reproductible : `tools/logo/turbo_grid_logo.py` →
+`docs/design/logo-turbo-grid.svg` (+ `.png`) et `docs/design/ecran-de-marque.svg` (+ `.png`).
+
+Accroche sous le logo : « Championnat de karting arcade » (validée par Kevin le 21/11, `Brand.Tagline`).
 
 ## 10. Limites et suite
 
@@ -219,5 +226,6 @@ Accroche par défaut sous le logo : « Championnat de karting arcade ».
 - ~~La palette (§ 2) et les couleurs d'équipe~~ : validées le 21/11.
 - ~~Les noms, numéros et codes des pilotes (§ 6)~~ : validés le 21/11.
 - ~~Les noms des objets (§ 7), des circuits et des coupes (§ 8), les sponsors fictifs~~ : validés le 21/11.
-- L'accroche (§ 9).
-- La police Saira Condensed (§ 3).
+- ~~L'accroche (§ 9)~~ : « Championnat de karting arcade », validée le 21/11.
+- ~~La police Saira Condensed (§ 3)~~ : validée le 21/11.
+- Le logo et l'écran de marque en image (`docs/design/logo-turbo-grid.png`, `ecran-de-marque.png`), générés par code.

@@ -59,6 +59,9 @@ namespace TurboPattes.Game.App
         /// <summary>Au chargement de la scène : menu (true) ou course directe (Rejouer).</summary>
         public static bool ShowMenu = true;
 
+        /// <summary>Écran de marque déjà montré pendant ce lancement (il ne revient pas au retour au menu).</summary>
+        public static bool BrandShown;
+
         public static int Pilot
         {
             get => Mathf.Clamp(Load("tp.pilot", 0), 0, 7);

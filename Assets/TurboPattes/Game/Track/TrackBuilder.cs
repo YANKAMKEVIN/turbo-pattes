@@ -15,6 +15,7 @@ namespace TurboPattes.Game.Track
         public static List<BoostPad> Build(Circuit circuit, TrackPath path, Transform root, int seed)
         {
             var rng = new System.Random(seed);
+            _driftingClouds.Clear();
             var style = ThemeStyle.For(circuit.Theme);
             var terrain = path.HasRelief && !path.Floating ? new Terrain(path, style) : null;
             if (terrain != null) BuildTerrain(path, terrain, style, circuit.Theme, root);
@@ -42,12 +43,21 @@ namespace TurboPattes.Game.Track
             // Tout le circuit est immobile : un objet par matériau au lieu de centaines.
             var (merged, skipped, result) = MeshKit.Combine(root);
             Debug.Log($"[TurboPattes] Décor fusionné : {merged} maillages -> {result} objets ({skipped} non lisibles)");
-            // Décor animé : les maillages fusionnés gardent le matériau, qu'on anime en place.
+            // Décor animé : les maillages fusionnés gardent le matériau, qu'on anime en place ; la houle et les
+            // nuages qui dérivent sont construits maintenant, à part, pour rester mobiles.
+            DecorMotion motion = null;
+            DecorMotion Motion()
+            {
+                if (motion == null) motion = root.gameObject.AddComponent<DecorMotion>();
+                return motion;
+            }
             if (_animatedLava.HasValue)
             {
-                root.gameObject.AddComponent<DecorMotion>().AnimateLava(_animatedLava.Value.mat, _animatedLava.Value.emission);
+                Motion().AnimateLava(_animatedLava.Value.mat, _animatedLava.Value.emission);
                 _animatedLava = null;
             }
+            if (!float.IsNaN(style.WaterLevel)) BuildWaves(path, style, root, Motion());
+            if (_driftingClouds.Count > 0) BuildDriftingClouds(root, Motion());
             return pads;
         }
 

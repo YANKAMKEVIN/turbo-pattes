@@ -207,9 +207,13 @@ namespace TurboPattes.EditorTools
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = true;
+            // Lancement (décision du 21/11) : splash Unity gardé, puis écran de marque Turbo Grid en jeu (UI/BrandScreen).
+            // Même fond carbone des deux côtés pour qu'on ne voie pas le passage de l'un à l'autre.
+            PlayerSettings.SplashScreen.show = true;
             PlayerSettings.SplashScreen.showUnityLogo = true;
-            // Fond vert charbon de la direction « Atelier plein gaz » (#24302D), comme le logo de l'écran titre.
-            PlayerSettings.SplashScreen.backgroundColor = new Color(0x24 / 255f, 0x30 / 255f, 0x2D / 255f);
+            PlayerSettings.SplashScreen.unityLogoStyle = PlayerSettings.SplashScreen.UnityLogoStyle.LightOnDark;
+            var carbon = TurboPattes.Core.Palette.Carbon;
+            PlayerSettings.SplashScreen.backgroundColor = new Color(carbon.R, carbon.G, carbon.B);
         }
 
         /// <summary>Active Input Handling = Input System Package (prend effet au prochain lancement de l'éditeur).</summary>

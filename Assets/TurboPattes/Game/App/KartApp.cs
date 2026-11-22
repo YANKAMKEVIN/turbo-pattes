@@ -108,6 +108,12 @@ namespace TurboPattes.Game.App
             menu.Setup(_path, _chase.GetComponent<Camera>(), _sound, _circuitIndex);
             Jukebox.Instance.Play(Songs.Menu, 0.45f);
             menu.Play = StartRace;
+            // Écran de marque après le splash Unity, une fois par lancement ; pas pendant -tp-menutest (captures à heure fixe).
+            if (BrandSplash.ShouldShow(GameSession.BrandShown, _menuTestDir != null))
+            {
+                GameSession.BrandShown = true;
+                UI.BrandScreen.Show(menu.ReplayLogoIntro);
+            }
             if (_menuTestDir != null) StartCoroutine(MenuTest(menu));
         }
 

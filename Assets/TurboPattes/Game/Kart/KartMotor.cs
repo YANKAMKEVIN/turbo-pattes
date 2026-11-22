@@ -79,6 +79,9 @@ namespace TurboPattes.Game.Kart
         public int Racers { get; set; } = 8;
         /// <summary>Temps depuis l'arrivée, pour l'animation du pilote.</summary>
         float _celebration;
+        /// <summary>Coup d'œil en arrière après un dépassement : temps depuis le dernier, côté, place à l'image précédente.</summary>
+        float _sinceGlance = DriverPoses.GlanceCooldown;
+        int _glanceSide = 1, _lastRank = -1;
 
         public ItemKind Item { get; set; }
         /// <summary>Temps restant de la roulette d'objet (l'objet n'est utilisable qu'à 0).</summary>
@@ -446,6 +449,20 @@ namespace TurboPattes.Game.Kart
             {
                 _celebration += dt;
                 KartFactory.Pose(Rig, DriverPoses.Pose(DriverPoses.For(Rank, Racers), _celebration));
+            }
+            else
+            {
+                // En course : le pilote se penche dans les virages et jette un œil derrière lui après un dépassement
+                // (par-dessus l'épaule opposée au virage en cours).
+                float speedRatio = Mathf.Clamp01(Speed / MaxSpeed);
+                _sinceGlance += dt;
+                if (DriverPoses.StartsGlance(_lastRank, Rank, _sinceGlance, speedRatio))
+                {
+                    _sinceGlance = 0f;
+                    _glanceSide = _steerVisual > 0.3f ? -1 : 1;
+                }
+                _lastRank = Rank;
+                KartFactory.Pose(Rig, DriverPoses.Driving(_steerVisual, speedRatio, _sinceGlance, _glanceSide));
             }
 
             Rig.Shield.SetActive(ShieldTime > 0f);
